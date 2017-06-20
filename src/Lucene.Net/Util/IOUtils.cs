@@ -413,7 +413,7 @@ namespace Lucene.Net.Util
             {
                 if (th is System.IO.IOException)
                 {
-                    throw th;
+                    ReThrowPreservingStacktrace(th);
                 }
                 ReThrowUnchecked(th);
             }
@@ -428,7 +428,22 @@ namespace Lucene.Net.Util
         {
             if (th != null) // LUCENENET TODO: BUG - In Lucene we throw a new exception type in some cases which may not be caught in a different layer
             {
-                throw th;
+                //Note: Perserve Stacktrace if possible.
+                ReThrowPreservingStacktrace(th);
+            }
+        }
+
+        private static void ReThrowPreservingStacktrace(Exception th)
+        {
+            try
+            {
+
+                Exception ex = (Exception)Activator.CreateInstance(th.GetType(), th.Message, th);
+                throw ex;
+            }
+            catch
+            {
+                throw new Exception(th.Message, th);
             }
         }
 

@@ -62,7 +62,7 @@ namespace Lucene.Net.Replicator
         private InfoStream infoStream = InfoStream.Default;
 
         public string CurrentVersion { get; private set; }
-        public IReadOnlyDictionary<string, IReadOnlyCollection<RevisionFile>> CurrentRevisionFiles { get; private set; }
+        public IDictionary<string, IList<RevisionFile>> CurrentRevisionFiles { get; private set; }
         public InfoStream InfoStream
         {
             get { return infoStream; }
@@ -115,9 +115,9 @@ namespace Lucene.Net.Replicator
         /// <param name="sourceDirectory"></param>
         /// <exception cref=""></exception>
         public void RevisionReady(string version,
-            IReadOnlyDictionary<string, IReadOnlyCollection<RevisionFile>> revisionFiles,
-            IReadOnlyDictionary<string, IList<string>> copiedFiles,
-            IReadOnlyDictionary<string, Directory> sourceDirectory)
+            IDictionary<string, IList<RevisionFile>> revisionFiles,
+            IDictionary<string, IList<string>> copiedFiles,
+            IDictionary<string, Directory> sourceDirectory)
         {
             #region Java
             //JAVA: Directory taxoClientDir = sourceDirectory.get(IndexAndTaxonomyRevision.TAXONOMY_SOURCE);

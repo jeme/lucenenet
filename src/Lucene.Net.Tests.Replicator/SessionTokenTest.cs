@@ -47,17 +47,17 @@ namespace Lucene.Net.Tests.Replicator
 
             SessionToken session1 = new SessionToken("17", revision);
             MemoryStream baos = new MemoryStream();
-            session1.Serialize(new BinaryWriterDataOutput(new BinaryWriter(baos)));
+            session1.Serialize(new DataOutputStream(baos));
             byte[] b = baos.ToArray();
 
-            SessionToken session2 = new SessionToken(new ByteArrayDataInput(b));
+            SessionToken session2 = new SessionToken(new DataInputStream(new MemoryStream(b)));
             assertEquals(session1.Id, session2.Id);
             assertEquals(session1.Version, session2.Version);
             assertEquals(1, session2.SourceFiles.Count);
             assertEquals(session1.SourceFiles.Count, session2.SourceFiles.Count);
             assertEquals(session1.SourceFiles.Keys, session2.SourceFiles.Keys);
-            IReadOnlyCollection<RevisionFile> files1 = session1.SourceFiles.Values.First();
-            IReadOnlyCollection<RevisionFile> files2 = session2.SourceFiles.Values.First();
+            IList<RevisionFile> files1 = session1.SourceFiles.Values.First();
+            IList<RevisionFile> files2 = session2.SourceFiles.Values.First();
             assertEquals(files1, files2);
 
             IOUtils.Close(writer, directory);

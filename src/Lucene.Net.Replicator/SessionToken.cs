@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using Lucene.Net.Store;
+using Lucene.Net.Support.IO;
 
 namespace Lucene.Net.Replicator
 {
@@ -54,34 +55,34 @@ namespace Lucene.Net.Replicator
         /// <summary>
         /// <see cref="IRevision.SourceFiles"/>
         /// </summary>
-        public IReadOnlyDictionary<string, IReadOnlyCollection<RevisionFile>> SourceFiles { get; private set; }
+        public IDictionary<string, IList<RevisionFile>> SourceFiles { get; private set; }
 
         /// <summary>
         /// Constructor which deserializes from the given <see cref="DataInput"/>.
         /// </summary>
         /// <param name="reader"></param>
         /// <exception cref="IOException"></exception>
-        public SessionToken(DataInput reader)
+        public SessionToken(DataInputStream reader)
         {
-            Id = reader.ReadString();
-            Version = reader.ReadString();
+            Id = reader.ReadUTF();
+            Version = reader.ReadUTF();
 
-            var sourceFiles = new Dictionary<string, IReadOnlyCollection<RevisionFile>>();
+            var sourceFiles = new Dictionary<string, IList<RevisionFile>>();
             int numSources = reader.ReadInt32();
             while (numSources > 0)
             {
-                string source = reader.ReadString();
+                string source = reader.ReadUTF();
                 int numFiles = reader.ReadInt32();
 
                 List<RevisionFile> files = new List<RevisionFile>(numFiles);
                 for (int i = 0; i < numFiles; i++)
                 {
-                    files.Add(new RevisionFile(reader.ReadString(), reader.ReadInt64()));
+                    files.Add(new RevisionFile(reader.ReadUTF(), reader.ReadInt64()));
                 }
-                sourceFiles.Add(source, files.AsReadOnly());
+                sourceFiles.Add(source, files);
                 --numSources;
             }
-            SourceFiles = new ReadOnlyDictionary<string, IReadOnlyCollection<RevisionFile>>(sourceFiles);
+            SourceFiles = sourceFiles;
         }
 
         /// <summary>
@@ -102,19 +103,19 @@ namespace Lucene.Net.Replicator
         /// </summary>
         /// <param name="writer"></param>
         /// <exception cref="IOException"></exception>
-        public void Serialize(DataOutput writer)
+        public void Serialize(DataOutputStream writer)
         {
-            writer.WriteString(Id);
-            writer.WriteString(Version);
+            writer.WriteUTF(Id);
+            writer.WriteUTF(Version);
             writer.WriteInt32(SourceFiles.Count);
 
-            foreach (KeyValuePair<string, IReadOnlyCollection<RevisionFile>> pair in SourceFiles)
+            foreach (KeyValuePair<string, IList<RevisionFile>> pair in SourceFiles)
             {
-                writer.WriteString(pair.Key);
+                writer.WriteUTF(pair.Key);
                 writer.WriteInt32(pair.Value.Count);
                 foreach (RevisionFile file in pair.Value)
                 {
-                    writer.WriteString(file.FileName);
+                    writer.WriteUTF(file.FileName);
                     writer.WriteInt64(file.Size);
                 }
             }

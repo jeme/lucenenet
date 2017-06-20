@@ -84,7 +84,7 @@ namespace Lucene.Net.Tests.Replicator
             SessionToken res = replicator.CheckForUpdate(null);
             assertNotNull(res);
             assertEquals(1, res.SourceFiles.Count);
-            System.Collections.Generic.KeyValuePair<string, System.Collections.Generic.IReadOnlyCollection<RevisionFile>> entry = res.SourceFiles.First();
+            System.Collections.Generic.KeyValuePair<string, System.Collections.Generic.IList<RevisionFile>> entry = res.SourceFiles.First();
             replicator.Dispose();
             try
             {
@@ -113,7 +113,22 @@ namespace Lucene.Net.Tests.Replicator
         }
 
         [Test]
-        public virtual void testPublishSameRevision()
+        public void TestUpdateAlreadyClosed()
+        {
+            replicator.Dispose();
+            try
+            {
+                replicator.CheckForUpdate(null);
+                fail("should have failed on AlreadyClosedException");
+            }
+            catch (ObjectDisposedException)
+            {
+                // expected
+            }
+        }
+
+        [Test]
+        public void TestPublishSameRevision()
         {
             IRevision rev = CreateRevision(1);
             replicator.Publish(rev);
@@ -133,7 +148,7 @@ namespace Lucene.Net.Tests.Replicator
         }
 
         [Test]
-        public void testPublishOlderRev()
+        public void TestPublishOlderRev()
         {
             replicator.Publish(CreateRevision(1));
             IRevision old = new IndexRevision(sourceWriter);

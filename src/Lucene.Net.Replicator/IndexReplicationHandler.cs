@@ -62,11 +62,11 @@ namespace Lucene.Net.Replicator
         public const string INFO_STREAM_COMPONENT = "IndexReplicationHandler";
 
         private readonly Directory indexDirectory;
-        private readonly Func<bool> callback;
+        private readonly Func<bool?> callback;
         private InfoStream infoStream;
 
         public string CurrentVersion { get; private set; }
-        public IReadOnlyDictionary<string, IReadOnlyCollection<RevisionFile>> CurrentRevisionFiles { get; private set; }
+        public IDictionary<string, IList<RevisionFile>> CurrentRevisionFiles { get; private set; }
 
         public InfoStream InfoStream
         {
@@ -81,7 +81,7 @@ namespace Lucene.Net.Replicator
         /// <param name="indexDirectory"></param>
         /// <param name="callback"></param>
         // .NET NOTE: Java uses a Callable<Boolean>, however it is never uses the returned value?
-        public IndexReplicationHandler(Directory indexDirectory, Func<bool> callback)
+        public IndexReplicationHandler(Directory indexDirectory, Func<bool?> callback)
         {
             #region JAVA
             //JAVA: this.callback = callback;
@@ -126,9 +126,9 @@ namespace Lucene.Net.Replicator
         }
 
         public void RevisionReady(string version, 
-            IReadOnlyDictionary<string, IReadOnlyCollection<RevisionFile>> revisionFiles, 
-            IReadOnlyDictionary<string, IList<string>> copiedFiles, 
-            IReadOnlyDictionary<string, Directory> sourceDirectory)
+            IDictionary<string, IList<RevisionFile>> revisionFiles, 
+            IDictionary<string, IList<string>> copiedFiles, 
+            IDictionary<string, Directory> sourceDirectory)
         {
             #region Java
             //JAVA: if (revisionFiles.size() > 1) {
@@ -199,7 +199,7 @@ namespace Lucene.Net.Replicator
             try
             {
                 // copy files from the client to index directory
-                CopyFiles(clientDirectory, indexDirectory, files);
+                 CopyFiles(clientDirectory, indexDirectory, files);
 
                 // fsync all copied files (except segmentsFile)
                 indexDirectory.Sync(files);
@@ -207,7 +207,7 @@ namespace Lucene.Net.Replicator
                 // now copy and fsync segmentsFile
                 clientDirectory.Copy(indexDirectory, segmentsFile, segmentsFile, IOContext.READ_ONCE);
                 indexDirectory.Sync(new[] { segmentsFile });
-
+                
                 success = true;
             }
             finally
@@ -419,7 +419,7 @@ namespace Lucene.Net.Replicator
 
                     Regex matcher = IndexFileNames.CODEC_FILE_PATTERN;
                     foreach (string file in directory.ListAll()
-                        .Where(file => commitFiles.Contains(file) && (!matcher.IsMatch(file) || !file.StartsWith(IndexFileNames.SEGMENTS))))
+                        .Where(file => !commitFiles.Contains(file) && (matcher.IsMatch(file) || file.StartsWith(IndexFileNames.SEGMENTS))))
                     {
                         try
                         {

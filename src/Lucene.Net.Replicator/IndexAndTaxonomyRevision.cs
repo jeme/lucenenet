@@ -61,7 +61,7 @@ namespace Lucene.Net.Replicator
         private readonly SnapshotDeletionPolicy indexSdp, taxonomySdp;
 
         public string Version { get; private set; }
-        public IReadOnlyDictionary<string, IReadOnlyCollection<RevisionFile>> SourceFiles { get; private set; }
+        public IDictionary<string, IList<RevisionFile>> SourceFiles { get; private set; }
 
         /// <summary>
         /// 
@@ -177,14 +177,14 @@ namespace Lucene.Net.Replicator
             //JAVA:   assert source.equals(INDEX_SOURCE) || source.equals(TAXONOMY_SOURCE) : "invalid source; expected=(" + INDEX_SOURCE
             //JAVA:   + " or " + TAXONOMY_SOURCE + ") got=" + source;
             //JAVA:   IndexCommit ic = source.equals(INDEX_SOURCE) ? indexCommit : taxoCommit;
-            //JAVA:   return new IndexInputInputStream(ic.getDirectory().openInput(fileName, IOContext.READONCE));
+            //JAVA:   return new IndexInputStream(ic.getDirectory().openInput(fileName, IOContext.READONCE));
             //JAVA: }
             #endregion
 
             Debug.Assert(source.Equals(INDEX_SOURCE) || source.Equals(TAXONOMY_SOURCE), 
                 string.Format("invalid source; expected=({0} or {1}) got={2}", INDEX_SOURCE, TAXONOMY_SOURCE, source));
             IndexCommit commit = source.Equals(INDEX_SOURCE) ? indexCommit : taxonomyCommit;
-            return new IndexInputInputStream(commit.Directory.OpenInput(fileName, IOContext.READ_ONCE));
+            return new IndexInputStream(commit.Directory.OpenInput(fileName, IOContext.READ_ONCE));
         }
 
         /// <summary>
@@ -236,7 +236,7 @@ namespace Lucene.Net.Replicator
         /// <param name="taxonomyCommit"></param>
         /// <returns></returns>
         /// <exception cref="IOException"></exception>
-        public static IReadOnlyDictionary<string, IReadOnlyCollection<RevisionFile>> RevisionFiles(IndexCommit indexCommit, IndexCommit taxonomyCommit)
+        public static IDictionary<string, IList<RevisionFile>> RevisionFiles(IndexCommit indexCommit, IndexCommit taxonomyCommit)
         {
             #region Java
             //JAVA: /** Returns a singleton map of the revision files from the given {@link IndexCommit}. */
@@ -249,10 +249,10 @@ namespace Lucene.Net.Replicator
             //JAVA: }
             #endregion
 
-            return new ReadOnlyDictionary<string, IReadOnlyCollection<RevisionFile>>(new Dictionary<string, IReadOnlyCollection<RevisionFile>>{
+            return new Dictionary<string, IList<RevisionFile>>{
                     { INDEX_SOURCE,  IndexRevision.RevisionFiles(indexCommit).Values.First() },
                     { TAXONOMY_SOURCE,  IndexRevision.RevisionFiles(taxonomyCommit).Values.First() }
-                });
+                };
         }
 
         /// <summary>

@@ -66,7 +66,7 @@ namespace Lucene.Net.Replicator
         private readonly SnapshotDeletionPolicy sdp;
 
         public string Version { get; private set; }
-        public IReadOnlyDictionary<string, IReadOnlyCollection<RevisionFile>> SourceFiles { get; private set; }
+        public IDictionary<string, IList<RevisionFile>> SourceFiles { get; private set; }
 
         public IndexRevision(IndexWriter writer)
         {
@@ -123,7 +123,7 @@ namespace Lucene.Net.Replicator
         public Stream Open(string source, string fileName)
         {
             Debug.Assert(source.Equals(SOURCE), string.Format("invalid source; expected={0} got={1}", SOURCE, source));
-            return new IndexInputInputStream(commit.Directory.OpenInput(fileName, IOContext.READ_ONCE));
+            return new IndexInputStream(commit.Directory.OpenInput(fileName, IOContext.READ_ONCE));
         }
 
         public void Release()
@@ -151,7 +151,7 @@ namespace Lucene.Net.Replicator
         }
 
         /** Returns a singleton map of the revision files from the given {@link IndexCommit}. */
-        public static IReadOnlyDictionary<string, IReadOnlyCollection<RevisionFile>> RevisionFiles(IndexCommit commit)
+        public static IDictionary<string, IList<RevisionFile>> RevisionFiles(IndexCommit commit)
         {
             #region Java
             //JAVA: public static Map<String,List<RevisionFile>> revisionFiles(IndexCommit commit) throws IOException {
@@ -170,15 +170,16 @@ namespace Lucene.Net.Replicator
             //JAVA: }
             #endregion
 
-            IEnumerable<RevisionFile> revisionFiles = commit.FileNames
+            List<RevisionFile> revisionFiles = commit.FileNames
                 .Where(file => !string.Equals(file, commit.SegmentsFileName))
                 .Select(file => CreateRevisionFile(file, commit.Directory))
                 //Note: segments_N must be last
-                .Union(new[] { CreateRevisionFile(commit.SegmentsFileName, commit.Directory) });
-            return new ReadOnlyDictionary<string, IReadOnlyCollection<RevisionFile>>(new Dictionary<string, IReadOnlyCollection<RevisionFile>>
+                .Union(new[] {CreateRevisionFile(commit.SegmentsFileName, commit.Directory)})
+                .ToList();
+            return new Dictionary<string, IList<RevisionFile>>
             {
-                { SOURCE, revisionFiles.ToList().AsReadOnly() }
-            });
+                { SOURCE, revisionFiles }
+            };
         }
    
         /// <summary>

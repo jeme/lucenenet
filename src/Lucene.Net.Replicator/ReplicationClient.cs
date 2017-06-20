@@ -178,17 +178,17 @@ namespace Lucene.Net.Replicator
                 if (session == null)
                     return;
 
-                IReadOnlyDictionary<string, IReadOnlyCollection<RevisionFile>> requiredFiles = RequiredFiles(session.SourceFiles);
+                IDictionary<string, IList<RevisionFile>> requiredFiles = RequiredFiles(session.SourceFiles);
                 WriteToInfoStream(string.Format("doUpdate(): handlerVersion={0} session={1}", version, session));
 
-                foreach (KeyValuePair<string, IReadOnlyCollection<RevisionFile>> pair in requiredFiles)
+                foreach (KeyValuePair<string, IList<RevisionFile>> pair in requiredFiles)
                 {
                     string source = pair.Key;
                     Directory directory = factory.GetDirectory(session.Id, source);
 
                     sourceDirectory.Add("source", directory);
                     List<string> cpFiles = new List<string>();
-                    copiedFiles.Add(source, cpFiles.AsReadOnly());
+                    copiedFiles.Add(source, cpFiles);
                     foreach (RevisionFile file in pair.Value)
                     {
                         if (disposed)
@@ -206,6 +206,7 @@ namespace Lucene.Net.Replicator
                             output = directory.CreateOutput(file.FileName, IOContext.DEFAULT);
 
                             CopyBytes(output, input);
+                            
                             cpFiles.Add(file.FileName);
                             // TODO add some validation, on size / checksum
                         }
@@ -282,7 +283,7 @@ namespace Lucene.Net.Replicator
         /// </summary>
         /// <param name="newRevisionFiles"></param>
         /// <returns></returns>
-        private IReadOnlyDictionary<string, IReadOnlyCollection<RevisionFile>> RequiredFiles(IReadOnlyDictionary<string, IReadOnlyCollection<RevisionFile>> newRevisionFiles)
+        private IDictionary<string, IList<RevisionFile>> RequiredFiles(IDictionary<string, IList<RevisionFile>> newRevisionFiles)
         {
             #region Java
             //JAVA: protected Map<String,List<RevisionFile>> requiredFiles(Map<String,List<RevisionFile>> newRevisionFiles) {
@@ -315,12 +316,12 @@ namespace Lucene.Net.Replicator
             //JAVA: }
             #endregion
 
-            IReadOnlyDictionary<string, IReadOnlyCollection<RevisionFile>> handlerRevisionFiles = handler.CurrentRevisionFiles;
+            IDictionary<string, IList<RevisionFile>> handlerRevisionFiles = handler.CurrentRevisionFiles;
             if (handlerRevisionFiles == null)
                 return newRevisionFiles;
 
-            Dictionary<string, IReadOnlyCollection<RevisionFile>> requiredFiles = new Dictionary<string, IReadOnlyCollection<RevisionFile>>();
-            foreach (KeyValuePair<string, IReadOnlyCollection<RevisionFile>> pair in handlerRevisionFiles)
+            Dictionary<string, IList<RevisionFile>> requiredFiles = new Dictionary<string, IList<RevisionFile>>();
+            foreach (KeyValuePair<string, IList<RevisionFile>> pair in handlerRevisionFiles)
             {
                 // put the handler files in a Set, for faster contains() checks later
                 HashSet<string> handlerFiles = new HashSet<string>(pair.Value.Select(v => v.FileName));
@@ -331,9 +332,9 @@ namespace Lucene.Net.Replicator
                 List<RevisionFile> res = newRevisionFiles[source]
                     .Where(file => !handlerFiles.Contains(file.FileName))
                     .ToList();
-                requiredFiles.Add(source, res.AsReadOnly());
+                requiredFiles.Add(source, res);
             }
-            return new ReadOnlyDictionary<string, IReadOnlyCollection<RevisionFile>>(requiredFiles);
+            return requiredFiles;
         }
 
         /// <summary>
@@ -417,7 +418,7 @@ namespace Lucene.Net.Replicator
         }
 
         /// <summary>Throws <see cref="ObjectDisposedException"/> if the client has already been disposed.</summary>
-        protected void EnsureOpen()
+        protected virtual void EnsureOpen()
         {
             if (!disposed)
                 return;
@@ -437,7 +438,7 @@ namespace Lucene.Net.Replicator
         /// call <seealso cref="StopUpdateThread"/> followed by
         /// <seealso cref="StartUpdateThread"/>.
         /// </remarks>
-        protected void HandleUpdateException(Exception exception)
+        protected virtual void HandleUpdateException(Exception exception)
         {
             WriteToInfoStream(string.Format("an error occurred during revision update: {0}", exception));
         }
@@ -697,7 +698,7 @@ namespace Lucene.Net.Replicator
             string CurrentVersion { get; }
 
             /// <summary>Returns the current revision version held by the handler.</summary>
-            IReadOnlyDictionary<string, IReadOnlyCollection<RevisionFile>> CurrentRevisionFiles { get; }
+            IDictionary<string, IList<RevisionFile>> CurrentRevisionFiles { get; }
 
             /// <summary>
             /// Called when a new revision was obtained and is available (i.e. all needed files were successfully copied).
@@ -708,9 +709,9 @@ namespace Lucene.Net.Replicator
             /// <param name="sourceDirectory">a mapping from a source of files to the <see cref="Directory"/> they were copied into</param>
             /// <see cref="IOException"/>
             void RevisionReady(string version,
-                IReadOnlyDictionary<string, IReadOnlyCollection<RevisionFile>> revisionFiles,
-                IReadOnlyDictionary<string, IList<string>> copiedFiles,
-                IReadOnlyDictionary<string, Directory> sourceDirectory);
+                IDictionary<string, IList<RevisionFile>> revisionFiles,
+                IDictionary<string, IList<string>> copiedFiles,
+                IDictionary<string, Directory> sourceDirectory);
         }
     }
 }

@@ -3,9 +3,10 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Runtime.Serialization.Formatters.Binary;
-using System.Web;
 using Lucene.Net.Support.IO;
+using Microsoft.AspNetCore.Http;
 
 namespace Lucene.Net.Replicator.Http
 {
@@ -26,28 +27,21 @@ namespace Lucene.Net.Replicator.Http
 	 * limitations under the License.
 	 */
 
-    /**
-     * A server-side service for handling replication requests. The service assumes
-     * requests are sent in the format
-     * <code>/&lt;context&gt;/&lt;shard&gt;/&lt;action&gt;</code> where
-     * <ul>
-     * <li>{@code context} is the servlet context, e.g. {@link #REPLICATION_CONTEXT}
-     * <li>{@code shard} is the ID of the shard, e.g. "s1"
-     * <li>{@code action} is one of {@link ReplicationAction} values
-     * </ul>
-     * For example, to check whether there are revision updates for shard "s1" you
-     * should send the request: <code>http://host:port/replicate/s1/update</code>.
-     * <p>
-     * This service is written like a servlet, and
-     * {@link #perform(HttpServletRequest, HttpServletResponse)} takes servlet
-     * request and response accordingly, so it is quite easy to embed in your
-     * application's servlet.
-     * 
-     * @lucene.experimental
-     */
-
     /// <summary>
-    /// 
+    /// A server-side service for handling replication requests. The service assumes
+    /// requests are sent in the format <code>/&lt;context&gt;/&lt;shard&gt;/&lt;action&gt;</code> where
+    /// <ul>
+    ///   <li>{@code context} is the servlet context, e.g. {@link #REPLICATION_CONTEXT}</li>
+    ///   <li>{@code shard} is the ID of the shard, e.g. "s1"</li>
+    ///   <li>{@code action} is one of {@link ReplicationAction} values</li>
+    /// </ul>
+    /// For example, to check whether there are revision updates for shard "s1" you
+    /// should send the request: <code>http://host:port/replicate/s1/update</code>.
+    /// <p>
+    /// This service is written like a servlet, and
+    /// {@link #perform(HttpServletRequest, HttpServletResponse)} takes servlet
+    /// request and response accordingly, so it is quite easy to embed in your
+    /// application's servlet.
     /// </summary>
     /// <remarks>
     /// Lucene.Experimental
@@ -77,9 +71,9 @@ namespace Lucene.Net.Replicator.Http
 
         private const int SHARD_IDX = 0, ACTION_IDX = 1;
 
-        private readonly Dictionary<string, IReplicator> replicators;
+        private readonly IDictionary<string, IReplicator> replicators;
 
-        public ReplicationService(Dictionary<String, IReplicator> replicators)
+        public ReplicationService(IDictionary<String, IReplicator> replicators)
         {
             this.replicators = replicators;
         }
@@ -90,11 +84,12 @@ namespace Lucene.Net.Replicator.Http
          */
         private string[] GetPathElements(HttpRequest request)
         {
-            string path = request.Path;
-            string pathInfo = request.PathInfo;
+            string path = request.PathBase + request.Path;
+            //TODO: Figure out which parts we need under AspNetCore.
+            //string pathInfo = "";//request.Path.Value;
             //TODO: Resharper claims this is always true, if that is the true case then we can just concat them.
-            if (pathInfo != null)
-                path += pathInfo;
+            //if (pathInfo != null)
+            //    path += pathInfo;
 
             int actionLength = REPLICATION_CONTEXT.Length;
             int startIndex = actionLength;
@@ -107,13 +102,13 @@ namespace Lucene.Net.Replicator.Http
 
         private static string ExtractRequestParam(HttpRequest request, string paramName) //throws ServletException
         {
-            string param = request.Params.Get(paramName);
-            if (param == null)
+            if (!request.Query.ContainsKey(paramName))
             {
                 //throw new ServletException("Missing mandatory parameter: " + paramName);
                 throw new InvalidOperationException("Missing mandatory parameter: "+paramName);
             }
-            return param;
+            //Note: Will throw an exception if the same parameter is provided multiple times.
+            return request.Query[paramName].Single();
         }
 
         /** Executes the replication task. */
@@ -147,22 +142,43 @@ namespace Lucene.Net.Replicator.Http
                         string fileName = ExtractRequestParam(request, REPLICATE_FILENAME_PARAM);
                         string source = ExtractRequestParam(request, REPLICATE_SOURCE_PARAM);
                         using (Stream stream = replicator.ObtainFile(sessionId, source, fileName))
-                            stream.CopyTo(response.OutputStream);
+                        {
+                            try
+                            {
+                                //const int BUFFER_SIZE = 1024 * 8;
+                                //byte[] buffer = new byte[BUFFER_SIZE];
+                                //while (stream.Position < stream.Length)
+                                //{
+                                //    int read = stream.Read(buffer, 0, BUFFER_SIZE);
+                                //    response.Body.Write(buffer, 0, read);
+                                //}
+
+
+                                stream.CopyTo(response.Body);
+                            }
+                            catch (Exception e)
+                            {
+                                Console.WriteLine(e);
+                                throw;
+                            }
+                        }
                         break;
                     case ReplicationAction.RELEASE:
                         replicator.Release(ExtractRequestParam(request, REPLICATE_SESSION_ID_PARAM));
                         break;
                     case ReplicationAction.UPDATE:
-                        string currentVersion = request.Params.Get(REPLICATE_VERSION_PARAM);
+                        string currentVersion = request.Query[REPLICATE_VERSION_PARAM].SingleOrDefault();//ExtractRequestParam(request, REPLICATE_VERSION_PARAM);
                         SessionToken token = replicator.CheckForUpdate(currentVersion);
                         if (token == null)
                         {
-                            response.OutputStream.Write(new byte[] {0}, 0, 1); // marker for null token
+                            response.Body.Write(new byte[] {0}, 0, 1); // marker for null token
                         }
                         else
                         {
-                            response.OutputStream.Write(new byte[] {1}, 0, 1);
-                            token.Serialize(new BinaryWriterDataOutput(new BinaryWriter(response.OutputStream)));
+                            response.Body.Write(new byte[] {1}, 0, 1);
+                            token.Serialize(new DataOutputStream(response.Body));
+
+                            //return response.Body.WriteAsync(bytes, 0, bytes.Length, cancellationToken);
                         }
                         break;
                     default:
@@ -175,7 +191,7 @@ namespace Lucene.Net.Replicator.Http
                 try
                 {
                     BinaryFormatter formatter = new BinaryFormatter();
-                    formatter.Serialize(response.OutputStream, e);
+                    formatter.Serialize(response.Body, e);
                 }
                 catch (Exception exception)
                 {
@@ -184,7 +200,9 @@ namespace Lucene.Net.Replicator.Http
             }
             finally
             {
-                response.Flush();
+                //Note: Unsure if Body.Flush is the equivalent here.
+                //response.Flush();
+                response.Body.Flush();
             }
         }
 

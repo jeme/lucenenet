@@ -51,7 +51,7 @@ namespace Lucene.Net.Replicator
         /// Returns the files that comprise this revision, as a mapping from a source
         /// to a list of files.
         /// </summary>
-        IReadOnlyDictionary<string, IReadOnlyCollection<RevisionFile>> SourceFiles { get; }
+        IDictionary<string, IList<RevisionFile>> SourceFiles { get; }
 
         /// <summary>
         /// Compares the revision to the given version string. Behaves like

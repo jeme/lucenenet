@@ -29,12 +29,13 @@ namespace Lucene.Net.Replicator
     /// <remarks>
     /// Lucene.Experimental
     /// </remarks>
-    public class IndexInputInputStream : Stream
+    //TODO: Rename file to IndexInputInputStream.
+    public class IndexInputStream : Stream
     {
         private readonly IndexInput input;
         private long remaining;
 
-        public IndexInputInputStream(IndexInput input)
+        public IndexInputStream(IndexInput input)
         {
             this.input = input;
             remaining = input.Length;
@@ -70,7 +71,7 @@ namespace Lucene.Net.Replicator
         public override int Read(byte[] buffer, int offset, int count)
         {
             int remaining = (int) (input.Length - input.GetFilePointer());
-            input.ReadBytes(buffer, offset, count);
+            input.ReadBytes(buffer, offset, Math.Min(remaining, count));
             return remaining;
         }
 
