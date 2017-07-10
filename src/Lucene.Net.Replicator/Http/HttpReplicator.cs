@@ -1,8 +1,9 @@
-﻿//STATUS: INPROGRESS - 4.8.0
+﻿//STATUS: DRAFT - 4.8.0
 
 using System;
 using System.IO;
 using System.Net.Http;
+using System.Threading.Tasks;
 using Lucene.Net.Support.IO;
 
 namespace Lucene.Net.Replicator.Http

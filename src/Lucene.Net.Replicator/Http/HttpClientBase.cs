@@ -1,6 +1,6 @@
-﻿//STATUS: INPROGRESS - 4.8.0
+﻿//STATUS: DRAFT - 4.8.0
+
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
@@ -501,25 +501,7 @@ namespace Lucene.Net.Replicator.Http
             Dispose(true);
             GC.SuppressFinalize(this);
         }
-    }
 
-    public static class EnumerableExtensions
-    {
-        public static IEnumerable<TOut> InPairs<T, TOut>(this IEnumerable<T> list, Func<T, T, TOut> join)
-        {
-            using (var enumerator = list.GetEnumerator())
-            {
-                while (true)
-                {
-                    if (!enumerator.MoveNext())
-                        yield break;
-
-                    T x = enumerator.Current;
-                    if (!enumerator.MoveNext())
-                        yield return join(x, default(T));
-                    yield return join(x, enumerator.Current);
-                }
-            }
-        }
+        
     }
 }

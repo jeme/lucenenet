@@ -155,6 +155,10 @@
       <Project>{48F7884A-9454-4E88-8413-9D35992CB440}</Project>
       <Name>Lucene.Net.Facet</Name>
     </ProjectReference>
+    <ProjectReference Include="..\Lucene.Net.Replicator.AspNetCore\Lucene.Net.Replicator.AspNetCore.csproj">
+      <Project>{51E1696D-6618-4806-A327-D5048C1D211E}</Project>
+      <Name>Lucene.Net.Replicator.AspNetCore</Name>
+    </ProjectReference>
     <ProjectReference Include="..\Lucene.Net.Replicator\Lucene.Net.Replicator.csproj">
       <Project>{0B18659A-0C03-45BA-8EFC-C5FDB747A54D}</Project>
       <Name>Lucene.Net.Replicator</Name>
@@ -169,6 +173,7 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <None Include="app.config" />
     <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

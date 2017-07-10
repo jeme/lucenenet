@@ -4,15 +4,16 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{0B18659A-0C03-45BA-8EFC-C5FDB747A54D}</ProjectGuid>
+    <ProjectGuid>{51E1696D-6618-4806-A327-D5048C1D211E}</ProjectGuid>
     <OutputType>Library</OutputType>
-    <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>Lucene.Net.Replicator</RootNamespace>
-    <AssemblyName>Lucene.Net.Replicator</AssemblyName>
+    <RootNamespace>Lucene.Net.Replicator.AspNetCore</RootNamespace>
+    <AssemblyName>Lucene.Net.Replicator.AspNetCore</AssemblyName>
     <TargetFrameworkVersion>v4.5.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
@@ -20,9 +21,9 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
-    <LangVersion>5</LangVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>bin\Release\</OutputPath>
@@ -30,10 +31,18 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
+  <PropertyGroup>
+    <StartupObject />
+  </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Newtonsoft.Json, Version=9.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>C:\Users\jmd\.nuget\packages\newtonsoft.json\9.0.1\lib\net45\Newtonsoft.Json.dll</HintPath>
+    <Reference Include="Microsoft.AspNetCore.Http.Abstractions, Version=1.1.2.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
+      <HintPath>..\..\packages\Microsoft.AspNetCore.Http.Abstractions.1.1.2\lib\net451\Microsoft.AspNetCore.Http.Abstractions.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.AspNetCore.Http.Features, Version=1.1.2.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
+      <HintPath>..\..\packages\Microsoft.AspNetCore.Http.Features.1.1.2\lib\net451\Microsoft.AspNetCore.Http.Features.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Extensions.Primitives, Version=1.1.1.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
+      <HintPath>..\..\packages\Microsoft.Extensions.Primitives.1.1.1\lib\netstandard1.0\Microsoft.Extensions.Primitives.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.ComponentModel.Composition" />
@@ -49,7 +58,6 @@
     <Reference Include="System.Text.Encodings.Web, Version=4.0.1.1, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
       <HintPath>..\..\packages\System.Text.Encodings.Web.4.3.1\lib\netstandard1.0\System.Text.Encodings.Web.dll</HintPath>
     </Reference>
-    <Reference Include="System.Web" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
@@ -58,40 +66,16 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Http\EnumerableExtensions.cs" />
-    <Compile Include="Http\HttpClientBase.cs" />
-    <Compile Include="Http\HttpReplicator.cs" />
-    <Compile Include="Http\IReplicationRequest.cs" />
-    <Compile Include="Http\IReplicationResponse.cs" />
-    <Compile Include="Http\ReplicationService.cs" />
-    <Compile Include="IndexAndTaxonomyReplicationHandler.cs" />
-    <Compile Include="IndexAndTaxonomyRevision.cs" />
-    <Compile Include="IndexInputStream.cs" />
-    <Compile Include="IndexReplicationHandler.cs" />
-    <Compile Include="IndexRevision.cs" />
-    <Compile Include="IReplicator.cs" />
-    <Compile Include="IRevision.cs" />
-    <Compile Include="LocalReplicator.cs" />
-    <Compile Include="PerSessionDirectoryFactory.cs" />
+    <Compile Include="AspNetCoreReplicationResponse.cs" />
+    <Compile Include="AspNetCoreReplicationServiceExtentions.cs" />
+    <Compile Include="AspNetCoreReplicationRequest.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="ReplicationClient.cs" />
-    <Compile Include="RevisionFile.cs" />
-    <Compile Include="SessionExpiredException.cs" />
-    <Compile Include="SessionToken.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Lucene.Net.Facet\Lucene.Net.Facet.csproj">
-      <Project>{48F7884A-9454-4E88-8413-9D35992CB440}</Project>
-      <Name>Lucene.Net.Facet</Name>
+    <ProjectReference Include="..\Lucene.Net.Replicator\Lucene.Net.Replicator.csproj">
+      <Project>{0B18659A-0C03-45BA-8EFC-C5FDB747A54D}</Project>
+      <Name>Lucene.Net.Replicator</Name>
     </ProjectReference>
-    <ProjectReference Include="..\Lucene.Net\Lucene.Net.csproj">
-      <Project>{5D4AD9BE-1FFB-41AB-9943-25737971BF57}</Project>
-      <Name>Lucene.Net</Name>
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
-    <Content Include="Http\package.html" />
-    <Content Include="package.html" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
