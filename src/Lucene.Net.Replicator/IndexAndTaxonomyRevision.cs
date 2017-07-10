@@ -136,7 +136,7 @@ namespace Lucene.Net.Replicator
             long taxonomyCommitGen = taxonomyCommit.Generation;
 
             //TODO: long.CompareTo(); but which goes where.
-            if (indexCommitGen > indexGen)
+            if (indexCommitGen < indexGen)
                 return -1;
 
             if (indexCommitGen > indexGen)

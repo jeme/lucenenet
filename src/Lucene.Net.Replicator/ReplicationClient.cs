@@ -186,7 +186,7 @@ namespace Lucene.Net.Replicator
                     string source = pair.Key;
                     Directory directory = factory.GetDirectory(session.Id, source);
 
-                    sourceDirectory.Add("source", directory);
+                    sourceDirectory.Add(source, directory);
                     List<string> cpFiles = new List<string>();
                     copiedFiles.Add(source, cpFiles);
                     foreach (RevisionFile file in pair.Value)

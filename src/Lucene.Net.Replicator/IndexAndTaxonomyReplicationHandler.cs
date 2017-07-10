@@ -57,7 +57,7 @@ namespace Lucene.Net.Replicator
 
         private readonly Directory indexDirectory;
         private readonly Directory taxonomyDirectory;
-        private readonly Func<bool> callback;
+        private readonly Func<bool?> callback;
 
         private InfoStream infoStream = InfoStream.Default;
 
@@ -76,7 +76,7 @@ namespace Lucene.Net.Replicator
         /// <param name="taxonomyDirectory"></param>
         /// <param name="callback"></param>
         /// <exception cref="System.IO.IOException"></exception>
-        public IndexAndTaxonomyReplicationHandler(Directory indexDirectory, Directory taxonomyDirectory, Func<bool> callback)
+        public IndexAndTaxonomyReplicationHandler(Directory indexDirectory, Directory taxonomyDirectory, Func<bool?> callback)
         {
             this.indexDirectory = indexDirectory;
             this.taxonomyDirectory = taxonomyDirectory;
@@ -233,7 +233,6 @@ namespace Lucene.Net.Replicator
                     indexFiles.Add(indexSegmentsFile); // add it back so it gets deleted too
                     IndexReplicationHandler.CleanupFilesOnFailure(indexDirectory, indexFiles);
                 }
-
             }
 
             // all files have been successfully copied + sync'd. update the handler's state
