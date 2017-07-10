@@ -98,8 +98,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lucene.Net.Replicator", "sr
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lucene.Net.Tests.Replicator", "src\Lucene.Net.Tests.Replicator\Lucene.Net.Tests.Replicator.csproj", "{BB3399E7-286A-4F79-A330-3DB7C165F74A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lucene.Net.Tests.Replicator.DELETEME", "src\Lucene.Net.Tests.Replicator.DELETEME\Lucene.Net.Tests.Replicator.DELETEME.csproj", "{26114760-6865-48E8-BC63-7381D034F300}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lucene.Net.Replicator.AspNetCore", "src\Lucene.Net.Replicator.AspNetCore\Lucene.Net.Replicator.AspNetCore.csproj", "{51E1696D-6618-4806-A327-D5048C1D211E}"
 EndProject
 Global
@@ -959,30 +957,6 @@ Global
 		{BB3399E7-286A-4F79-A330-3DB7C165F74A}.Release35|Mixed Platforms.Build.0 = Release|Any CPU
 		{BB3399E7-286A-4F79-A330-3DB7C165F74A}.Release35|x86.ActiveCfg = Release|Any CPU
 		{BB3399E7-286A-4F79-A330-3DB7C165F74A}.Release35|x86.Build.0 = Release|Any CPU
-		{26114760-6865-48E8-BC63-7381D034F300}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{26114760-6865-48E8-BC63-7381D034F300}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{26114760-6865-48E8-BC63-7381D034F300}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
-		{26114760-6865-48E8-BC63-7381D034F300}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
-		{26114760-6865-48E8-BC63-7381D034F300}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{26114760-6865-48E8-BC63-7381D034F300}.Debug|x86.Build.0 = Debug|Any CPU
-		{26114760-6865-48E8-BC63-7381D034F300}.Debug35|Any CPU.ActiveCfg = Debug|Any CPU
-		{26114760-6865-48E8-BC63-7381D034F300}.Debug35|Any CPU.Build.0 = Debug|Any CPU
-		{26114760-6865-48E8-BC63-7381D034F300}.Debug35|Mixed Platforms.ActiveCfg = Debug|Any CPU
-		{26114760-6865-48E8-BC63-7381D034F300}.Debug35|Mixed Platforms.Build.0 = Debug|Any CPU
-		{26114760-6865-48E8-BC63-7381D034F300}.Debug35|x86.ActiveCfg = Debug|Any CPU
-		{26114760-6865-48E8-BC63-7381D034F300}.Debug35|x86.Build.0 = Debug|Any CPU
-		{26114760-6865-48E8-BC63-7381D034F300}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{26114760-6865-48E8-BC63-7381D034F300}.Release|Any CPU.Build.0 = Release|Any CPU
-		{26114760-6865-48E8-BC63-7381D034F300}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
-		{26114760-6865-48E8-BC63-7381D034F300}.Release|Mixed Platforms.Build.0 = Release|Any CPU
-		{26114760-6865-48E8-BC63-7381D034F300}.Release|x86.ActiveCfg = Release|Any CPU
-		{26114760-6865-48E8-BC63-7381D034F300}.Release|x86.Build.0 = Release|Any CPU
-		{26114760-6865-48E8-BC63-7381D034F300}.Release35|Any CPU.ActiveCfg = Release|Any CPU
-		{26114760-6865-48E8-BC63-7381D034F300}.Release35|Any CPU.Build.0 = Release|Any CPU
-		{26114760-6865-48E8-BC63-7381D034F300}.Release35|Mixed Platforms.ActiveCfg = Release|Any CPU
-		{26114760-6865-48E8-BC63-7381D034F300}.Release35|Mixed Platforms.Build.0 = Release|Any CPU
-		{26114760-6865-48E8-BC63-7381D034F300}.Release35|x86.ActiveCfg = Release|Any CPU
-		{26114760-6865-48E8-BC63-7381D034F300}.Release35|x86.Build.0 = Release|Any CPU
 		{51E1696D-6618-4806-A327-D5048C1D211E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{51E1696D-6618-4806-A327-D5048C1D211E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{51E1696D-6618-4806-A327-D5048C1D211E}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
