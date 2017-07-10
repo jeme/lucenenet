@@ -178,8 +178,6 @@ namespace Lucene.Net.Replicator.Http
             }
             finally
             {
-                //Note: Unsure if Body.Flush is the equivalent here.
-                //response.Flush();
                 response.Flush();
             }
         }

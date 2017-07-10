@@ -31,7 +31,7 @@ namespace Lucene.Net.Replicator
 	 */
 
     /// <summary>
-    /// A <see cref="ReplicationClient.IReplicationHandler"/> for replication of an index. Implements
+    /// A <see cref="IReplicationHandler"/> for replication of an index. Implements
     /// <see cref="RevisionReady"/> by copying the files pointed by the client resolver to
     /// the index <see cref="Store.Directory"/> and then touches the index with
     /// <see cref="IndexWriter"/> to make sure any unused files are deleted.
@@ -53,7 +53,7 @@ namespace Lucene.Net.Replicator
     /// 
     /// Lucene.Experimental
     /// </remarks>
-    public class IndexReplicationHandler : ReplicationClient.IReplicationHandler //implements ReplicationHandler
+    public class IndexReplicationHandler : IReplicationHandler
     {
         /// <summary>
         /// The component used to log messages to the {@link InfoStream#getDefault()

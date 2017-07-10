@@ -48,7 +48,7 @@ namespace Lucene.Net.Replicator
     /// 
     /// Lucene.Experimental
     /// </remarks>
-    public class IndexAndTaxonomyReplicationHandler : ReplicationClient.IReplicationHandler
+    public class IndexAndTaxonomyReplicationHandler : IReplicationHandler
     {
         /// <summary>
         /// The component used to log messages to the {@link InfoStream#getDefault()default} {@link InfoStream}.

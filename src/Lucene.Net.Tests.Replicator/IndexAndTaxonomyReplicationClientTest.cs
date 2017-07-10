@@ -103,9 +103,9 @@ namespace Lucene.Net.Tests.Replicator
         private Directory publishIndexDir, publishTaxoDir;
         private MockDirectoryWrapper handlerIndexDir, handlerTaxoDir;
         private IReplicator replicator;
-        private ReplicationClient.ISourceDirectoryFactory sourceDirFactory;
+        private ISourceDirectoryFactory sourceDirFactory;
         private ReplicationClient client;
-        private ReplicationClient.IReplicationHandler handler;
+        private IReplicationHandler handler;
         private IndexWriter publishIndexWriter;
         private IndexAndTaxonomyRevision.SnapshotDirectoryTaxonomyWriter publishTaxoWriter;
         private FacetsConfig config;
@@ -337,7 +337,7 @@ namespace Lucene.Net.Tests.Replicator
             handlerTaxoDir.PreventDoubleWrite = (false);
 
             // wrap sourceDirFactory to return a MockDirWrapper so we can simulate errors
-            ReplicationClient.ISourceDirectoryFactory @in = sourceDirFactory;
+            ISourceDirectoryFactory @in = sourceDirFactory;
             AtomicInt32 failures = new AtomicInt32(AtLeast(10));
 
             sourceDirFactory = new SourceDirectoryFactoryAnonymousInnerClass(this, @in, failures);
@@ -368,16 +368,16 @@ namespace Lucene.Net.Tests.Replicator
             handlerTaxoDir.RandomIOExceptionRateOnOpen=(0.0);
         }
 
-        private class SourceDirectoryFactoryAnonymousInnerClass : ReplicationClient.ISourceDirectoryFactory
+        private class SourceDirectoryFactoryAnonymousInnerClass : ISourceDirectoryFactory
         {
             private long clientMaxSize = 100, handlerIndexMaxSize = 100, handlerTaxoMaxSize = 100;
             private double clientExRate = 1.0, handlerIndexExRate = 1.0, handlerTaxoExRate = 1.0;
 
             private readonly IndexAndTaxonomyReplicationClientTest test;
-            private readonly ReplicationClient.ISourceDirectoryFactory @in;
+            private readonly ISourceDirectoryFactory @in;
             private readonly AtomicInt32 failures;
 
-            public SourceDirectoryFactoryAnonymousInnerClass(IndexAndTaxonomyReplicationClientTest test, ReplicationClient.ISourceDirectoryFactory @in, AtomicInt32 failures)
+            public SourceDirectoryFactoryAnonymousInnerClass(IndexAndTaxonomyReplicationClientTest test, ISourceDirectoryFactory @in, AtomicInt32 failures)
             {
                 this.test = test;
                 this.@in = @in;

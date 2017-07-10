@@ -89,9 +89,9 @@ namespace Lucene.Net.Tests.Replicator
 
         private MockDirectoryWrapper publishDir, handlerDir;
         private IReplicator replicator;
-        private ReplicationClient.ISourceDirectoryFactory sourceDirFactory;
+        private ISourceDirectoryFactory sourceDirFactory;
         private ReplicationClient client;
-        private ReplicationClient.IReplicationHandler handler;
+        private IReplicationHandler handler;
         private IndexWriter publishWriter;
         private IndexReadyCallback callback;
         //JAVA:  private IndexReadyCallback callback;
@@ -362,7 +362,7 @@ namespace Lucene.Net.Tests.Replicator
             handlerDir.PreventDoubleWrite = false;
 
             // wrap sourceDirFactory to return a MockDirWrapper so we can simulate errors
-            ReplicationClient.ISourceDirectoryFactory @in = sourceDirFactory;
+            ISourceDirectoryFactory @in = sourceDirFactory;
             AtomicInt32 failures = new AtomicInt32(AtLeast(10));
 
             // wrap sourceDirFactory to return a MockDirWrapper so we can simulate errors
@@ -391,16 +391,16 @@ namespace Lucene.Net.Tests.Replicator
             handlerDir.RandomIOExceptionRateOnOpen=0.0;
         }
 
-        private class SourceDirectoryFactoryAnonymousInnerClass : ReplicationClient.ISourceDirectoryFactory
+        private class SourceDirectoryFactoryAnonymousInnerClass : ISourceDirectoryFactory
         {
             private long clientMaxSize = 100, handlerMaxSize = 100;
             private double clientExRate = 1.0, handlerExRate = 1.0;
 
             private readonly IndexReplicationClientTest test;
-            private readonly ReplicationClient.ISourceDirectoryFactory @in;
+            private readonly ISourceDirectoryFactory @in;
             private readonly AtomicInt32 failures;
 
-            public SourceDirectoryFactoryAnonymousInnerClass(IndexReplicationClientTest test, ReplicationClient.ISourceDirectoryFactory @in, AtomicInt32 failures)
+            public SourceDirectoryFactoryAnonymousInnerClass(IndexReplicationClientTest test, ISourceDirectoryFactory @in, AtomicInt32 failures)
             {
                 this.test = test;
                 this.@in = @in;

@@ -37,26 +37,26 @@ namespace Lucene.Net.Replicator
         
         //TODO: can this be readonly?
         /// <summary>
-        /// Gets or sets the size of the file denoted by <see cref="FileName"/>.
+        /// Gets or sets the length of the file denoted by <see cref="FileName"/>.
         /// </summary>
-        public long Size { get; set; }
+        public long Length { get; set; }
 
         /// <summary>
-        /// Constructor with the given file name and optionally size. 
+        /// Constructor with the given file name and optionally length. 
         /// </summary>
         /// <param name="fileName"></param>
-        /// <param name="size">Optional, the size of the file.</param>
-        public RevisionFile(string fileName, long size = -1)
+        /// <param name="length">Optional, the length of the file.</param>
+        public RevisionFile(string fileName, long length = -1)
         {
             if (string.IsNullOrEmpty(fileName)) throw new ArgumentException("fileName must not be null or empty", "fileName");
 
             FileName = fileName;
-            Size = size;
+            Length = length;
         }
 
         public override string ToString()
         {
-            return string.Format("fileName={0} size={1}", FileName, Size);
+            return string.Format("fileName={0} length={1}", FileName, Length);
         }
 
         #region Resharper Generated Code
@@ -64,7 +64,7 @@ namespace Lucene.Net.Replicator
         {
             if (ReferenceEquals(null, other)) return false;
             if (ReferenceEquals(this, other)) return true;
-            return string.Equals(FileName, other.FileName) && Size == other.Size;
+            return string.Equals(FileName, other.FileName) && Length == other.Length;
         }
 
         public override bool Equals(object obj)
@@ -79,7 +79,7 @@ namespace Lucene.Net.Replicator
         {
             unchecked
             {
-                return (FileName.GetHashCode() * 397) ^ Size.GetHashCode();
+                return (FileName.GetHashCode() * 397) ^ Length.GetHashCode();
             }
         }
         #endregion

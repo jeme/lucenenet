@@ -29,7 +29,6 @@ namespace Lucene.Net.Replicator
     /// <remarks>
     /// Lucene.Experimental
     /// </remarks>
-    //TODO: Rename file to IndexInputInputStream.
     public class IndexInputStream : Stream
     {
         private readonly IndexInput input;

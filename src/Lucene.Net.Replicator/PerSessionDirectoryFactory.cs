@@ -25,14 +25,14 @@ namespace Lucene.Net.Replicator
 	 */
 
     /// <summary>
-    /// A <see cref="ReplicationClient.ISourceDirectoryFactory"/> which returns <see cref="FSDirectory"/> under a
+    /// A <see cref="ISourceDirectoryFactory"/> which returns <see cref="FSDirectory"/> under a
     /// dedicated session directory. When a session is over, the entire directory is
     /// deleted.
     /// </summary>
     /// <remarks>
     /// Lucene.Experimental
     /// </remarks>
-    public class PerSessionDirectoryFactory : ReplicationClient.ISourceDirectoryFactory
+    public class PerSessionDirectoryFactory : ISourceDirectoryFactory
     {
         #region Java
         //JAVA: private final File workDir;

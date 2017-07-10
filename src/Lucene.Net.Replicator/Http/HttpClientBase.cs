@@ -479,6 +479,7 @@ namespace Lucene.Net.Replicator.Http
                 }
                 finally
                 {
+                    //TODO: Is there any reason for this on .NET?... What are they trying to achieve?
                     //JAVA:       if (consume) {
                     //JAVA:         try {
                     //JAVA:           EntityUtils.consume(response.getEntity());

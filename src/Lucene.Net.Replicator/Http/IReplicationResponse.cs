@@ -8,6 +8,7 @@ namespace Lucene.Net.Replicator.Http
     /// <remarks>
     /// .NET Specific Abstraction  
     /// </remarks>
+    //Note: LUCENENET specific
     public interface IReplicationResponse
     {
         int StatusCode { get; set; }

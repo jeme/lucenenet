@@ -45,7 +45,7 @@ namespace Lucene.Net.Replicator
     /// <remarks>
     /// Lucene.Experimental
     /// </remarks>
-    public class ReplicationClient : IDisposable
+    public partial class ReplicationClient : IDisposable
     {
         /// <summary>
         /// The component name to use with <see cref="Util.InfoStream.IsEnabled"/>
@@ -493,6 +493,7 @@ namespace Lucene.Net.Replicator
             return string.Format("ReplicationClient ({0})", updateThread.Name);
         }
 
+        //Note: LUCENENET specific, .NET does not work with Threads in the same way as Java does, so we mimic the same behavior using the ThreadPool instead.
         private class ReplicationThread
         {
             #region Java
@@ -668,50 +669,5 @@ namespace Lucene.Net.Replicator
             }
         }
 
-        //TODO: Can we move this out so it's not embedded here?... doesn't make all that much sense, then I would rather see it under a separate namespace.
-        /// <summary>
-        /// Resolves a session and source into a <see cref="Directory"/> to use for copying
-        /// the session files to.
-        /// </summary>
-        public interface ISourceDirectoryFactory
-        {
-            /// <summary>
-            /// Returns the <see cref="Directory"/> to use for the given session and source.
-            /// Implementations may e.g. return different directories for different
-            /// sessions, or the same directory for all sessions. In that case, it is
-            /// advised to clean the directory before it is used for a new session.
-            /// </summary>
-            /// <seealso cref="CleanupSession"/>
-            Directory GetDirectory(string sessionId, string source); //throws IOException;
-
-            /// <summary>
-            /// Called to denote that the replication actions for this session were finished and the directory is no longer needed. 
-            /// </summary>
-            /// <exception cref="IOException"></exception>
-            void CleanupSession(string sessionId);
-        }
-
-        /// <summary>Handler for revisions obtained by the client.</summary>
-        public interface IReplicationHandler
-        {
-            /// <summary>Returns the current revision files held by the handler.</summary>
-            string CurrentVersion { get; }
-
-            /// <summary>Returns the current revision version held by the handler.</summary>
-            IDictionary<string, IList<RevisionFile>> CurrentRevisionFiles { get; }
-
-            /// <summary>
-            /// Called when a new revision was obtained and is available (i.e. all needed files were successfully copied).
-            /// </summary>
-            /// <param name="version">The version of the <see cref="IRevision"/> that was copied</param>
-            /// <param name="revisionFiles"> the files contained by this <see cref="IRevision"/></param>
-            /// <param name="copiedFiles">the files that were actually copied</param>
-            /// <param name="sourceDirectory">a mapping from a source of files to the <see cref="Directory"/> they were copied into</param>
-            /// <see cref="IOException"/>
-            void RevisionReady(string version,
-                IDictionary<string, IList<RevisionFile>> revisionFiles,
-                IDictionary<string, IList<string>> copiedFiles,
-                IDictionary<string, Directory> sourceDirectory);
-        }
     }
 }

@@ -6,6 +6,7 @@
     /// <remarks>
     /// .NET Specific Abstraction  
     /// </remarks>
+    //Note: LUCENENET specific
     public interface IReplicationRequest
     {
         string Path { get; }

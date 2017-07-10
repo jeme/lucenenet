@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http;
 
 namespace Lucene.Net.Replicator.AspNetCore
 {
+    //Note: LUCENENET specific
     public class AspNetCoreReplicationResponse : IReplicationResponse
     {
         private readonly HttpResponse response;

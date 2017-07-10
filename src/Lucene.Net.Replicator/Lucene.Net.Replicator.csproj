@@ -66,11 +66,13 @@
     <Compile Include="Http\ReplicationService.cs" />
     <Compile Include="IndexAndTaxonomyReplicationHandler.cs" />
     <Compile Include="IndexAndTaxonomyRevision.cs" />
-    <Compile Include="IndexInputStream.cs" />
+    <Compile Include="IndexInputInputStream.cs" />
     <Compile Include="IndexReplicationHandler.cs" />
     <Compile Include="IndexRevision.cs" />
-    <Compile Include="IReplicator.cs" />
-    <Compile Include="IRevision.cs" />
+    <Compile Include="IReplicationHandler.cs" />
+    <Compile Include="ISourceDirectoryFactory.cs" />
+    <Compile Include="Replicator.cs" />
+    <Compile Include="Revision.cs" />
     <Compile Include="LocalReplicator.cs" />
     <Compile Include="PerSessionDirectoryFactory.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Http;
 
 namespace Lucene.Net.Replicator.AspNetCore
 {
+    //Note: LUCENENET specific
     public class AspNetCoreReplicationRequest : IReplicationRequest
     {
         private readonly HttpRequest request;

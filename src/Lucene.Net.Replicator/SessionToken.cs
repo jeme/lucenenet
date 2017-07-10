@@ -116,7 +116,7 @@ namespace Lucene.Net.Replicator
                 foreach (RevisionFile file in pair.Value)
                 {
                     writer.WriteUTF(file.FileName);
-                    writer.WriteInt64(file.Size);
+                    writer.WriteInt64(file.Length);
                 }
             }
         }
