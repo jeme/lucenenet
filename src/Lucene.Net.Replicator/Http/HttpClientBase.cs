@@ -3,11 +3,9 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
-using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
-using System.Threading.Tasks;
-using System.Web;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -244,8 +242,9 @@ namespace Lucene.Net.Replicator.Http
             Exception exception;
             try
             {
-                BinaryFormatter formatter = new BinaryFormatter();
-                exception = (Exception)formatter.Deserialize(input);
+                TextReader reader = new StreamReader(input);
+                JsonSerializer serializer = JsonSerializer.Create(ReplicationService.JSON_SERIALIZER_SETTINGS);
+                exception = (Exception)serializer.Deserialize(new JsonTextReader(reader));
             }
             catch (Exception e)
             {
@@ -254,7 +253,7 @@ namespace Lucene.Net.Replicator.Http
             }
             finally
             {
-                input.Close();
+                input.Dispose();
             }
 
             if (exception is IOException)
@@ -338,7 +337,7 @@ namespace Lucene.Net.Replicator.Http
             return parameters == null 
                 ? string.Format("{0}/{1}", Url, request) 
                 : string.Format("{0}/{1}?{2}", Url, request, string
-                .Join("&", parameters.Select(HttpUtility.UrlEncode).InPairs((key, val) => string.Format("{0}={1}", key, val))));
+                .Join("&", parameters.Select(WebUtility.UrlEncode).InPairs((key, val) => string.Format("{0}={1}", key, val))));
         }
 
         /** Internal utility: input stream of the provided response */

@@ -247,10 +247,13 @@ namespace Lucene.Net.Replicator
         }
 
         // .NET NOTE: Utility Method
-        private void WriteToInfoStream(params string[] messageLines)
+        private void WriteToInfoStream(params string[] messages)
         {
-            if (InfoStream.IsEnabled(INFO_STREAM_COMPONENT))
-                Array.ForEach(messageLines, message => InfoStream.Message(INFO_STREAM_COMPONENT, message));
+            if (!InfoStream.IsEnabled(INFO_STREAM_COMPONENT))
+                return;
+
+            foreach (string message in messages)
+                InfoStream.Message(INFO_STREAM_COMPONENT, message);
         }
 
         /// <summary>

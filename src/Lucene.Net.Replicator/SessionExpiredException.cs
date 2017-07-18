@@ -32,7 +32,6 @@ namespace Lucene.Net.Replicator
     /// 
     /// Lucene.Experimental
     /// </remarks>
-    [Serializable]
     public class SessionExpiredException : IOException
     {
         //
@@ -53,11 +52,6 @@ namespace Lucene.Net.Replicator
 
         public SessionExpiredException(string message, Exception inner) 
             : base(message, inner)
-        {
-        }
-
-        protected SessionExpiredException(SerializationInfo info, StreamingContext context) 
-            : base(info, context)
         {
         }
     }

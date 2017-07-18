@@ -26,7 +26,7 @@
   </PropertyGroup>
   <Import Project="$(VSToolsPath)\DotNet\Microsoft.DotNet.Props" Condition="'$(VSToolsPath)' != ''" />
   <PropertyGroup Label="Globals">
-    <ProjectGuid>f4e207e2-7540-459d-b5e7-b82cd5186d83</ProjectGuid>
+    <ProjectGuid>b38696d0-e4fc-465c-ac02-7bfaf43ed779</ProjectGuid>
     <RootNamespace>Lucene.Net.Replicator</RootNamespace>
     <BaseIntermediateOutputPath Condition="'$(BaseIntermediateOutputPath)'=='' ">.\obj</BaseIntermediateOutputPath>
     <OutputPath Condition="'$(OutputPath)'=='' ">.\bin\</OutputPath>

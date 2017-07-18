@@ -19,7 +19,8 @@
     "nowarn": [ "1591", "1573" ]
   },
   "dependencies": {
-
+    "Lucene.Net.Replicator": "4.8.0",
+    "Microsoft.AspNetCore.Http.Abstractions": "1.0.3"
   },
   "frameworks": {
     "netstandard1.5": {

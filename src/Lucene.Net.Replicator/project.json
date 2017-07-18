@@ -19,7 +19,9 @@
     "nowarn": [ "1591", "1573" ]
   },
   "dependencies": {
-
+    "Lucene.Net": "4.8.0",
+    "Lucene.Net.Facet": "4.8.0",
+    "Newtonsoft.Json": "9.0.1"
   },
   "frameworks": {
     "netstandard1.5": {
@@ -35,6 +37,11 @@
       "buildOptions": {
         "debugType": "full",
         "define": [ "FEATURE_SERIALIZABLE" ]
+      },
+      "frameworkAssemblies": {
+        "System.Net": "4.0.0.0",
+        "System.Net.Http": "4.0.0.0",
+        "System.Net.Http.WebRequest": "4.0.0.0"
       }
     }
   }

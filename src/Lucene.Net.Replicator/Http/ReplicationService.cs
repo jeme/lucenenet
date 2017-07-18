@@ -3,8 +3,8 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Runtime.Serialization.Formatters.Binary;
 using Lucene.Net.Support.IO;
+using Newtonsoft.Json;
 
 namespace Lucene.Net.Replicator.Http
 {
@@ -66,6 +66,11 @@ namespace Lucene.Net.Replicator.Http
 
         /** Request parameter name for providing the file's name. */
         public const string REPLICATE_FILENAME_PARAM = "filename";
+
+        public static readonly JsonSerializerSettings JSON_SERIALIZER_SETTINGS = new JsonSerializerSettings()
+        {
+            TypeNameHandling = TypeNameHandling.All
+        };
 
         private const int SHARD_IDX = 0, ACTION_IDX = 1;
 
@@ -168,8 +173,14 @@ namespace Lucene.Net.Replicator.Http
                 response.StatusCode = 500;
                 try
                 {
-                    BinaryFormatter formatter = new BinaryFormatter();
-                    formatter.Serialize(response.Body, e);
+                    TextWriter writer = new StreamWriter(response.Body);
+                    JsonSerializer serializer = JsonSerializer.Create(ReplicationService.JSON_SERIALIZER_SETTINGS);
+
+                    serializer.Serialize(writer, e, e.GetType());
+
+
+                    //BinaryFormatter formatter = new BinaryFormatter();
+                    //formatter.Serialize(response.Body, e);
                 }
                 catch (Exception exception)
                 {
