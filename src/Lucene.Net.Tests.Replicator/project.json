@@ -14,27 +14,28 @@
     "Lucene.Net": "4.8.0",
     "Lucene.Net.Facet": "4.8.0",
     "Lucene.Net.Replicator": "4.8.0",
-    "Lucene.Net.Replicator.AspNetCore": "4.8.0"
+    "Lucene.Net.Replicator.AspNetCore": "4.8.0",
     "Lucene.Net.TestFramework": "4.8.0",
+    "Microsoft.AspNetCore.Hosting": "1.0.3",
+    "Microsoft.AspNetCore.Http.Abstractions": "1.0.3",
+    "Microsoft.AspNetCore.TestHost": "1.0.3",
     "NUnit": "3.5.0"
   },
   "frameworks": {
-    "netstandard1.5": {
+    "netcoreapp1.0": {
       "imports": "dnxcore50",
       "buildOptions": {
         "debugType": "portable",
         "compile": {
-          "includeFiles": [ "../CommonAssemblyInfo.cs" ]
+          "excludeFiles": [
+            "Support/TestApiConsistency.cs"
+          ]
         }
-      },
-      "dependencies": {
-        "NETStandard.Library": "1.6.0"
       }
     },
     "net451": {
       "buildOptions": {
-        "debugType": "full",
-        "define": [ "FEATURE_SERIALIZABLE", "FEATURE_CLONEABLE" ]
+        "debugType": "full"
       }
     }
   }

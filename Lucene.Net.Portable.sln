@@ -89,6 +89,8 @@ Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "Lucene.Net.Replicator", "sr
 EndProject
 Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "Lucene.Net.Replicator.AspNetCore", "src\Lucene.Net.Replicator.AspNetCore\Lucene.Net.Replicator.AspNetCore.xproj", "{EAB31986-86F1-44C2-AEB2-20B289D71D81}"
 EndProject
+Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "Lucene.Net.Tests.Replicator", "src\Lucene.Net.Tests.Replicator\Lucene.Net.Tests.Replicator.xproj", "{B731D708-5ED5-4161-80F3-ECC524D3C268}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -409,6 +411,14 @@ Global
 		{EAB31986-86F1-44C2-AEB2-20B289D71D81}.Release|Any CPU.Build.0 = Release|Any CPU
 		{EAB31986-86F1-44C2-AEB2-20B289D71D81}.Release|x86.ActiveCfg = Release|Any CPU
 		{EAB31986-86F1-44C2-AEB2-20B289D71D81}.Release|x86.Build.0 = Release|Any CPU
+		{B731D708-5ED5-4161-80F3-ECC524D3C268}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B731D708-5ED5-4161-80F3-ECC524D3C268}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B731D708-5ED5-4161-80F3-ECC524D3C268}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{B731D708-5ED5-4161-80F3-ECC524D3C268}.Debug|x86.Build.0 = Debug|Any CPU
+		{B731D708-5ED5-4161-80F3-ECC524D3C268}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B731D708-5ED5-4161-80F3-ECC524D3C268}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B731D708-5ED5-4161-80F3-ECC524D3C268}.Release|x86.ActiveCfg = Release|Any CPU
+		{B731D708-5ED5-4161-80F3-ECC524D3C268}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

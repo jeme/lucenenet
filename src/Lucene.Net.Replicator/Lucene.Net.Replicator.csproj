@@ -112,6 +112,7 @@
     <Content Include="package.html" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="Lucene.Net.Replicator.project.json" />
     <None Include="project.json" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
