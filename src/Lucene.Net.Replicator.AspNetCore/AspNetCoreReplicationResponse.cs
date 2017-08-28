@@ -20,18 +20,15 @@ namespace Lucene.Net.Replicator.AspNetCore
         /// Creates a <see cref="IReplicationResponse"/> wrapper around the provided <see cref="HttpResponse"/>
         /// </summary>
         /// <param name="response">the response to wrap</param>
-        public AspNetCoreReplicationResponse(HttpResponse response)
-        {
-            this.response = response;
-        }
+        public AspNetCoreReplicationResponse(HttpResponse response) => this.response = response;
 
         /// <summary>
         /// Gets or sets the http status code of the response.
         /// </summary>
         public int StatusCode
         {
-            get { return response.StatusCode; }
-            set { response.StatusCode = value; }
+            get => response.StatusCode;
+            set => response.StatusCode = value;
         }
 
         /// <summary>
@@ -40,7 +37,7 @@ namespace Lucene.Net.Replicator.AspNetCore
         /// <remarks>
         /// This simply returns the <see cref="HttpResponse.Body"/>.
         /// </remarks>
-        public Stream Body { get { return response.Body; } }
+        public Stream Body => response.Body;
 
         /// <summary>
         /// Flushes the reponse to the underlying response stream.
@@ -48,9 +45,6 @@ namespace Lucene.Net.Replicator.AspNetCore
         /// <remarks>
         /// This simply calls <see cref="Stream.Flush"/> on the <see cref="HttpResponse.Body"/>.
         /// </remarks>
-        public void Flush()
-        {
-            response.Body.Flush();
-        }
+        public void Flush() => response.Body.Flush();
     }
 }

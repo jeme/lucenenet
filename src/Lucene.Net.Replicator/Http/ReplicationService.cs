@@ -45,7 +45,7 @@ namespace Lucene.Net.Replicator.Http
     /// <remarks>
     /// Lucene.Experimental
     /// </remarks>
-    public class ReplicationService
+    public class ReplicationService 
     {
         /// <summary>
         /// Actions supported by the <see cref="ReplicationService"/>.
@@ -117,7 +117,7 @@ namespace Lucene.Net.Replicator.Http
 
         private static string ExtractRequestParam(IReplicationRequest request, string paramName)
         {
-            string param = request.QueryParam(paramName);
+            string param = request.Parameter(paramName);
             if (param == null)
             {
                 throw new InvalidOperationException("Missing mandatory parameter: " + paramName);
@@ -130,7 +130,7 @@ namespace Lucene.Net.Replicator.Http
         /// Executes the replication task.
         /// </summary>
         /// <exception cref="InvalidOperationException">required parameters are missing</exception>
-        public void Perform(IReplicationRequest request, IReplicationResponse response)
+        public virtual void Perform(IReplicationRequest request, IReplicationResponse response)
         {
             string[] pathElements = GetPathElements(request);
             if (pathElements.Length != 2)
@@ -168,7 +168,7 @@ namespace Lucene.Net.Replicator.Http
                         break;
 
                     case ReplicationAction.UPDATE:
-                        string currentVersion = request.QueryParam(REPLICATE_VERSION_PARAM);
+                        string currentVersion = request.Parameter(REPLICATE_VERSION_PARAM);
                         SessionToken token = replicator.CheckForUpdate(currentVersion);
                         if (token == null)
                         {

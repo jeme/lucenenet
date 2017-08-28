@@ -32,13 +32,13 @@
         string Path { get; }
 
         /// <summary>
-        /// Returns the requested query parameter or null if not present.
+        /// Returns the requested parameter or null if not present.
         /// </summary>
         /// <remarks>
-        ///  May though execeptions if the same parameter is provided multiple times, consult the documentation for the specific implementation.
+        /// May through execeptions if the same parameter is provided multiple times, consult the documentation for the specific implementation.
         /// </remarks>
         /// <param name="name">the name of the requested parameter</param>
         /// <returns>the value of the requested parameter or null if not present</returns>
-        string QueryParam(string name);
+        string Parameter(string name);
     }
 }

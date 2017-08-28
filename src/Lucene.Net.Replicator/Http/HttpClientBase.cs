@@ -4,6 +4,8 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Text;
+using System.Threading.Tasks;
+using Lucene.Net.Replicator.Support;
 using Lucene.Net.Support;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -123,7 +125,7 @@ namespace Lucene.Net.Replicator.Http
         /// Throws <see cref="ObjectDisposedException"/> if this client is already closed. 
         /// </summary>
         /// <exception cref="ObjectDisposedException">client is already closed.</exception>
-        protected void EnsureOpen()
+        protected virtual void EnsureOpen()
         {
             if (IsDisposed)
             {
@@ -143,7 +145,7 @@ namespace Lucene.Net.Replicator.Http
         /// </summary>
         /// <exception cref="IOException">IO Error happened at the server, check inner exception for details.</exception>
         /// <exception cref="HttpRequestException">Unknown error received from the server.</exception>
-        protected void VerifyStatus(HttpResponseMessage response)
+        protected virtual void VerifyStatus(HttpResponseMessage response)
         {
             if (!response.IsSuccessStatusCode)
             {
@@ -156,7 +158,7 @@ namespace Lucene.Net.Replicator.Http
         /// </summary>
         /// <exception cref="IOException">IO Error happened at the server, check inner exception for details.</exception>
         /// <exception cref="HttpRequestException">Unknown error received from the server.</exception>
-        protected void ThrowKnownError(HttpResponseMessage response)
+        protected virtual void ThrowKnownError(HttpResponseMessage response)
         {
             Stream input;
             try
@@ -217,12 +219,15 @@ namespace Lucene.Net.Replicator.Http
 
         protected HttpResponseMessage ExecuteGet(string request, params string[] parameters)
         {
+            return Sync.Await(ExecuteGetAsync(request, parameters));
+        }
+
+        protected async Task<HttpResponseMessage> ExecuteGetAsync(string request, params string[] parameters)
+        {
             EnsureOpen();
             //Note: No headers? No ContentType?... Bad use of Http?
             HttpRequestMessage req = new HttpRequestMessage(HttpMethod.Get, QueryString(request, parameters));
-            //.NET Note: Bridging from Async to Sync, this is not ideal and we could consider changing the interface to be Async or provide Async overloads
-            //      and have these Sync methods with their caveats.
-            HttpResponseMessage response = httpc.SendAsync(req).ConfigureAwait(false).GetAwaiter().GetResult();
+            HttpResponseMessage response = await httpc.SendAsync(req).ConfigureAwait(false);
             VerifyStatus(response);
             return response;
         }
@@ -244,13 +249,23 @@ namespace Lucene.Net.Replicator.Http
             return ResponseInputStream(response, false);
         }
 
+        public async Task<Stream> ResponseInputStreamAsync(HttpResponseMessage response)
+        {
+            return await ResponseInputStreamAsync(response, false);
+        }
+
         /// <summary>
         /// Internal utility: input stream of the provided response
         /// </summary>
         /// <exception cref="IOException"></exception>
         public Stream ResponseInputStream(HttpResponseMessage response, bool consume)
         {
-            return response.Content.ReadAsStreamAsync().ConfigureAwait(false).GetAwaiter().GetResult();
+            return Sync.Await(ResponseInputStreamAsync(response, consume));
+        }
+
+        public async Task<Stream> ResponseInputStreamAsync(HttpResponseMessage response, bool consume)
+        {
+            return await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
         }
 
         /// <summary>
