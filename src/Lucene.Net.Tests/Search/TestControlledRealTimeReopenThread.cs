@@ -281,7 +281,7 @@ namespace Lucene.Net.Search
 
             nrtDeletesThread = new ControlledRealTimeReopenThread<IndexSearcher>(genWriter, nrtDeletes, maxReopenSec, minReopenSec);
             nrtDeletesThread.Name = "NRTDeletes Reopen Thread";
-#if !NETSTANDARD1_6
+#if FEATURE_THREAD_PRIORITY
             nrtDeletesThread.Priority = (ThreadPriority)Math.Min((int)Thread.CurrentThread.Priority + 2, (int)ThreadPriority.Highest);
 #endif
             nrtDeletesThread.IsBackground = (true);
@@ -289,7 +289,7 @@ namespace Lucene.Net.Search
 
             nrtNoDeletesThread = new ControlledRealTimeReopenThread<IndexSearcher>(genWriter, nrtNoDeletes, maxReopenSec, minReopenSec);
             nrtNoDeletesThread.Name = "NRTNoDeletes Reopen Thread";
-#if !NETSTANDARD1_6
+#if FEATURE_THREAD_PRIORITY
             nrtNoDeletesThread.Priority = (ThreadPriority)Math.Min((int)Thread.CurrentThread.Priority + 2, (int)ThreadPriority.Highest);
 #endif
             nrtNoDeletesThread.IsBackground = (true);
@@ -494,12 +494,12 @@ namespace Lucene.Net.Search
 
             public override void Run()
             {
-#if !NETSTANDARD1_6
+#if FEATURE_THREAD_INTERRUPT
                 try
                 {
 #endif
                     thread.WaitForGeneration(lastGen);
-#if !NETSTANDARD1_6
+#if FEATURE_THREAD_INTERRUPT
                 }
                 catch (ThreadInterruptedException ie)
                 {
@@ -529,7 +529,7 @@ namespace Lucene.Net.Search
             public override void UpdateDocument(Term term, IEnumerable<IIndexableField> doc, Analyzer analyzer)
             {
                 base.UpdateDocument(term, doc, analyzer);
-//#if !NETSTANDARD1_6
+//#if FEATURE_THREAD_INTERRUPT
 //                try
 //                {
 //#endif
@@ -538,7 +538,7 @@ namespace Lucene.Net.Search
                         signal.Reset(signal.CurrentCount == 0 ? 0 : signal.CurrentCount - 1);
                         latch.Wait();
                     }
-//#if !NETSTANDARD1_6
+//#if FEATURE_THREAD_INTERRUPT
 //                }
 //                catch (ThreadInterruptedException) // LUCENENET NOTE: Senseless to catch and rethrow the same exception type
 //                {

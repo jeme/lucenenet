@@ -47,7 +47,7 @@ namespace Lucene.Net.Search.Suggest.Analyzing
 
             Analyzer a = new MockAnalyzer(Random);
             FreeTextSuggester sug = new FreeTextSuggester(a, a, 2, (byte)0x20);
-            sug.Build(new InputArrayIterator(keys));
+            sug.Build(new InputArrayEnumerator(keys));
             assertEquals(2, sug.Count);
 
             for (int i = 0; i < 2; i++)
@@ -98,7 +98,7 @@ namespace Lucene.Net.Search.Suggest.Analyzing
             FreeTextSuggester sug = new FreeTextSuggester(new MockAnalyzer(Random));
             try
             {
-                sug.Build(new InputArrayIterator(keys));
+                sug.Build(new InputArrayEnumerator(keys));
                 fail("did not hit expected exception");
             }
             catch (ArgumentException /*iae*/)
@@ -116,7 +116,7 @@ namespace Lucene.Net.Search.Suggest.Analyzing
                 new Input("foo bar baz", 50)
             );
             FreeTextSuggester sug = new FreeTextSuggester(new MockAnalyzer(Random));
-            sug.Build(new InputArrayIterator(keys));
+            sug.Build(new InputArrayEnumerator(keys));
 
             try
             {
@@ -129,15 +129,13 @@ namespace Lucene.Net.Search.Suggest.Analyzing
             }
         }
 
-        internal class TestWikiInputIterator : IInputIterator
+        internal class TestWikiInputEnumerator : IInputEnumerator
         {
             private readonly LineFileDocs lfd;
-            private readonly TestFreeTextSuggester outerInstance;
             private int count;
 
-            public TestWikiInputIterator(TestFreeTextSuggester outerInstance, LineFileDocs lfd)
+            public TestWikiInputEnumerator(LineFileDocs lfd)
             {
-                this.outerInstance = outerInstance;
                 this.lfd = lfd;
             }
 
@@ -145,7 +143,9 @@ namespace Lucene.Net.Search.Suggest.Analyzing
 
             public IComparer<BytesRef> Comparer => null;
 
-            public BytesRef Next()
+            public BytesRef Current { get; private set; }
+
+            public bool MoveNext()
             {
                 Document doc;
                 try
@@ -158,13 +158,16 @@ namespace Lucene.Net.Search.Suggest.Analyzing
                 }
                 if (doc == null)
                 {
-                    return null;
+                    Current = null;
+                    return false;
                 }
                 if (count++ == 10000)
                 {
-                    return null;
+                    Current = null;
+                    return false;
                 }
-                return new BytesRef(doc.Get("body"));
+                Current = new BytesRef(doc.Get("body"));
+                return true;
             }
 
             public BytesRef Payload => null;
@@ -183,7 +186,7 @@ namespace Lucene.Net.Search.Suggest.Analyzing
             // Skip header:
             lfd.NextDoc();
             FreeTextSuggester sug = new FreeTextSuggester(new MockAnalyzer(Random));
-            sug.Build(new TestWikiInputIterator(this, lfd));
+            sug.Build(new TestWikiInputEnumerator(lfd));
             if (Verbose)
             {
                 Console.WriteLine(sug.GetSizeInBytes() + " bytes");
@@ -207,7 +210,7 @@ namespace Lucene.Net.Search.Suggest.Analyzing
 
             Analyzer a = new MockAnalyzer(Random);
             FreeTextSuggester sug = new FreeTextSuggester(a, a, 1, (byte)0x20);
-            sug.Build(new InputArrayIterator(keys));
+            sug.Build(new InputArrayEnumerator(keys));
             // Sorts first by count, descending, second by term, ascending
             assertEquals("bar/0.22 baz/0.11 bee/0.11 blah/0.11 boo/0.11",
                          ToString(sug.DoLookup("b", 10)));
@@ -222,7 +225,7 @@ namespace Lucene.Net.Search.Suggest.Analyzing
             );
             Analyzer a = new MockAnalyzer(Random);
             FreeTextSuggester sug = new FreeTextSuggester(a, a, 2, (byte)0x20);
-            sug.Build(new InputArrayIterator(keys));
+            sug.Build(new InputArrayEnumerator(keys));
             assertEquals("foo bar/1.00",
                          ToString(sug.DoLookup("foo b", 10)));
         }
@@ -236,7 +239,7 @@ namespace Lucene.Net.Search.Suggest.Analyzing
             );
             Analyzer a = new MockAnalyzer(Random);
             FreeTextSuggester sug = new FreeTextSuggester(a, a, 2, (byte)0x20);
-            sug.Build(new InputArrayIterator(keys));
+            sug.Build(new InputArrayEnumerator(keys));
             try
             {
                 sug.DoLookup("", 10);
@@ -270,7 +273,7 @@ namespace Lucene.Net.Search.Suggest.Analyzing
                 new Input("wizard of oz", 50)
             );
             FreeTextSuggester sug = new FreeTextSuggester(a, a, 3, (byte)0x20);
-            sug.Build(new InputArrayIterator(keys));
+            sug.Build(new InputArrayEnumerator(keys));
             assertEquals("wizard _ oz/1.00",
                          ToString(sug.DoLookup("wizard of", 10)));
 
@@ -279,7 +282,6 @@ namespace Lucene.Net.Search.Suggest.Analyzing
             assertEquals("oz/0.20",
                          ToString(sug.DoLookup("wizard o", 10)));
         }
-
 
 
         // If the number of ending holes exceeds the ngrams window
@@ -295,7 +297,7 @@ namespace Lucene.Net.Search.Suggest.Analyzing
                 new Input("wizard of of oz", 50)
             );
             FreeTextSuggester sug = new FreeTextSuggester(a, a, 3, (byte)0x20);
-            sug.Build(new InputArrayIterator(keys));
+            sug.Build(new InputArrayEnumerator(keys));
             assertEquals("",
                          ToString(sug.DoLookup("wizard of of", 10)));
         }
@@ -322,37 +324,34 @@ namespace Lucene.Net.Search.Suggest.Analyzing
 
         private static IComparer<Lookup.LookupResult> byScoreThenKey = new ByScoreThenKeyComparer();
 
-        internal class TestRandomInputIterator : IInputIterator
+        internal class TestRandomInputEnumerator : IInputEnumerator
         {
             internal int upto;
-            private readonly TestFreeTextSuggester outerInstance;
             private readonly string[][] docs;
 
-            public TestRandomInputIterator(TestFreeTextSuggester outerInstance, string[][] docs)
+            public TestRandomInputEnumerator(string[][] docs)
             {
-                this.outerInstance = outerInstance;
                 this.docs = docs;
             }
 
             public IComparer<BytesRef> Comparer => null;
 
-            public BytesRef Next()
+            public BytesRef Current { get; private set; }
+
+            public bool MoveNext()
             {
                 if (upto == docs.Length)
+                    return false;
+
+                StringBuilder b = new StringBuilder();
+                foreach (string token in docs[upto])
                 {
-                    return null;
+                    b.Append(' ');
+                    b.Append(token);
                 }
-                else
-                {
-                    StringBuilder b = new StringBuilder();
-                    foreach (string token in docs[upto])
-                    {
-                        b.Append(' ');
-                        b.Append(token);
-                    }
-                    upto++;
-                    return new BytesRef(b.ToString());
-                }
+                upto++;
+                Current = new BytesRef(b.ToString());
+                return true;
             }
 
             public long Weight => Random.Next();
@@ -365,6 +364,7 @@ namespace Lucene.Net.Search.Suggest.Analyzing
 
             public bool HasContexts => false;
         }
+
 
         [Test]
         public void TestRandom()
@@ -417,7 +417,7 @@ namespace Lucene.Net.Search.Suggest.Analyzing
 
             // Build suggester model:
             FreeTextSuggester sug = new FreeTextSuggester(a, a, grams, (byte)0x20);
-            sug.Build(new TestRandomInputIterator(this, docs));
+            sug.Build(new TestRandomInputEnumerator(docs));
 
             // Build inefficient but hopefully correct model:
             List<IDictionary<string, int?>> gramCounts = new List<IDictionary<string, int?>>(grams);

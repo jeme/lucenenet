@@ -50,7 +50,6 @@ namespace Lucene.Net.Search.Suggest
     /// </summary>
     public class DocumentDictionary : IDictionary
     {
-
         /// <summary>
         /// <see cref="IndexReader"/> to load documents from </summary>
         protected readonly IndexReader m_reader;
@@ -100,17 +99,16 @@ namespace Lucene.Net.Search.Suggest
             this.m_contextsField = contextsField;
         }
 
-        public virtual IInputIterator GetEntryIterator()
+        public virtual IInputEnumerator GetEntryEnumerator()
         {
-            return new DocumentInputIterator(this, m_payloadField != null, m_contextsField != null);
+            return new DocumentInputEnumerator(this, m_payloadField != null, m_contextsField != null);
         }
 
         /// <summary>
-        /// Implements <see cref="IInputIterator"/> from stored fields. </summary>
-        protected internal class DocumentInputIterator : IInputIterator
+        /// Implements <see cref="IInputEnumerator"/> from stored fields. </summary>
+        protected internal class DocumentInputEnumerator : IInputEnumerator
         {
             private readonly DocumentDictionary outerInstance;
-
 
             private readonly int docCount;
             private readonly ISet<string> relevantFields;
@@ -122,29 +120,31 @@ namespace Lucene.Net.Search.Suggest
             private BytesRef currentPayload;
             private ISet<BytesRef> currentContexts;
             private readonly NumericDocValues weightValues;
-
+            private BytesRef current;
 
             /// <summary>
             /// Creates an iterator over term, weight and payload fields from the lucene
-            /// index. setting <see cref="HasPayloads"/> to false, implies an iterator
+            /// index. Setting <paramref name="hasPayloads"/> to <c>false</c>, implies an enumerator
             /// over only term and weight.
             /// </summary>
-            public DocumentInputIterator(DocumentDictionary outerInstance, bool hasPayloads, bool hasContexts)
+            public DocumentInputEnumerator(DocumentDictionary documentDictionary, bool hasPayloads, bool hasContexts)
             {
-                this.outerInstance = outerInstance;
+                this.outerInstance = documentDictionary;
                 this.hasPayloads = hasPayloads;
                 this.hasContexts = hasContexts;
-                docCount = outerInstance.m_reader.MaxDoc - 1;
-                weightValues = (outerInstance.weightField != null) ? MultiDocValues.GetNumericValues(outerInstance.m_reader, outerInstance.weightField) : null;
-                liveDocs = (outerInstance.m_reader.Leaves.Count > 0) ? MultiFields.GetLiveDocs(outerInstance.m_reader) : null;
-                relevantFields = GetRelevantFields(new string[] { outerInstance.field, outerInstance.weightField, outerInstance.m_payloadField, outerInstance.m_contextsField });
+                docCount = documentDictionary.m_reader.MaxDoc - 1;
+                weightValues = (documentDictionary.weightField != null) ? MultiDocValues.GetNumericValues(documentDictionary.m_reader, documentDictionary.weightField) : null;
+                liveDocs = (documentDictionary.m_reader.Leaves.Count > 0) ? MultiFields.GetLiveDocs(documentDictionary.m_reader) : null;
+                relevantFields = GetRelevantFields(new string[] { documentDictionary.field, documentDictionary.weightField, documentDictionary.m_payloadField, documentDictionary.m_contextsField });
             }
 
             public virtual long Weight => currentWeight;
 
             public virtual IComparer<BytesRef> Comparer => null;
 
-            public virtual BytesRef Next()
+            public BytesRef Current => current;
+
+            public bool MoveNext()
             {
                 while (currentDocId < docCount)
                 {
@@ -157,13 +157,12 @@ namespace Lucene.Net.Search.Suggest
                     Document doc = outerInstance.m_reader.Document(currentDocId, relevantFields);
 
                     BytesRef tempPayload = null;
-                    BytesRef tempTerm = null;
                     ISet<BytesRef> tempContexts = new JCG.HashSet<BytesRef>();
 
                     if (hasPayloads)
                     {
                         IIndexableField payload = doc.GetField(outerInstance.m_payloadField);
-                        if (payload == null || (payload.GetBinaryValue() == null && payload.GetStringValue() == null))
+                        if (payload == null || (payload.GetBinaryValue() is null && payload.GetStringValue() is null))
                         {
                             continue;
                         }
@@ -175,7 +174,7 @@ namespace Lucene.Net.Search.Suggest
                         IIndexableField[] contextFields = doc.GetFields(outerInstance.m_contextsField);
                         foreach (IIndexableField contextField in contextFields)
                         {
-                            if (contextField.GetBinaryValue() == null && contextField.GetStringValue() == null)
+                            if (contextField.GetBinaryValue() is null && contextField.GetStringValue() is null)
                             {
                                 continue;
                             }
@@ -187,19 +186,20 @@ namespace Lucene.Net.Search.Suggest
                     }
 
                     IIndexableField fieldVal = doc.GetField(outerInstance.field);
-                    if (fieldVal == null || (fieldVal.GetBinaryValue() == null && fieldVal.GetStringValue() == null))
+                    if (fieldVal == null || (fieldVal.GetBinaryValue() is null && fieldVal.GetStringValue() is null))
                     {
                         continue;
                     }
-                    tempTerm = (fieldVal.GetStringValue() != null) ? new BytesRef(fieldVal.GetStringValue()) : fieldVal.GetBinaryValue();
+                    current = (fieldVal.GetStringValue() is null) ? fieldVal.GetBinaryValue() : new BytesRef(fieldVal.GetStringValue());
 
                     currentPayload = tempPayload;
                     currentContexts = tempContexts;
                     currentWeight = GetWeight(doc, currentDocId);
 
-                    return tempTerm;
+                    return true;
                 }
-                return null;
+                current = null;
+                return false;
             }
 
             public virtual BytesRef Payload => currentPayload;

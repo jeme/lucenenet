@@ -1,6 +1,7 @@
 ﻿using Lucene.Net.Index;
 using Lucene.Net.Search.Suggest;
 using Lucene.Net.Util;
+using System;
 using System.Collections.Generic;
 
 namespace Lucene.Net.Search.Spell
@@ -34,7 +35,7 @@ namespace Lucene.Net.Search.Spell
     /// </summary>
     public class HighFrequencyDictionary : IDictionary
     {
-        private IndexReader reader;
+        private readonly IndexReader reader;
         private readonly string field;
         private readonly float thresh;
 
@@ -53,27 +54,25 @@ namespace Lucene.Net.Search.Spell
             this.thresh = thresh;
         }
 
-        public IInputIterator GetEntryIterator()
+        public IInputEnumerator GetEntryEnumerator()
         {
-            return new HighFrequencyIterator(this);
+            return new HighFrequencyEnumerator(this);
         }
 
-        internal sealed class HighFrequencyIterator : IInputIterator
+        internal sealed class HighFrequencyEnumerator : IInputEnumerator
         {
-            private readonly HighFrequencyDictionary outerInstance;
-
             internal readonly BytesRef spare = new BytesRef();
             internal readonly TermsEnum termsEnum;
             internal int minNumDocs;
             internal long freq;
+            private BytesRef current;
 
-            internal HighFrequencyIterator(HighFrequencyDictionary outerInstance)
+            internal HighFrequencyEnumerator(HighFrequencyDictionary outerInstance)
             {
-                this.outerInstance = outerInstance;
                 Terms terms = MultiFields.GetTerms(outerInstance.reader, outerInstance.field);
                 if (terms != null)
                 {
-                    termsEnum = terms.GetIterator(null);
+                    termsEnum = terms.GetEnumerator();
                 }
                 else
                 {
@@ -89,22 +88,25 @@ namespace Lucene.Net.Search.Spell
 
             public long Weight => freq;
 
-            public BytesRef Next()
+            public BytesRef Current => current;
+
+            public bool MoveNext()
             {
-                if (termsEnum != null)
+                if (!(termsEnum is null))
                 {
-                    BytesRef next;
-                    while ((next = termsEnum.Next()) != null)
+                    while (termsEnum.MoveNext())
                     {
                         if (IsFrequent(termsEnum.DocFreq))
                         {
                             freq = termsEnum.DocFreq;
-                            spare.CopyBytes(next);
-                            return spare;
+                            spare.CopyBytes(termsEnum.Term);
+                            current = spare;
+                            return true;
                         }
                     }
                 }
-                return null;
+                current = null;
+                return false;
             }
 
             public IComparer<BytesRef> Comparer

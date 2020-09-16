@@ -39,28 +39,28 @@ namespace Lucene.Net.Search.Suggest.Tst
 
         /// <summary>
         /// Creates a new TSTLookup with an empty Ternary Search Tree. </summary>
-        /// <seealso cref="Build(IInputIterator)"/>
+        /// <seealso cref="Build(IInputEnumerator)"/>
         public TSTLookup()
         {
         }
 
-        public override void Build(IInputIterator tfit)
+        public override void Build(IInputEnumerator enumerator)
         {
-            if (tfit.HasPayloads)
+            if (enumerator.HasPayloads)
             {
                 throw new ArgumentException("this suggester doesn't support payloads");
             }
-            if (tfit.HasContexts)
+            if (enumerator.HasContexts)
             {
                 throw new ArgumentException("this suggester doesn't support contexts");
             }
             root = new TernaryTreeNode();
             // buffer first
 #pragma warning disable 612, 618
-            if (tfit.Comparer != BytesRef.UTF8SortedAsUTF16Comparer)
+            if (enumerator.Comparer != BytesRef.UTF8SortedAsUTF16Comparer)
             {
                 // make sure it's sorted and the comparer uses UTF16 sort order
-                tfit = new SortedInputIterator(tfit, BytesRef.UTF8SortedAsUTF16Comparer);
+                enumerator = new SortedInputEnumerator(enumerator, BytesRef.UTF8SortedAsUTF16Comparer);
             }
 #pragma warning restore 612, 618
 
@@ -68,12 +68,13 @@ namespace Lucene.Net.Search.Suggest.Tst
             List<object> vals = new List<object>();
             BytesRef spare;
             CharsRef charsSpare = new CharsRef();
-            while ((spare = tfit.Next()) != null)
+            while (enumerator.MoveNext())
             {
+                spare = enumerator.Current;
                 charsSpare.Grow(spare.Length);
                 UnicodeUtil.UTF8toUTF16(spare.Bytes, spare.Offset, spare.Length, charsSpare);
                 tokens.Add(charsSpare.ToString());
-                vals.Add(tfit.Weight);
+                vals.Add(enumerator.Weight);
             }
             autocomplete.BalancedTree(tokens.ToArray(), vals.ToArray(), 0, tokens.Count - 1, root);
         }

@@ -176,7 +176,7 @@ namespace Lucene.Net.Index.Memory
                         this.info = info;
                     }
 
-                    public override TermsEnum GetIterator(TermsEnum reuse)
+                    public override TermsEnum GetEnumerator()
                     {
                         return new MemoryTermsEnum(outerInstance.outerInstance, info);
                     }
@@ -289,18 +289,26 @@ namespace Lucene.Net.Index.Memory
                     termUpto = (int)ord;
                 }
 
-                public override BytesRef Next()
+                public override bool MoveNext()
                 {
                     termUpto++;
                     if (termUpto >= info.terms.Count)
                     {
-                        return null;
+                        return false;
                     }
                     else
                     {
                         info.terms.Get(info.sortedTerms[termUpto], br);
-                        return br;
+                        return true;
                     }
+                }
+
+                [Obsolete("Use MoveNext() and Term instead. This method will be removed in 4.8.0 release candidate."), System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+                public override BytesRef Next()
+                {
+                    if (MoveNext())
+                        return br;
+                    return null;
                 }
 
                 public override BytesRef Term => br;

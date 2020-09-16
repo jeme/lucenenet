@@ -764,10 +764,15 @@ namespace Lucene.Net.Codecs.Memory
                 bytesReader = fst.GetBytesReader();
             }
 
+            public override bool MoveNext()
+            {
+                return input.MoveNext();
+            }
+
+            [Obsolete("Use MoveNext() and Term instead. This method will be removed in 4.8.0 release candidate."), System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
             public override BytesRef Next()
             {
-                var io = input.Next();
-                return io == null ? null : io.Input;
+                return !MoveNext() ? null : input.Current.Input;
             }
 
             public override IComparer<BytesRef> Comparer => BytesRef.UTF8SortedAsUnicodeComparer;

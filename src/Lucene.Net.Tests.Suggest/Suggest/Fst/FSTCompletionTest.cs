@@ -188,7 +188,7 @@ namespace Lucene.Net.Search.Suggest.Fst
                 keys.Add(new Input(TestUtil.RandomSimpleString(r), -1));
             }
 
-            lookup.Build(new InputArrayIterator(keys));
+            lookup.Build(new InputArrayEnumerator(keys));
 
             // All the weights were constant, so all returned buckets must be constant, whatever they
             // are.
@@ -210,7 +210,7 @@ namespace Lucene.Net.Search.Suggest.Fst
             IList<Input> input = LookupBenchmarkTest.ReadTop50KWiki();
 
             FSTCompletionLookup lookup = new FSTCompletionLookup();
-            lookup.Build(new InputArrayIterator(input));
+            lookup.Build(new InputArrayEnumerator(input));
             assertEquals(input.size(), lookup.Count);
             foreach (Input tf in input)
             {
@@ -243,7 +243,7 @@ namespace Lucene.Net.Search.Suggest.Fst
             }
 
             FSTCompletionLookup lookup = new FSTCompletionLookup();
-            lookup.Build(new InputArrayIterator(freqs.ToArray()));
+            lookup.Build(new InputArrayEnumerator(freqs.ToArray()));
 
             foreach (Input tf in freqs)
             {

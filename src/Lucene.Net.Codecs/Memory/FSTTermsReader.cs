@@ -231,7 +231,7 @@ namespace Lucene.Net.Codecs.Memory
 
             public override int DocCount => docCount;
 
-            public override TermsEnum GetIterator(TermsEnum reuse)
+            public override TermsEnum GetEnumerator()
             {
                 return new SegmentTermsEnum(this);
             }
@@ -363,7 +363,7 @@ namespace Lucene.Net.Codecs.Memory
                     seekPending = false;
                 }
 
-                public override BytesRef Next()
+                public override bool MoveNext()
                 {
                     if (seekPending) // previously positioned, but termOutputs not fetched
                     {
@@ -371,8 +371,31 @@ namespace Lucene.Net.Codecs.Memory
                         SeekStatus status = SeekCeil(term);
                         if (Debugging.AssertsEnabled) Debugging.Assert(status == SeekStatus.FOUND); // must positioned on valid term
                     }
-                    UpdateEnum(fstEnum.Next());
-                    return term;
+                    // LUCENENET specific - extracted logic of UpdateEnum() so we can eliminate the null check
+                    var moved = fstEnum.MoveNext();
+                    if (moved)
+                    {
+                        var pair = fstEnum.Current;
+                        term = pair.Input;
+                        meta = pair.Output;
+                        state.DocFreq = meta.docFreq;
+                        state.TotalTermFreq = meta.totalTermFreq;
+                    }
+                    else
+                    {
+                        term = null;
+                    }
+                    decoded = false;
+                    seekPending = false;
+                    return moved;
+                }
+
+                [Obsolete("Use MoveNext() and Term instead. This method will be removed in 4.8.0 release candidate."), System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+                public override BytesRef Next()
+                {
+                    if (MoveNext())
+                        return term;
+                    return null;
                 }
 
                 public override bool SeekExact(BytesRef target)
@@ -413,7 +436,7 @@ namespace Lucene.Net.Codecs.Memory
                 /// <summary>True when current term's metadata is decoded.</summary>
                 private bool decoded;
 
-                /// <summary>True when there is pending term when calling <see cref="Next()"/>.</summary>
+                /// <summary>True when there is pending term when calling <see cref="MoveNext()"/>.</summary>
                 private bool pending;
      
                 /// <summary>
@@ -553,14 +576,14 @@ namespace Lucene.Net.Codecs.Memory
                     }
                 }
 
-                public override BytesRef Next()
+                public override bool MoveNext()
                 {
                     //if (TEST) System.out.println("Enum next()");
                     if (pending)
                     {
                         pending = false;
                         LoadMetaData();
-                        return term;
+                        return true;
                     }
                     decoded = false;
                     while (level > 0)
@@ -589,12 +612,20 @@ namespace Lucene.Net.Codecs.Memory
                             }
                             frame = PopFrame();
                         }
-                        return null;
+                        return false;
                     DFSContinue:;
                     }
                 DFSBreak:
                     LoadMetaData();
-                    return term;
+                    return true;
+                }
+
+                [Obsolete("Use MoveNext() and Term instead. This method will be removed in 4.8.0 release candidate."), System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+                public override BytesRef Next()
+                {
+                    if (MoveNext())
+                        return term;
+                    return null;
                 }
 
                 private BytesRef DoSeekCeil(BytesRef target)
@@ -622,7 +653,7 @@ namespace Lucene.Net.Codecs.Memory
                     if (frame != null) // got larger term('s prefix)
                     {
                         PushFrame(frame);
-                        return IsAccept(frame) ? term : Next();
+                        return IsAccept(frame) ? term : (MoveNext() ? term : null);
                     }
                     while (level > 0) // got target's prefix, advance to larger term
                     {
@@ -634,7 +665,7 @@ namespace Lucene.Net.Codecs.Memory
                         if (LoadNextFrame(TopFrame(), frame) != null)
                         {
                             PushFrame(frame);
-                            return IsAccept(frame) ? term : Next();
+                            return IsAccept(frame) ? term : (MoveNext() ? term : null);
                         }
                     }
                     return null;

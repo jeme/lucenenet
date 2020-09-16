@@ -30,7 +30,7 @@ namespace Lucene.Net.Search.Suggest.Fst
     /// An adapter from <see cref="Lookup"/> API to <see cref="FSTCompletion"/>.
     /// 
     /// <para>This adapter differs from <see cref="FSTCompletion"/> in that it attempts
-    /// to discretize any "weights" as passed from in <see cref="IInputIterator.Weight"/>
+    /// to discretize any "weights" as passed from in <see cref="IInputEnumerator.Weight"/>
     /// to match the number of buckets. For the rationale for bucketing, see
     /// <see cref="FSTCompletion"/>.
     /// 
@@ -62,7 +62,7 @@ namespace Lucene.Net.Search.Suggest.Fst
         /// of this class from an existing FST.
         /// </summary>
         /// <seealso cref="FSTCompletionLookup(FSTCompletion, bool)"/>
-        private static int INVALID_BUCKETS_COUNT = -1;
+        private const int INVALID_BUCKETS_COUNT = -1;
 
         /// <summary>
         /// Shared tail length for conflating in the created automaton. Setting this
@@ -74,8 +74,8 @@ namespace Lucene.Net.Search.Suggest.Fst
         /// </summary>
         private const int sharedTailLength = 5;
 
-        private int buckets;
-        private bool exactMatchFirst;
+        private readonly int buckets;
+        private readonly bool exactMatchFirst;
 
         /// <summary>
         /// Automaton used for completions with higher weights reordering.
@@ -94,7 +94,7 @@ namespace Lucene.Net.Search.Suggest.Fst
 
         /// <summary>
         /// This constructor prepares for creating a suggested FST using the
-        /// <see cref="Build(IInputIterator)"/> method. The number of weight
+        /// <see cref="Build(IInputEnumerator)"/> method. The number of weight
         /// discretization buckets is set to <see cref="FSTCompletion.DEFAULT_BUCKETS"/> and
         /// exact matches are promoted to the top of the suggestions list.
         /// </summary>
@@ -105,7 +105,7 @@ namespace Lucene.Net.Search.Suggest.Fst
 
         /// <summary>
         /// This constructor prepares for creating a suggested FST using the
-        /// <see cref="Build(IInputIterator)"/> method.
+        /// <see cref="Build(IInputEnumerator)"/> method.
         /// </summary>
         /// <param name="buckets">
         ///          The number of weight discretization buckets (see
@@ -137,13 +137,13 @@ namespace Lucene.Net.Search.Suggest.Fst
             this.higherWeightsCompletion = new FSTCompletion(completion.FST, true, exactMatchFirst);
         }
 
-        public override void Build(IInputIterator iterator)
+        public override void Build(IInputEnumerator enumerator)
         {
-            if (iterator.HasPayloads)
+            if (enumerator.HasPayloads)
             {
                 throw new ArgumentException("this suggester doesn't support payloads");
             }
-            if (iterator.HasContexts)
+            if (enumerator.HasContexts)
             {
                 throw new ArgumentException("this suggester doesn't support contexts");
             }
@@ -163,15 +163,16 @@ namespace Lucene.Net.Search.Suggest.Fst
                 byte[] buffer = Arrays.Empty<byte>();
                 ByteArrayDataOutput output = new ByteArrayDataOutput(buffer);
                 BytesRef spare;
-                while ((spare = iterator.Next()) != null)
+                while (enumerator.MoveNext())
                 {
+                    spare = enumerator.Current;
                     if (spare.Length + 4 >= buffer.Length)
                     {
                         buffer = ArrayUtil.Grow(buffer, spare.Length + 4);
                     }
 
                     output.Reset(buffer);
-                    output.WriteInt32(EncodeWeight(iterator.Weight));
+                    output.WriteInt32(EncodeWeight(enumerator.Weight));
                     output.WriteBytes(spare.Bytes, spare.Offset, spare.Length);
                     writer.Write(buffer, 0, output.Position);
                 }

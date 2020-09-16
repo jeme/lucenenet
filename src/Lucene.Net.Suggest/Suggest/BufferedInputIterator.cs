@@ -1,4 +1,5 @@
 ﻿using Lucene.Net.Util;
+using System;
 using System.Collections.Generic;
 
 namespace Lucene.Net.Search.Suggest
@@ -22,9 +23,10 @@ namespace Lucene.Net.Search.Suggest
 
     /// <summary>
     /// This wrapper buffers incoming elements.
+    /// <para/>
     /// @lucene.experimental
     /// </summary>
-    public class BufferedInputIterator : IInputIterator
+    public class BufferedInputEnumerator : IInputEnumerator
     {
         // TODO keep this for now
         /// <summary>
@@ -48,18 +50,18 @@ namespace Lucene.Net.Search.Suggest
         private readonly IComparer<BytesRef> comp;
 
         private readonly bool hasContexts;
+        protected BytesRef m_current;
 
         /// <summary>
         /// Creates a new iterator, buffering entries from the specified iterator </summary>
-        public BufferedInputIterator(IInputIterator source)
+        public BufferedInputEnumerator(IInputEnumerator source)
         {
-            BytesRef spare;
             int freqIndex = 0;
             hasPayloads = source.HasPayloads;
             hasContexts = source.HasContexts;
-            while ((spare = source.Next()) != null)
+            while (source.MoveNext())
             {
-                m_entries.Append(spare);
+                m_entries.Append(source.Current);
                 if (hasPayloads)
                 {
                     m_payloads.Append(source.Payload);
@@ -79,14 +81,17 @@ namespace Lucene.Net.Search.Suggest
 
         public virtual long Weight => m_freqs[m_curPos];
 
-        public virtual BytesRef Next()
+        public virtual BytesRef Current => m_current;
+
+        public virtual bool MoveNext()
         {
             if (++m_curPos < m_entries.Length)
             {
                 m_entries.Get(spare, m_curPos);
-                return spare;
+                m_current = spare;
             }
-            return null;
+            m_current = null;
+            return false;
         }
 
         public virtual BytesRef Payload

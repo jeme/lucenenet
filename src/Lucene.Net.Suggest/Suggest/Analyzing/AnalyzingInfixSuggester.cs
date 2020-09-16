@@ -186,7 +186,7 @@ namespace Lucene.Net.Search.Suggest.Analyzing
             return FSDirectory.Open(path);
         }
 
-        public override void Build(IInputIterator iter)
+        public override void Build(IInputEnumerator enumerator)
         {
             if (m_searcherMgr != null)
             {
@@ -211,19 +211,20 @@ namespace Lucene.Net.Search.Suggest.Analyzing
 
                 // TODO: use threads?
                 BytesRef text;
-                while ((text = iter.Next()) != null)
+                while (enumerator.MoveNext())
                 {
+                    text = enumerator.Current;
                     BytesRef payload;
-                    if (iter.HasPayloads)
+                    if (enumerator.HasPayloads)
                     {
-                        payload = iter.Payload;
+                        payload = enumerator.Payload;
                     }
                     else
                     {
                         payload = null;
                     }
 
-                    Add(text, iter.Contexts, iter.Weight, payload);
+                    Add(text, enumerator.Contexts, enumerator.Weight, payload);
                 }
 
                 //System.out.println("initial indexing time: " + ((System.nanoTime()-t0)/1000000) + " msec");
@@ -701,7 +702,7 @@ namespace Lucene.Net.Search.Suggest.Analyzing
         /// matched prefix token, to the provided fragments list. </summary>
         /// <param name="sb"> The <see cref="StringBuilder"/> to append to </param>
         /// <param name="surface"> The fragment of the surface form
-        ///        (indexed during <see cref="Build(IInputIterator)"/>, corresponding to
+        ///        (indexed during <see cref="Build(IInputEnumerator)"/>, corresponding to
         ///        this match </param>
         /// <param name="analyzed"> The analyzed token that matched </param>
         /// <param name="prefixToken"> The prefix of the token that matched </param>

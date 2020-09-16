@@ -38,7 +38,7 @@ namespace Lucene.Net.Search.Suggest.Fst
 
             Random random = new Random(Random.Next());
             WFSTCompletionLookup suggester = new WFSTCompletionLookup();
-            suggester.Build(new InputArrayIterator(keys));
+            suggester.Build(new InputArrayEnumerator(keys));
 
             // top N of 2, but only foo is available
             IList<Lookup.LookupResult> results = suggester.DoLookup(TestUtil.StringToCharSequence("f", random).ToString(), false, 2);
@@ -83,7 +83,7 @@ namespace Lucene.Net.Search.Suggest.Fst
 
             WFSTCompletionLookup suggester = new WFSTCompletionLookup(true);
 
-            suggester.Build(new InputArrayIterator(new Input[] {
+            suggester.Build(new InputArrayEnumerator(new Input[] {
                 new Input("x y", 20),
                 new Input("x", 2),
             }));
@@ -111,7 +111,7 @@ namespace Lucene.Net.Search.Suggest.Fst
 
             WFSTCompletionLookup suggester = new WFSTCompletionLookup(false);
 
-            suggester.Build(new InputArrayIterator(new Input[] {
+            suggester.Build(new InputArrayEnumerator(new Input[] {
                 new Input("x y", 20),
                 new Input("x", 2),
             }));
@@ -168,7 +168,7 @@ namespace Lucene.Net.Search.Suggest.Fst
             }
 
             WFSTCompletionLookup suggester = new WFSTCompletionLookup(false);
-            suggester.Build(new InputArrayIterator(keys));
+            suggester.Build(new InputArrayEnumerator(keys));
 
             assertEquals(numWords, suggester.Count);
             Random random = new Random(Random.Next());
@@ -235,18 +235,19 @@ namespace Lucene.Net.Search.Suggest.Fst
 
             WFSTCompletionLookup suggester = new WFSTCompletionLookup(false);
 
-            suggester.Build(new InputArrayIterator(new Input[] {
+            suggester.Build(new InputArrayEnumerator(new Input[] {
                 new Input(key1, 50),
                 new Input(key2, 50),
             }));
         }
+
 
         [Test]
         public void TestEmpty()
         {
             WFSTCompletionLookup suggester = new WFSTCompletionLookup(false);
 
-            suggester.Build(new InputArrayIterator(new Input[0]));
+            suggester.Build(new InputArrayEnumerator(new Input[0]));
             assertEquals(0, suggester.Count);
             IList<Lookup.LookupResult> result = suggester.DoLookup("a", false, 20);
             assertTrue(result.Count == 0);

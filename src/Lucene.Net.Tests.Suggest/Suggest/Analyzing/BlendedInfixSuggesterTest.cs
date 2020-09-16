@@ -50,7 +50,7 @@ namespace Lucene.Net.Search.Suggest.Analyzing
                                                                         AnalyzingInfixSuggester.DEFAULT_MIN_PREFIX_CHARS,
                                                                         BlendedInfixSuggester.BlenderType.POSITION_LINEAR,
                                                                         BlendedInfixSuggester.DEFAULT_NUM_FACTOR);
-            suggester.Build(new InputArrayIterator(keys));
+            suggester.Build(new InputArrayEnumerator(keys));
 
             // we query for star wars and check that the weight
             // is smaller when we search for tokens that are far from the beginning
@@ -89,7 +89,7 @@ namespace Lucene.Net.Search.Suggest.Analyzing
 
             // BlenderType.LINEAR is used by default (remove position*10%)
             BlendedInfixSuggester suggester = new BlendedInfixSuggester(TEST_VERSION_CURRENT, NewFSDirectory(tempDir), a);
-            suggester.Build(new InputArrayIterator(keys));
+            suggester.Build(new InputArrayEnumerator(keys));
 
             assertEquals(w, GetInResults(suggester, "top", pl, 1));
             assertEquals((int)(w * (1 - 0.10 * 2)), GetInResults(suggester, "the", pl, 1));
@@ -100,7 +100,7 @@ namespace Lucene.Net.Search.Suggest.Analyzing
             // BlenderType.RECIPROCAL is using 1/(1+p) * w where w is weight and p the position of the word
             suggester = new BlendedInfixSuggester(TEST_VERSION_CURRENT, NewFSDirectory(tempDir), a, a,
                                                   AnalyzingInfixSuggester.DEFAULT_MIN_PREFIX_CHARS, BlendedInfixSuggester.BlenderType.POSITION_RECIPROCAL, 1);
-            suggester.Build(new InputArrayIterator(keys));
+            suggester.Build(new InputArrayEnumerator(keys));
 
             assertEquals(w, GetInResults(suggester, "top", pl, 1));
             assertEquals((int)(w * 1 / (1 + 2)), GetInResults(suggester, "the", pl, 1));
@@ -134,7 +134,7 @@ namespace Lucene.Net.Search.Suggest.Analyzing
             BlendedInfixSuggester suggester = new BlendedInfixSuggester(TEST_VERSION_CURRENT, NewFSDirectory(tempDir), a, a,
                                                                         AnalyzingInfixSuggester.DEFAULT_MIN_PREFIX_CHARS, BlendedInfixSuggester.BlenderType.POSITION_RECIPROCAL, 1);
 
-            suggester.Build(new InputArrayIterator(keys));
+            suggester.Build(new InputArrayEnumerator(keys));
 
 
             // we don't find it for in the 2 first
@@ -152,7 +152,7 @@ namespace Lucene.Net.Search.Suggest.Analyzing
             // if we increase the factor we have it
             suggester = new BlendedInfixSuggester(TEST_VERSION_CURRENT, NewFSDirectory(tempDir), a, a,
                                                   AnalyzingInfixSuggester.DEFAULT_MIN_PREFIX_CHARS, BlendedInfixSuggester.BlenderType.POSITION_RECIPROCAL, 2);
-            suggester.Build(new InputArrayIterator(keys));
+            suggester.Build(new InputArrayEnumerator(keys));
 
             // we have it
             long w2 = GetInResults(suggester, "the", ret, 2);
@@ -186,7 +186,7 @@ namespace Lucene.Net.Search.Suggest.Analyzing
             BlendedInfixSuggester suggester = new BlendedInfixSuggester(TEST_VERSION_CURRENT, NewFSDirectory(tempDir), a, a,
                                                                         AnalyzingInfixSuggester.DEFAULT_MIN_PREFIX_CHARS, BlendedInfixSuggester.BlenderType.POSITION_RECIPROCAL,
                                                                         BlendedInfixSuggester.DEFAULT_NUM_FACTOR);
-            suggester.Build(new InputArrayIterator(keys));
+            suggester.Build(new InputArrayEnumerator(keys));
 
 
             IList<Lookup.LookupResult> responses = suggester.DoLookup("the", null, 4, true, false);

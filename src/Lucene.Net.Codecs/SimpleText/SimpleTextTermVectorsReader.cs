@@ -314,7 +314,7 @@ namespace Lucene.Net.Codecs.SimpleText
                 terms = new JCG.SortedDictionary<BytesRef, SimpleTVPostings>();
             }
 
-            public override TermsEnum GetIterator(TermsEnum reuse)
+            public override TermsEnum GetEnumerator()
             {
                 // TODO: reuse
                 return new SimpleTVTermsEnum(terms);
@@ -370,16 +370,15 @@ namespace Lucene.Net.Codecs.SimpleText
                 _iterator = newTerms.GetEnumerator();
 
                 // LUCENENET specific: Since in .NET we don't have a HasNext() method, we need
-                // to call Next() and check the result if it is null instead. Since we need
-                // to check the result of Next() anyway for the Equals() comparison, this makes sense here.
-                var next = Next();
-                if (next == null)
+                // to call MoveNext(). Since we need
+                // to check the result anyway for the Equals() comparison, this makes sense here.
+                if (!MoveNext())
                 {
                     return SeekStatus.END;
                 }
                 else
                 {
-                    return next.Equals(text) ? SeekStatus.FOUND : SeekStatus.NOT_FOUND;
+                    return _current.Key.Equals(text) ? SeekStatus.FOUND : SeekStatus.NOT_FOUND;
                 }
             }
 
@@ -388,17 +387,25 @@ namespace Lucene.Net.Codecs.SimpleText
                 throw new NotSupportedException();
             }
 
-            public override BytesRef Next()
+            public override bool MoveNext()
             {
                 if (_iterator.MoveNext())
                 {
                     _current = _iterator.Current;
-                    return _current.Key;
+                    return true;
                 }
                 else
                 {
-                    return null;
+                    return false;
                 }
+            }
+
+            [Obsolete("Use MoveNext() and Term instead. This method will be removed in 4.8.0 release candidate."), System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+            public override BytesRef Next()
+            {
+                if (MoveNext())
+                    return _current.Key;
+                return null;
             }
 
             public override BytesRef Term => _current.Key;

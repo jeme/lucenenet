@@ -61,9 +61,14 @@ namespace Lucene.Net.Index
                 {
                 }
 
-                public override TermsEnum GetIterator(TermsEnum reuse)
+                public override TermsEnum GetEnumerator()
                 {
-                    return new TestTermsEnum(base.GetIterator(reuse));
+                    return new TestTermsEnum(base.GetEnumerator());
+                }
+
+                public override TermsEnum GetEnumerator(TermsEnum reuse)
+                {
+                    return new TestTermsEnum(base.GetEnumerator(reuse));
                 }
             }
 
@@ -76,16 +81,23 @@ namespace Lucene.Net.Index
 
                 /// <summary>
                 /// Scan for terms containing the letter 'e'. </summary>
+                public override bool MoveNext()
+                {
+                    while (m_input.MoveNext())
+                    {
+                        if (m_input.Term.Utf8ToString().IndexOf('e') != -1)
+                            return true;
+                    }
+                    return false;
+                }
+
+                /// <summary>
+                /// Scan for terms containing the letter 'e'. </summary>
+                [Obsolete("Use MoveNext() and Term instead. This method will be removed in 4.8.0 release candidate."), System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
                 public override BytesRef Next()
                 {
-                    BytesRef text;
-                    while ((text = m_input.Next()) != null)
-                    {
-                        if (text.Utf8ToString().IndexOf('e') != -1)
-                        {
-                            return text;
-                        }
-                    }
+                    if (MoveNext())
+                        return m_input.Term;
                     return null;
                 }
 
@@ -164,8 +176,8 @@ namespace Lucene.Net.Index
             reader.Dispose();
             reader = DirectoryReader.Open(target);
 
-            TermsEnum terms = MultiFields.GetTerms(reader, "default").GetIterator(null);
-            while (terms.Next() != null)
+            TermsEnum terms = MultiFields.GetTerms(reader, "default").GetEnumerator();
+            while (terms.MoveNext())
             {
                 Assert.IsTrue(terms.Term.Utf8ToString().IndexOf('e') != -1);
             }
@@ -190,7 +202,12 @@ namespace Lucene.Net.Index
             {
                 // LUCENENET specific - since we changed to using a property for Attributes rather than a method,
                 // we need to reflect that as get_Attributes here.
-                if (m.IsStatic || m.IsAbstract || m.IsFinal || /*m.Synthetic ||*/ m.Name.Equals("get_Attributes", StringComparison.Ordinal))
+                if (m.IsStatic || m.IsAbstract || m.IsFinal || /*m.Synthetic ||*/ m.Name.Equals("get_Attributes", StringComparison.Ordinal)
+
+                    // LUCENENET specific - we only override GetEnumerator(reuse) in specific cases. Also, GetIterator() has a default implementation
+                    // that will be removed before the release.
+                    || m.Name.Equals("GetEnumerator") && m.GetParameters().Length == 1 && m.GetParameters()[0].Name == "reuse"
+                    || m.Name.Equals("GetIterator"))
                 {
                     continue;
                 }

@@ -34,10 +34,10 @@ namespace Lucene.Net.Search.Suggest
     [SuppressCodecs("Lucene3x")]
     public class DocumentDictionaryTest : LuceneTestCase
     {
-        internal static readonly string FIELD_NAME = "f1";
-        internal static readonly string WEIGHT_FIELD_NAME = "w1";
-        internal static readonly string PAYLOAD_FIELD_NAME = "p1";
-        internal static readonly string CONTEXT_FIELD_NAME = "c1";
+        internal const string FIELD_NAME = "f1";
+        internal const string WEIGHT_FIELD_NAME = "w1";
+        internal const string PAYLOAD_FIELD_NAME = "p1";
+        internal const string CONTEXT_FIELD_NAME = "c1";
 
         /** Returns Pair(list of invalid document terms, Map of document term -> document) */
         private KeyValuePair<List<string>, IDictionary<string, Document>> GenerateIndexDocuments(int ndocs, bool requiresPayload, bool requiresContexts)
@@ -124,9 +124,9 @@ namespace Lucene.Net.Search.Suggest
             writer.Dispose();
             IndexReader ir = DirectoryReader.Open(dir);
             IDictionary dictionary = new DocumentDictionary(ir, FIELD_NAME, WEIGHT_FIELD_NAME, PAYLOAD_FIELD_NAME);
-            IInputIterator inputIterator = dictionary.GetEntryIterator();
+            IInputEnumerator inputIterator = dictionary.GetEntryEnumerator();
 
-            assertNull(inputIterator.Next());
+            assertFalse(inputIterator.MoveNext());
             assertEquals(inputIterator.Weight, 0);
             assertNull(inputIterator.Payload);
 
@@ -152,15 +152,14 @@ namespace Lucene.Net.Search.Suggest
             writer.Dispose();
             IndexReader ir = DirectoryReader.Open(dir);
             IDictionary dictionary = new DocumentDictionary(ir, FIELD_NAME, WEIGHT_FIELD_NAME, PAYLOAD_FIELD_NAME);
-            IInputIterator inputIterator = dictionary.GetEntryIterator();
-            BytesRef f;
-            while ((f = inputIterator.Next()) != null)
+            IInputEnumerator inputIterator = dictionary.GetEntryEnumerator();
+            while (inputIterator.MoveNext())
             {
-                string field = f.Utf8ToString();
+                string field = inputIterator.Current.Utf8ToString();
                 Document doc = docs[field];
                 docs.Remove(field);
-                //Document doc = docs.Remove(f.Utf8ToString());
-                assertTrue(f.equals(new BytesRef(doc.Get(FIELD_NAME))));
+                //Document doc = docs.Remove(inputIterator.Current.Utf8ToString());
+                assertTrue(inputIterator.Current.Equals(new BytesRef(doc.Get(FIELD_NAME))));
                 IIndexableField weightField = doc.GetField(WEIGHT_FIELD_NAME);
                 assertEquals(inputIterator.Weight, (weightField != null) ? weightField.GetInt64ValueOrDefault() : 0);
                 assertTrue(inputIterator.Payload.Equals(doc.GetField(PAYLOAD_FIELD_NAME).GetBinaryValue()));
@@ -196,14 +195,13 @@ namespace Lucene.Net.Search.Suggest
             writer.Dispose();
             IndexReader ir = DirectoryReader.Open(dir);
             IDictionary dictionary = new DocumentDictionary(ir, FIELD_NAME, WEIGHT_FIELD_NAME);
-            IInputIterator inputIterator = dictionary.GetEntryIterator();
-            BytesRef f;
-            while ((f = inputIterator.Next()) != null)
+            IInputEnumerator inputIterator = dictionary.GetEntryEnumerator();
+            while (inputIterator.MoveNext())
             {
-                var field = f.Utf8ToString();
+                var field = inputIterator.Current.Utf8ToString();
                 Document doc = docs[field];
                 docs.Remove(field);
-                assertTrue(f.equals(new BytesRef(doc.Get(FIELD_NAME))));
+                assertTrue(inputIterator.Current.equals(new BytesRef(doc.Get(FIELD_NAME))));
                 IIndexableField weightField = doc.GetField(WEIGHT_FIELD_NAME);
                 assertEquals(inputIterator.Weight, (weightField != null) ? weightField.GetInt64ValueOrDefault() : 0);
                 assertEquals(inputIterator.Payload, null);
@@ -241,15 +239,14 @@ namespace Lucene.Net.Search.Suggest
             writer.Dispose();
             IndexReader ir = DirectoryReader.Open(dir);
             IDictionary dictionary = new DocumentDictionary(ir, FIELD_NAME, WEIGHT_FIELD_NAME, PAYLOAD_FIELD_NAME, CONTEXT_FIELD_NAME);
-            IInputIterator inputIterator = dictionary.GetEntryIterator();
-            BytesRef f;
-            while ((f = inputIterator.Next()) != null)
+            IInputEnumerator inputIterator = dictionary.GetEntryEnumerator();
+            while (inputIterator.MoveNext())
             {
-                string field = f.Utf8ToString();
+                string field = inputIterator.Current.Utf8ToString();
                 Document doc = docs[field];
                 docs.Remove(field);
                 //Document doc = docs.remove(f.utf8ToString());
-                assertTrue(f.equals(new BytesRef(doc.Get(FIELD_NAME))));
+                assertTrue(inputIterator.Current.equals(new BytesRef(doc.Get(FIELD_NAME))));
                 IIndexableField weightField = doc.GetField(WEIGHT_FIELD_NAME);
                 assertEquals(inputIterator.Weight, (weightField != null) ? weightField.GetInt64ValueOrDefault() : 0);
                 assertTrue(inputIterator.Payload.equals(doc.GetField(PAYLOAD_FIELD_NAME).GetBinaryValue()));
@@ -320,14 +317,13 @@ namespace Lucene.Net.Search.Suggest
             IndexReader ir = DirectoryReader.Open(dir);
             assertEquals(ir.NumDocs, docs.size());
             IDictionary dictionary = new DocumentDictionary(ir, FIELD_NAME, WEIGHT_FIELD_NAME);
-            IInputIterator inputIterator = dictionary.GetEntryIterator();
-            BytesRef f;
-            while ((f = inputIterator.Next()) != null)
+            IInputEnumerator inputIterator = dictionary.GetEntryEnumerator();
+            while (inputIterator.MoveNext())
             {
-                var field = f.Utf8ToString();
+                var field = inputIterator.Current.Utf8ToString();
                 Document doc = docs[field];
                 docs.Remove(field);
-                assertTrue(f.equals(new BytesRef(doc.Get(FIELD_NAME))));
+                assertTrue(inputIterator.Current.equals(new BytesRef(doc.Get(FIELD_NAME))));
                 IIndexableField weightField = doc.GetField(WEIGHT_FIELD_NAME);
                 assertEquals(inputIterator.Weight, (weightField != null) ? weightField.GetInt64ValueOrDefault() : 0);
                 assertEquals(inputIterator.Payload, null);

@@ -40,24 +40,24 @@ namespace Lucene.Net.Search.Suggest.Jaspell
         /// <summary>
         /// Creates a new empty trie
         /// </summary>
-        /// <seealso cref="Build(IInputIterator)"/>
+        /// <seealso cref="Build(IInputEnumerator)"/>
         public JaspellLookup()
         {
         }
 
-        public override void Build(IInputIterator tfit)
+        public override void Build(IInputEnumerator enumerator)
         {
-            if (tfit.HasPayloads)
+            if (enumerator.HasPayloads)
             {
                 throw new ArgumentException("this suggester doesn't support payloads");
             }
-            if (tfit.Comparer != null)
+            if (enumerator.Comparer != null)
             {
                 // make sure it's unsorted
                 // WTF - this could result in yet another sorted iteration....
-                tfit = new UnsortedInputIterator(tfit);
+                enumerator = new UnsortedInputEnumerator(enumerator);
             }
-            if (tfit.HasContexts)
+            if (enumerator.HasContexts)
             {
                 throw new ArgumentException("this suggester doesn't support contexts");
             }
@@ -67,10 +67,10 @@ namespace Lucene.Net.Search.Suggest.Jaspell
 
             var charsSpare = new CharsRef();
 
-            while ((spare = tfit.Next()) != null)
+            while (enumerator.MoveNext())
             {
-
-                long weight = tfit.Weight;
+                spare = enumerator.Current;
+                long weight = enumerator.Weight;
                 if (spare.Length == 0)
                 {
                     continue;

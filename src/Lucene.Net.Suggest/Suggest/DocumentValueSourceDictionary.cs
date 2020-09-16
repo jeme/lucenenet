@@ -97,12 +97,12 @@ namespace Lucene.Net.Search.Suggest
             this.weightsValueSource = weightsValueSource;
         }
 
-        public override IInputIterator GetEntryIterator()
-        {
-            return new DocumentValueSourceInputIterator(this, m_payloadField != null, m_contextsField != null);
+        public override IInputEnumerator GetEntryEnumerator()
+        { 
+            return new DocumentValueSourceInputEnumerator(this, m_payloadField != null, m_contextsField != null);
         }
 
-        internal sealed class DocumentValueSourceInputIterator : DocumentDictionary.DocumentInputIterator
+        internal sealed class DocumentValueSourceInputEnumerator : DocumentDictionary.DocumentInputEnumerator
         {
             private readonly DocumentValueSourceDictionary outerInstance;
 
@@ -118,7 +118,7 @@ namespace Lucene.Net.Search.Suggest
             /// current leave index </summary>
             internal int currentLeafIndex = 0;
 
-            public DocumentValueSourceInputIterator(DocumentValueSourceDictionary outerInstance, bool hasPayloads, bool hasContexts)
+            public DocumentValueSourceInputEnumerator(DocumentValueSourceDictionary outerInstance, bool hasPayloads, bool hasContexts)
                 : base(outerInstance, hasPayloads, hasContexts)
             {
                 this.outerInstance = outerInstance;

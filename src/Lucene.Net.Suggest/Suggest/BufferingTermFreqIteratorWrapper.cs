@@ -1,5 +1,6 @@
 ﻿using Lucene.Net.Search.Spell;
 using Lucene.Net.Util;
+using System;
 using System.Collections.Generic;
 
 namespace Lucene.Net.Search.Suggest
@@ -23,9 +24,10 @@ namespace Lucene.Net.Search.Suggest
 
     /// <summary>
     /// This wrapper buffers incoming elements.
+    /// <para/>
     /// @lucene.experimental
     /// </summary>
-    public class BufferingTermFreqIteratorWrapper : ITermFreqIterator
+    public class BufferingTermFreqEnumeratorWrapper : ITermFreqEnumerator
     {
         // TODO keep this for now
         /// <summary>
@@ -39,18 +41,18 @@ namespace Lucene.Net.Search.Suggest
         protected long[] m_freqs = new long[1];
         private readonly BytesRef spare = new BytesRef();
         private readonly IComparer<BytesRef> comp;
+        private BytesRef current;
 
         /// <summary>
         /// Creates a new iterator, buffering entries from the specified iterator
         /// </summary>
-        public BufferingTermFreqIteratorWrapper(ITermFreqIterator source)
+        public BufferingTermFreqEnumeratorWrapper(ITermFreqEnumerator source)
         {
             this.comp = source.Comparer;
-            BytesRef spare;
             int freqIndex = 0;
-            while ((spare = source.Next()) != null)
+            while (source.MoveNext())
             {
-                m_entries.Append(spare);
+                m_entries.Append(source.Current);
                 if (freqIndex >= m_freqs.Length)
                 {
                     m_freqs = ArrayUtil.Grow(m_freqs, m_freqs.Length + 1);
@@ -62,14 +64,18 @@ namespace Lucene.Net.Search.Suggest
 
         public virtual long Weight => m_freqs[m_curPos];
 
-        public virtual BytesRef Next()
+        public virtual BytesRef Current => current;
+
+        public virtual bool MoveNext()
         {
             if (++m_curPos < m_entries.Length)
             {
                 m_entries.Get(spare, m_curPos);
-                return spare;
+                current = spare;
+                return true;
             }
-            return null;
+            current = null;
+            return false;
         }
 
         public virtual IComparer<BytesRef> Comparer => comp;

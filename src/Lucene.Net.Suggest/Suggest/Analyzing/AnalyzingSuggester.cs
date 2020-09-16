@@ -393,9 +393,9 @@ namespace Lucene.Net.Search.Suggest.Analyzing
             }
         }
 
-        public override void Build(IInputIterator iterator)
+        public override void Build(IInputEnumerator enumerator)
         {
-            if (iterator.HasContexts)
+            if (enumerator.HasContexts)
             {
                 throw new ArgumentException("this suggester doesn't support contexts");
             }
@@ -404,7 +404,7 @@ namespace Lucene.Net.Search.Suggest.Analyzing
             var tempInput = FileSupport.CreateTempFile(prefix, ".input", directory);
             var tempSorted = FileSupport.CreateTempFile(prefix, ".sorted", directory);
 
-            hasPayloads = iterator.HasPayloads;
+            hasPayloads = enumerator.HasPayloads;
 
             var writer = new OfflineSorter.ByteSequencesWriter(tempInput);
             OfflineSorter.ByteSequencesReader reader = null;
@@ -420,8 +420,9 @@ namespace Lucene.Net.Search.Suggest.Analyzing
                 var output = new ByteArrayDataOutput(buffer);
                 BytesRef surfaceForm;
 
-                while ((surfaceForm = iterator.Next()) != null)
+                while (enumerator.MoveNext())
                 {
+                    surfaceForm = enumerator.Current;
                     ISet<Int32sRef> paths = ToFiniteStrings(surfaceForm, ts2a);
 
                     maxAnalyzedPathsForOneInput = Math.Max(maxAnalyzedPathsForOneInput, paths.Count);
@@ -452,7 +453,7 @@ namespace Lucene.Net.Search.Suggest.Analyzing
                                 throw new ArgumentException("cannot handle surface form > " + (ushort.MaxValue - 2) +
                                                             " in length (got " + surfaceForm.Length + ")");
                             }
-                            payload = iterator.Payload;
+                            payload = enumerator.Payload;
                             // payload + surfaceLength (short)
                             requiredLength += payload.Length + 2;
                         }
@@ -469,7 +470,7 @@ namespace Lucene.Net.Search.Suggest.Analyzing
 
                         output.WriteBytes(scratch.Bytes, scratch.Offset, scratch.Length);
 
-                        output.WriteInt32(EncodeWeight(iterator.Weight));
+                        output.WriteInt32(EncodeWeight(enumerator.Weight));
 
                         if (hasPayloads)
                         {

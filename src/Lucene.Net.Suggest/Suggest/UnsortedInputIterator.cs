@@ -2,7 +2,6 @@
 using Lucene.Net.Util;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 
 namespace Lucene.Net.Search.Suggest
 {
@@ -28,7 +27,7 @@ namespace Lucene.Net.Search.Suggest
     /// random order.
     /// @lucene.experimental
     /// </summary>
-    public class UnsortedInputIterator : BufferedInputIterator
+    public class UnsortedInputEnumerator : BufferedInputEnumerator
     {
         // TODO keep this for now
         private readonly int[] ords;
@@ -40,7 +39,7 @@ namespace Lucene.Net.Search.Suggest
         /// Creates a new iterator, wrapping the specified iterator and
         /// returning elements in a random order.
         /// </summary>
-        public UnsortedInputIterator(IInputIterator source)
+        public UnsortedInputEnumerator(IInputEnumerator source)
             : base(source)
         {
             ords = new int[m_entries.Length];
@@ -67,14 +66,16 @@ namespace Lucene.Net.Search.Suggest
             }
         }
 
-        public override BytesRef Next()
+        public override bool MoveNext()
         {
             if (++m_curPos < m_entries.Length)
             {
                 currentOrd = ords[m_curPos];
-                return m_entries.Get(spare, currentOrd);
+                m_current = m_entries.Get(spare, currentOrd);
+                return true;
             }
-            return null;
+            m_current = null;
+            return false;
         }
 
         public override BytesRef Payload

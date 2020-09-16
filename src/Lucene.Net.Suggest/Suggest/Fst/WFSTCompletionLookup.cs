@@ -78,25 +78,26 @@ namespace Lucene.Net.Search.Suggest.Fst
             this.exactFirst = exactFirst;
         }
 
-        public override void Build(IInputIterator iterator)
+        public override void Build(IInputEnumerator enumerator)
         {
-            if (iterator.HasPayloads)
+            if (enumerator.HasPayloads)
             {
                 throw new ArgumentException("this suggester doesn't support payloads");
             }
-            if (iterator.HasContexts)
+            if (enumerator.HasContexts)
             {
                 throw new ArgumentException("this suggester doesn't support contexts");
             }
             count = 0;
-            var scratch = new BytesRef();
-            IInputIterator iter = new WFSTInputIterator(this, iterator);
+            BytesRef scratch;
+            IInputEnumerator iter = new WFSTInputEnumerator(enumerator);
             var scratchInts = new Int32sRef();
             BytesRef previous = null;
             var outputs = PositiveInt32Outputs.Singleton;
             var builder = new Builder<long?>(FST.INPUT_TYPE.BYTE1, outputs);
-            while ((scratch = iter.Next()) != null)
+            while (iter.MoveNext())
             {
+                scratch = iter.Current;
                 long cost = iter.Weight;
 
                 if (previous == null)
@@ -157,7 +158,7 @@ namespace Lucene.Net.Search.Suggest.Fst
             FST.Arc<long?> arc = new FST.Arc<long?>();
 
             // match the prefix portion exactly
-            long? prefixOutput = null;
+            long? prefixOutput;
             try
             {
                 prefixOutput = LookupPrefix(scratch, arc);
@@ -167,7 +168,7 @@ namespace Lucene.Net.Search.Suggest.Fst
                 throw new Exception(bogus.ToString(), bogus);
             }
 
-            if (prefixOutput == null)
+            if (!prefixOutput.HasValue)
             {
                 return Collections.EmptyList<LookupResult>();
             }
@@ -186,7 +187,7 @@ namespace Lucene.Net.Search.Suggest.Fst
             }
 
             // complete top-N
-            Util.Fst.Util.TopResults<long?> completions = null;
+            Util.Fst.Util.TopResults<long?> completions;
             try
             {
                 completions = Lucene.Net.Util.Fst.Util.ShortestPaths(fst, arc, prefixOutput, weightComparer, num, !exactFirst);
@@ -248,7 +249,7 @@ namespace Lucene.Net.Search.Suggest.Fst
                 return null;
             }
             FST.Arc<long?> arc = new FST.Arc<long?>();
-            long? result = null;
+            long? result;
             try
             {
                 result = LookupPrefix(new BytesRef(key), arc);
@@ -257,7 +258,7 @@ namespace Lucene.Net.Search.Suggest.Fst
             {
                 throw new Exception(bogus.ToString(), bogus);
             }
-            if (result == null || !arc.IsFinal)
+            if (!result.HasValue || !arc.IsFinal)
             {
                 return null;
             }
@@ -285,15 +286,11 @@ namespace Lucene.Net.Search.Suggest.Fst
             return int.MaxValue - (int)value;
         }
 
-        private sealed class WFSTInputIterator : SortedInputIterator
+        private sealed class WFSTInputEnumerator : SortedInputEnumerator
         {
-            private readonly WFSTCompletionLookup outerInstance;
-
-
-            internal WFSTInputIterator(WFSTCompletionLookup outerInstance, IInputIterator source)
+            internal WFSTInputEnumerator(IInputEnumerator source)
                 : base(source)
             {
-                this.outerInstance = outerInstance;
                 if (Debugging.AssertsEnabled) Debugging.Assert(source.HasPayloads == false);
             }
 

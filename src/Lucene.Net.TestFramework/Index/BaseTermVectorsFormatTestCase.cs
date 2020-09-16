@@ -545,12 +545,11 @@ namespace Lucene.Net.Index
             }
             BytesRef[] sortedTerms = uniqueTerms.ToArray(/*new BytesRef[0]*/);
             Array.Sort(sortedTerms, terms.Comparer);
-            TermsEnum termsEnum = terms.GetIterator(Random.NextBoolean() ? null : this.termsEnum.Value);
+            TermsEnum termsEnum = terms.GetEnumerator(Random.NextBoolean() ? null : this.termsEnum.Value);
             this.termsEnum.Value = termsEnum;
             for (int i = 0; i < sortedTerms.Length; ++i)
             {
-                BytesRef nextTerm = termsEnum.Next();
-                Assert.AreEqual(sortedTerms[i], nextTerm);
+                Assert.IsTrue(termsEnum.MoveNext());
                 Assert.AreEqual(sortedTerms[i], termsEnum.Term);
                 Assert.AreEqual(1, termsEnum.DocFreq);
 
@@ -666,7 +665,7 @@ namespace Lucene.Net.Index
                 }
                 this.docsAndPositionsEnum.Value = docsAndPositionsEnum;
             }
-            Assert.IsNull(termsEnum.Next());
+            Assert.IsFalse(termsEnum.MoveNext());
             for (int i = 0; i < 5; ++i)
             {
                 if (Random.NextBoolean())

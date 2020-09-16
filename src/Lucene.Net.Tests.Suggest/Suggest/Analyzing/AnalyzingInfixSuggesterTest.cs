@@ -41,6 +41,7 @@ namespace Lucene.Net.Search.Suggest.Analyzing
     [SuppressCodecs("Lucene3x", "MockFixedIntBlock", "MockVariableIntBlock", "MockSep", "MockRandom")]
     public class AnalyzingInfixSuggesterTest : LuceneTestCase
     {
+        [Test]
         public void TestBasic()
         {
             Input[] keys = new Input[] {
@@ -51,7 +52,7 @@ namespace Lucene.Net.Search.Suggest.Analyzing
             Analyzer a = new MockAnalyzer(Random, MockTokenizer.WHITESPACE, false);
             using (AnalyzingInfixSuggester suggester = new AnalyzingInfixSuggester(TEST_VERSION_CURRENT, NewDirectory(), a, a, 3))
             {
-                suggester.Build(new InputArrayIterator(keys));
+                suggester.Build(new InputArrayEnumerator(keys));
 
                 IList<Lookup.LookupResult> results = suggester.DoLookup(TestUtil.StringToCharSequence("ear", Random).ToString(), 10, true, true);
                 assertEquals(2, results.size());
@@ -98,7 +99,7 @@ namespace Lucene.Net.Search.Suggest.Analyzing
             AnalyzingInfixSuggester suggester = new AnalyzingInfixSuggester(TEST_VERSION_CURRENT, NewFSDirectory(tempDir), a, a, 3);
             try
             {
-                suggester.Build(new InputArrayIterator(keys));
+                suggester.Build(new InputArrayEnumerator(keys));
                 assertEquals(2, suggester.Count);
                 suggester.Dispose();
 
@@ -217,7 +218,7 @@ namespace Lucene.Net.Search.Suggest.Analyzing
             using (AnalyzingInfixSuggester suggester = new TestHighlightAnalyzingInfixSuggester(this, a))
             {
 
-                suggester.Build(new InputArrayIterator(keys));
+                suggester.Build(new InputArrayEnumerator(keys));
 
                 IList<Lookup.LookupResult> results = suggester.DoLookup(TestUtil.StringToCharSequence("ear", Random).ToString(), 10, true, true);
                 assertEquals(1, results.size());
@@ -260,7 +261,7 @@ namespace Lucene.Net.Search.Suggest.Analyzing
             AnalyzingInfixSuggester suggester = new AnalyzingInfixSuggester(TEST_VERSION_CURRENT, NewFSDirectory(tempDir), a, a, minPrefixLength);
             try
             {
-                suggester.Build(new InputArrayIterator(keys));
+                suggester.Build(new InputArrayEnumerator(keys));
 
                 for (int i = 0; i < 2; i++)
                 {
@@ -353,7 +354,7 @@ namespace Lucene.Net.Search.Suggest.Analyzing
             Analyzer a = new MockAnalyzer(Random, MockTokenizer.WHITESPACE, false);
             using (AnalyzingInfixSuggester suggester = new AnalyzingInfixSuggester(TEST_VERSION_CURRENT, NewDirectory(), a, a, 3))
             {
-                suggester.Build(new InputArrayIterator(keys));
+                suggester.Build(new InputArrayEnumerator(keys));
                 IList<Lookup.LookupResult> results = suggester.DoLookup(TestUtil.StringToCharSequence("penn", Random).ToString(), 10, true, true);
                 assertEquals(1, results.size());
                 assertEquals("a <b>penn</b>y saved is a <b>penn</b>y earned", results[0].Key);
@@ -388,7 +389,7 @@ namespace Lucene.Net.Search.Suggest.Analyzing
             IList<Lookup.LookupResult> results;
             using (AnalyzingInfixSuggester suggester = new AnalyzingInfixSuggester(TEST_VERSION_CURRENT, NewDirectory(), a, a, 3))
             {
-                suggester.Build(new InputArrayIterator(keys));
+                suggester.Build(new InputArrayEnumerator(keys));
                 results = suggester.DoLookup(TestUtil.StringToCharSequence("penn", Random).ToString(), 10, true, true);
                 assertEquals(1, results.size());
                 assertEquals("a <b>Penn</b>y saved is a <b>penn</b>y earned", results[0].Key);
@@ -398,7 +399,7 @@ namespace Lucene.Net.Search.Suggest.Analyzing
             // the entire hit:
             using (var suggester = new TestHighlightChangeCaseAnalyzingInfixSuggester(this, a))
             { 
-                suggester.Build(new InputArrayIterator(keys));
+                suggester.Build(new InputArrayEnumerator(keys));
                 results = suggester.DoLookup(TestUtil.StringToCharSequence("penn", Random).ToString(), 10, true, true);
                 assertEquals(1, results.size());
                 assertEquals("a <b>Penny</b> saved is a <b>penny</b> earned", results[0].Key);
@@ -415,44 +416,8 @@ namespace Lucene.Net.Search.Suggest.Analyzing
             Analyzer a = new MockAnalyzer(Random, MockTokenizer.WHITESPACE, false);
             using (AnalyzingInfixSuggester suggester = new AnalyzingInfixSuggester(TEST_VERSION_CURRENT, NewDirectory(), a, a, 3))
             {
-                suggester.Build(new InputArrayIterator(keys));
+                suggester.Build(new InputArrayEnumerator(keys));
                 suggester.Dispose();
-            }
-        }
-
-        internal class TestSuggestStopFilterAnalyzer1 : Analyzer
-        {
-            private readonly AnalyzingInfixSuggesterTest outerInstance;
-            private readonly CharArraySet stopWords;
-            public TestSuggestStopFilterAnalyzer1(AnalyzingInfixSuggesterTest outerInstance, CharArraySet stopWords)
-            {
-                this.outerInstance = outerInstance;
-                this.stopWords = stopWords;
-            }
-
-            protected internal override TokenStreamComponents CreateComponents(string fieldName, TextReader reader)
-            {
-                MockTokenizer tokens = new MockTokenizer(reader);
-                return new TokenStreamComponents(tokens,
-                                                 new StopFilter(TEST_VERSION_CURRENT, tokens, stopWords));
-            }
-        }
-
-        internal class TestSuggestStopFilterAnalyzer2 : Analyzer
-        {
-            private readonly AnalyzingInfixSuggesterTest outerInstance;
-            private readonly CharArraySet stopWords;
-            public TestSuggestStopFilterAnalyzer2(AnalyzingInfixSuggesterTest outerInstance, CharArraySet stopWords)
-            {
-                this.outerInstance = outerInstance;
-                this.stopWords = stopWords;
-            }
-
-            protected internal override TokenStreamComponents CreateComponents(string fieldName, TextReader reader)
-            {
-                MockTokenizer tokens = new MockTokenizer(reader);
-                return new TokenStreamComponents(tokens,
-                                                 new SuggestStopFilter(tokens, stopWords));
             }
         }
 
@@ -460,8 +425,18 @@ namespace Lucene.Net.Search.Suggest.Analyzing
         public void TestSuggestStopFilter()
         {
             CharArraySet stopWords = StopFilter.MakeStopSet(TEST_VERSION_CURRENT, "a");
-            Analyzer indexAnalyzer = new TestSuggestStopFilterAnalyzer1(this, stopWords);
-            Analyzer queryAnalyzer = new TestSuggestStopFilterAnalyzer2(this, stopWords);
+            Analyzer indexAnalyzer = Analyzer.NewAnonymous(createComponents: (fieldName, reader) =>
+            {
+                MockTokenizer tokens = new MockTokenizer(reader);
+                return new TokenStreamComponents(tokens,
+                    new StopFilter(TEST_VERSION_CURRENT, tokens, stopWords));
+            });
+            Analyzer queryAnalyzer = Analyzer.NewAnonymous(createComponents: (fieldName, reader) =>
+            {
+                MockTokenizer tokens = new MockTokenizer(reader);
+                return new TokenStreamComponents(tokens,
+                    new SuggestStopFilter(tokens, stopWords));
+            });
 
             using (AnalyzingInfixSuggester suggester = new AnalyzingInfixSuggester(TEST_VERSION_CURRENT, NewDirectory(), indexAnalyzer, queryAnalyzer, 3))
             {
@@ -470,7 +445,7 @@ namespace Lucene.Net.Search.Suggest.Analyzing
                     new Input("a bob for apples", 10, new BytesRef("foobaz")),
                 };
 
-                suggester.Build(new InputArrayIterator(keys));
+                suggester.Build(new InputArrayEnumerator(keys));
                 IList<Lookup.LookupResult> results = suggester.DoLookup(TestUtil.StringToCharSequence("a", Random).ToString(), 10, true, true);
                 assertEquals(1, results.size());
                 assertEquals("a bob for <b>a</b>pples", results[0].Key);
@@ -483,7 +458,7 @@ namespace Lucene.Net.Search.Suggest.Analyzing
             Analyzer a = new MockAnalyzer(Random, MockTokenizer.WHITESPACE, false);
             using (AnalyzingInfixSuggester suggester = new AnalyzingInfixSuggester(TEST_VERSION_CURRENT, NewDirectory(), a, a, 3))
             {
-                suggester.Build(new InputArrayIterator(new Input[0]));
+                suggester.Build(new InputArrayEnumerator(new Input[0]));
                 suggester.Add(new BytesRef("a penny saved is a penny earned"), null, 10, new BytesRef("foobaz"));
                 suggester.Add(new BytesRef("lend me your ear"), null, 8, new BytesRef("foobar"));
                 suggester.Refresh();
@@ -524,7 +499,7 @@ namespace Lucene.Net.Search.Suggest.Analyzing
             Analyzer a = new MockAnalyzer(Random, MockTokenizer.WHITESPACE, false);
             using (AnalyzingInfixSuggester suggester = new AnalyzingInfixSuggester(TEST_VERSION_CURRENT, NewDirectory(), a, a, 3))
             {
-                suggester.Build(new InputArrayIterator(new Input[0]));
+                suggester.Build(new InputArrayEnumerator(new Input[0]));
                 suggester.Add(new BytesRef("the pen is pretty"), null, 10, new BytesRef("foobaz"));
                 suggester.Refresh();
 
@@ -655,7 +630,7 @@ namespace Lucene.Net.Search.Suggest.Analyzing
             {
 
                 // Initial suggester built with nothing:
-                suggester.Build(new InputArrayIterator(new Input[0]));
+                suggester.Build(new InputArrayEnumerator(new Input[0]));
 
                 var stop = new AtomicBoolean(false);
                 Exception[] error = new Exception[] { null };
@@ -962,7 +937,7 @@ namespace Lucene.Net.Search.Suggest.Analyzing
             Analyzer a = new MockAnalyzer(Random, MockTokenizer.WHITESPACE, false);
             using (AnalyzingInfixSuggester suggester = new AnalyzingInfixSuggester(TEST_VERSION_CURRENT, NewDirectory(), a, a, 3))
             {
-                suggester.Build(new InputArrayIterator(keys));
+                suggester.Build(new InputArrayEnumerator(keys));
 
                 IList<Lookup.LookupResult> results = suggester.DoLookup(TestUtil.StringToCharSequence("ear", Random).ToString(), 10, true, true);
                 assertEquals(1, results.size());
@@ -1052,7 +1027,7 @@ namespace Lucene.Net.Search.Suggest.Analyzing
                     if (iter == 0)
                     {
                         suggester = new AnalyzingInfixSuggester(TEST_VERSION_CURRENT, NewFSDirectory(tempDir), a, a, 3);
-                        suggester.Build(new InputArrayIterator(keys));
+                        suggester.Build(new InputArrayEnumerator(keys));
                     }
                     else
                     {

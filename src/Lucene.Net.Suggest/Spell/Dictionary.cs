@@ -1,4 +1,5 @@
 ﻿using Lucene.Net.Search.Suggest;
+using System;
 
 namespace Lucene.Net.Search.Spell
 {
@@ -27,10 +28,9 @@ namespace Lucene.Net.Search.Spell
     /// </summary>
     public interface IDictionary
     {
-
         /// <summary>
-        /// Returns an iterator over all the entries </summary>
-        /// <returns> Iterator </returns>
-        IInputIterator GetEntryIterator();
+        /// Returns an enumerator over all the entries.</summary>
+        /// <returns> Enumerator </returns>
+        IInputEnumerator GetEntryEnumerator();
     }
 }

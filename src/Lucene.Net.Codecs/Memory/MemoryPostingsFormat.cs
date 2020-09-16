@@ -850,18 +850,27 @@ namespace Lucene.Net.Codecs.Memory
 
             public override BytesRef Term => current.Input;
 
-            public override BytesRef Next()
+            public override bool MoveNext()
             {
                 //System.out.println("te.next");
-                current = fstEnum.Next();
-                if (current == null)
+                if (fstEnum.MoveNext())
                 {
-                    //System.out.println("  END");
-                    return null;
+                    current = fstEnum.Current;
+                    didDecode = false;
+                    //System.out.println("  term=" + field.name + ":" + current.input.utf8ToString());
+                    return true;
                 }
-                didDecode = false;
-                //System.out.println("  term=" + field.name + ":" + current.input.utf8ToString());
-                return current.Input;
+                current = null;
+                //System.out.println("  END");
+                return false;
+            }
+
+            [Obsolete("Use MoveNext() and Term instead. This method will be removed in 4.8.0 release candidate."), System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+            public override BytesRef Next()
+            {
+                if (MoveNext())
+                    return current.Input;
+                return null;
             }
 
             public override int DocFreq
@@ -932,7 +941,7 @@ namespace Lucene.Net.Codecs.Memory
 
             public override long Count => termCount;
 
-            public override TermsEnum GetIterator(TermsEnum reuse)
+            public override TermsEnum GetEnumerator()
             {
                 return new FSTTermsEnum(field, fst);
             }

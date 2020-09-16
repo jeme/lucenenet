@@ -1062,7 +1062,7 @@ namespace Lucene.Net.Util
                 _testClassName = context.FullyQualifiedTestClassName;
                 _testName = context.TestName;
 
-#if !NETSTANDARD1_6
+#if FEATURE_ASSEMBLY_GETCALLINGASSEMBLY
                 var callingAssembly = Assembly.GetCallingAssembly();
                 _testClassType = callingAssembly.GetType(_testClassName);
 #else
@@ -1269,8 +1269,7 @@ namespace Lucene.Net.Util
                 return testClass;
 
             // 2nd attempt - try scanning the referenced assemblies to see if we can find the class by fullname
-            var referencedAssemblies = AssemblyUtils.GetReferencedAssemblies();
-            testClass = referencedAssemblies.SelectMany(a => a.GetTypes().Where(t => t.FullName == testClassName)).FirstOrDefault();
+            testClass = AssemblyUtils.GetReferencedAssemblies().SelectMany(a => a.GetTypes().Where(t => t.FullName == testClassName)).FirstOrDefault();
             if (testClass != null)
                 return testClass;
 #endif
@@ -2050,7 +2049,7 @@ namespace Lucene.Net.Util
         public static CultureInfo RandomCulture(Random random) // LUCENENET specific renamed from RandomLocale
         {
             ICollection<CultureInfo> systemCultures = CultureInfoSupport.GetNeutralAndSpecificCultures();
-#if NETSTANDARD1_6
+#if NETSTANDARD1_X
             // .NET Core 1.0 on macOS seems to be flakey here and not return results occasionally, so compensate by
             // returning CultureInfo.InvariantCulture when it happens.
             if (systemCultures.Count == 0)
@@ -2067,7 +2066,7 @@ namespace Lucene.Net.Util
         public static TimeZoneInfo RandomTimeZone(Random random)
         {
             var systemTimeZones = TimeZoneInfo.GetSystemTimeZones();
-#if NETSTANDARD1_6
+#if NETSTANDARD1_X
             // .NET Core 1.0 on macOS seems to be flakey here and not return results occasionally, so compensate by
             // returning TimeZoneInfo.Local when it happens.
             if (systemTimeZones.Count == 0)
@@ -2625,8 +2624,8 @@ namespace Lucene.Net.Util
             Assert.AreEqual(leftTerms.HasPositions, rightTerms.HasPositions);
             Assert.AreEqual(leftTerms.HasPayloads, rightTerms.HasPayloads);
 
-            TermsEnum leftTermsEnum = leftTerms.GetIterator(null);
-            TermsEnum rightTermsEnum = rightTerms.GetIterator(null);
+            TermsEnum leftTermsEnum = leftTerms.GetEnumerator();
+            TermsEnum rightTermsEnum = rightTerms.GetEnumerator();
             AssertTermsEnumEquals(info, leftReader, leftTermsEnum, rightTermsEnum, true);
 
             AssertTermsSeekingEquals(info, leftTerms, rightTerms);
@@ -2708,9 +2707,11 @@ namespace Lucene.Net.Util
             DocsEnum leftDocs = null;
             DocsEnum rightDocs = null;
 
-            while ((term = leftTermsEnum.Next()) != null)
+            while (leftTermsEnum.MoveNext())
             {
-                Assert.AreEqual(term, rightTermsEnum.Next(), info);
+                term = leftTermsEnum.Term;
+                rightTermsEnum.MoveNext();
+                Assert.AreEqual(term, rightTermsEnum.Term, info);
                 AssertTermStatsEquals(info, leftTermsEnum, rightTermsEnum);
                 if (deep)
                 {
@@ -2737,7 +2738,7 @@ namespace Lucene.Net.Util
                     AssertDocsSkippingEquals(info, leftReader, leftTermsEnum.DocFreq, leftDocs = leftTermsEnum.Docs(randomBits, leftDocs, DocsFlags.NONE), rightDocs = rightTermsEnum.Docs(randomBits, rightDocs, DocsFlags.NONE), false);
                 }
             }
-            Assert.IsNull(rightTermsEnum.Next(), info);
+            Assert.IsFalse(rightTermsEnum.MoveNext(), info);
         }
 
         /// <summary>
@@ -2895,10 +2896,11 @@ namespace Lucene.Net.Util
             int numPasses = 0;
             while (numPasses < 10 && tests.Count < numTests)
             {
-                leftEnum = leftTerms.GetIterator(leftEnum);
-                BytesRef term = null;
-                while ((term = leftEnum.Next()) != null)
+                leftEnum = leftTerms.GetEnumerator(leftEnum);
+                BytesRef term;
+                while (leftEnum.MoveNext())
                 {
+                    term = leftEnum.Term;
                     int code = random.Next(10);
                     if (code == 0)
                     {
@@ -2946,7 +2948,7 @@ namespace Lucene.Net.Util
                 numPasses++;
             }
 
-            rightEnum = rightTerms.GetIterator(rightEnum);
+            rightEnum = rightTerms.GetEnumerator(rightEnum);
 
             IList<BytesRef> shuffledTests = new List<BytesRef>(tests);
             shuffledTests.Shuffle(Random);
@@ -2956,8 +2958,8 @@ namespace Lucene.Net.Util
                 if (Rarely())
                 {
                     // reuse the enums
-                    leftEnum = leftTerms.GetIterator(leftEnum);
-                    rightEnum = rightTerms.GetIterator(rightEnum);
+                    leftEnum = leftTerms.GetEnumerator(leftEnum);
+                    rightEnum = rightTerms.GetEnumerator(rightEnum);
                 }
 
                 bool seekExact = LuceneTestCase.Random.NextBoolean();

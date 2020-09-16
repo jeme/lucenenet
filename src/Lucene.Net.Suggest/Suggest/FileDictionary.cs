@@ -112,11 +112,11 @@ namespace Lucene.Net.Search.Suggest
             this.fieldDelimiter = fieldDelimiter;
         }
 
-        public virtual IInputIterator GetEntryIterator()
+        public virtual IInputEnumerator GetEntryEnumerator()
         {
             try
             {
-                return new FileIterator(this);
+                return new FileEnumerator(this);
             }
             catch (IOException e)
             {
@@ -124,7 +124,7 @@ namespace Lucene.Net.Search.Suggest
             }
         }
 
-        internal sealed class FileIterator : IInputIterator
+        internal sealed class FileEnumerator : IInputEnumerator
         {
             private readonly FileDictionary outerInstance;
 
@@ -133,8 +133,9 @@ namespace Lucene.Net.Search.Suggest
             internal BytesRef curPayload = new BytesRef();
             internal bool isFirstLine = true;
             internal bool hasPayloads = false;
+            private BytesRef current;
 
-            internal FileIterator(FileDictionary outerInstance)
+            internal FileEnumerator(FileDictionary outerInstance)
             {
                 this.outerInstance = outerInstance;
                 outerInstance.line = outerInstance.@in.ReadLine();
@@ -172,16 +173,20 @@ namespace Lucene.Net.Search.Suggest
 
             public long Weight => curWeight;
 
-            public BytesRef Next()
+            public BytesRef Current => current;
+
+            public bool MoveNext()
             {
                 if (outerInstance.done)
                 {
-                    return null;
+                    current = null;
+                    return false;
                 }
                 if (isFirstLine)
                 {
                     isFirstLine = false;
-                    return spare;
+                    current = spare;
+                    return true;
                 }
                 outerInstance.line = outerInstance.@in.ReadLine();
                 if (outerInstance.line != null)
@@ -218,13 +223,15 @@ namespace Lucene.Net.Search.Suggest
                             curPayload = new BytesRef();
                         }
                     }
-                    return spare;
+                    current = spare;
+                    return true;
                 }
                 else
                 {
                     outerInstance.done = true;
                     IOUtils.Dispose(outerInstance.@in);
-                    return null;
+                    current = null;
+                    return false;
                 }
             }
 

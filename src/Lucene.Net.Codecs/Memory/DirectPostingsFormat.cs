@@ -182,7 +182,7 @@ namespace Lucene.Net.Codecs.Memory
                 long sizeInBytes = 0;
                 foreach (KeyValuePair<string, DirectField> entry in fields)
                 {
-                    sizeInBytes += entry.Key.Length*RamUsageEstimator.NUM_BYTES_CHAR;
+                    sizeInBytes += entry.Key.Length* RamUsageEstimator.NUM_BYTES_CHAR;
                     sizeInBytes += entry.Value.RamBytesUsed();
                 }
                 return sizeInBytes;
@@ -396,7 +396,7 @@ namespace Lucene.Net.Codecs.Memory
                 BytesRef term;
                 DocsEnum docsEnum = null;
                 DocsAndPositionsEnum docsAndPositionsEnum = null;
-                TermsEnum termsEnum = termsIn.GetIterator(null);
+                TermsEnum termsEnum = termsIn.GetEnumerator();
                 int termOffset = 0;
 
                 Int32ArrayWriter scratch = new Int32ArrayWriter();
@@ -408,8 +408,9 @@ namespace Lucene.Net.Codecs.Memory
                 //   System.out.println("\nLOAD terms seg=" + state.segmentInfo.name + " field=" + field + " hasOffsets=" + hasOffsets + " hasFreq=" + hasFreq + " hasPos=" + hasPos + " hasPayloads=" + hasPayloads);
                 // }
 
-                while ((term = termsEnum.Next()) != null)
+                while (termsEnum.MoveNext())
                 {
+                    term = termsEnum.Term;
                     int docFreq = termsEnum.DocFreq;
                     long totalTermFreq = termsEnum.TotalTermFreq;
 
@@ -790,21 +791,18 @@ namespace Lucene.Net.Codecs.Memory
                 }
             }
 
-            public override TermsEnum GetIterator(TermsEnum reuse)
+            public override TermsEnum GetEnumerator()
             {
-                DirectTermsEnum termsEnum;
-                if (reuse != null && reuse is DirectTermsEnum)
-                {
-                    termsEnum = (DirectTermsEnum) reuse;
-                    if (!termsEnum.CanReuse(terms))
-                    {
-                        termsEnum = new DirectTermsEnum(this);
-                    }
-                }
-                else
-                {
+                var termsEnum = new DirectTermsEnum(this);
+                termsEnum.Reset();
+                return termsEnum;
+            }
+
+            public override TermsEnum GetEnumerator(TermsEnum reuse)
+            {
+                if (!(reuse is DirectTermsEnum termsEnum) || !termsEnum.CanReuse(terms))
                     termsEnum = new DirectTermsEnum(this);
-                }
+
                 termsEnum.Reset();
                 return termsEnum;
             }
@@ -864,17 +862,26 @@ namespace Lucene.Net.Codecs.Memory
 
                 public override IComparer<BytesRef> Comparer => BytesRef.UTF8SortedAsUnicodeComparer;
 
-                public override BytesRef Next()
+                public override bool MoveNext()
                 {
                     termOrd++;
                     if (termOrd < outerInstance.terms.Length)
                     {
-                        return SetTerm();
+                        SetTerm();
+                        return true;
                     }
                     else
                     {
-                        return null;
+                        return false;
                     }
+                }
+
+                [Obsolete("Use MoveNext() and Term instead. This method will be removed in 4.8.0 release candidate."), System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+                public override BytesRef Next()
+                {
+                    if (MoveNext())
+                        return scratch;
+                    return null;
                 }
 
                 public override TermState GetTermState()
@@ -1377,7 +1384,7 @@ namespace Lucene.Net.Codecs.Memory
                     }
                 }
 
-                public override BytesRef Next()
+                public override bool MoveNext()
                 {
                     // if (DEBUG) {
                     //   System.out.println("\nIE.next");
@@ -1398,7 +1405,7 @@ namespace Lucene.Net.Codecs.Memory
                             scratch.Bytes = outerInstance.termBytes;
                             scratch.Offset = 0;
                             scratch.Length = 0;
-                            return scratch;
+                            return true;
                         }
                         termOrd++;
                     }
@@ -1414,7 +1421,7 @@ namespace Lucene.Net.Codecs.Memory
                             // if (DEBUG) {
                             //   System.out.println("  return END");
                             // }
-                            return null;
+                            return false;
                         }
 
                         State state = states[stateUpto];
@@ -1455,7 +1462,7 @@ namespace Lucene.Net.Codecs.Memory
                                 if (stateUpto == 0)
                                 {
                                     termOrd = outerInstance.terms.Length;
-                                    return null;
+                                    return false;
                                 }
                                 else
                                 {
@@ -1506,7 +1513,7 @@ namespace Lucene.Net.Codecs.Memory
                                     skipUpto = 0;
                                     goto nextTermContinue;
                                 }
-                                int mid = (int) ((uint) (low + high) >> 1);
+                                int mid = (int)((uint)(low + high) >> 1);
                                 int cmp = (outerInstance.termBytes[outerInstance.termOffsets[mid] + stateUpto] & 0xFF) -
                                           targetLabel;
                                 // if (DEBUG) {
@@ -1588,7 +1595,7 @@ namespace Lucene.Net.Codecs.Memory
                                     // if (DEBUG) {
                                     //   System.out.println("  ret " + scratch.utf8ToString());
                                     // }
-                                    return scratch;
+                                    return true;
                                 }
                                 else
                                 {
@@ -1654,7 +1661,7 @@ namespace Lucene.Net.Codecs.Memory
                                 //   System.out.println("  match tail; return " + scratch.utf8ToString());
                                 //   System.out.println("  ret2 " + scratch.utf8ToString());
                                 // }
-                                return scratch;
+                                return true;
                             }
                             else
                             {
@@ -1665,10 +1672,18 @@ namespace Lucene.Net.Codecs.Memory
                                 // }
                             }
                         }
-                        nextTermContinue: ;
+                    nextTermContinue:;
                     }
 
                     //nextTermBreak: ; // LUCENENET NOTE: Not used
+                }
+
+                [Obsolete("Use MoveNext() and Term instead. This method will be removed in 4.8.0 release candidate."), System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+                public override BytesRef Next()
+                {
+                    if (MoveNext())
+                        return scratch;
+                    return null;
                 }
 
                 public override TermState GetTermState()

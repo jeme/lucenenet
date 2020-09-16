@@ -5,7 +5,6 @@ using Lucene.Net.Support;
 using Lucene.Net.Util;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using JCG = J2N.Collections.Generic;
 
 namespace Lucene.Net.Codecs.BlockTerms
@@ -273,7 +272,7 @@ namespace Lucene.Net.Codecs.BlockTerms
 
             public override IComparer<BytesRef> Comparer => BytesRef.UTF8SortedAsUnicodeComparer;
 
-            public override TermsEnum GetIterator(TermsEnum reuse)
+            public override TermsEnum GetEnumerator()
             {
                 return new SegmentTermsEnum(this);
             }
@@ -654,7 +653,7 @@ namespace Lucene.Net.Codecs.BlockTerms
                     }
                 }
 
-                public override BytesRef Next()
+                public override bool MoveNext()
                 {
                     //System.out.println("BTR.next() seekPending=" + seekPending + " pendingSeekCount=" + state.termBlockOrd);
 
@@ -685,7 +684,38 @@ namespace Lucene.Net.Codecs.BlockTerms
                         seekPending = false;
                         state.Ord = savOrd;
                     }
-                    return _next();
+                    //System.out.println("BTR._next seg=" + segment + " this=" + this + " termCount=" + state.termBlockOrd + " (vs " + blockTermCount + ")");
+                    if (state.TermBlockOrd == blockTermCount && !NextBlock())
+                    {
+                        //System.out.println("  eof");
+                        indexIsCurrent = false;
+                        return false;
+                    }
+
+                    // TODO: cutover to something better for these ints!  simple64?
+                    int suffix = termSuffixesReader.ReadVInt32();
+                    //System.out.println("  suffix=" + suffix);
+
+                    term.Length = termBlockPrefix + suffix;
+                    if (term.Bytes.Length < term.Length)
+                    {
+                        term.Grow(term.Length);
+                    }
+                    termSuffixesReader.ReadBytes(term.Bytes, termBlockPrefix, suffix);
+                    state.TermBlockOrd++;
+
+                    // NOTE: meaningless in the non-ord case
+                    state.Ord++;
+
+                    return true;
+                }
+
+                [Obsolete("Use MoveNext() and Term instead. This method will be removed in 4.8.0 release candidate."), System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+                public override BytesRef Next()
+                {
+                    if (MoveNext())
+                        return term;
+                    return null;
                 }
 
                 /// <summary>

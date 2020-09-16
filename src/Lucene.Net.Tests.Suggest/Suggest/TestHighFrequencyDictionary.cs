@@ -4,6 +4,7 @@ using Lucene.Net.Search.Spell;
 using Lucene.Net.Store;
 using Lucene.Net.Util;
 using NUnit.Framework;
+using System;
 
 namespace Lucene.Net.Search.Suggest
 {
@@ -35,9 +36,9 @@ namespace Lucene.Net.Search.Suggest
             writer.Dispose();
             IndexReader ir = DirectoryReader.Open(dir);
             IDictionary dictionary = new HighFrequencyDictionary(ir, "bogus", 0.1f);
-            IBytesRefIterator tf = dictionary.GetEntryIterator();
+            IBytesRefEnumerator tf = dictionary.GetEntryEnumerator();
             assertNull(tf.Comparer);
-            assertNull(tf.Next());
+            assertFalse(tf.MoveNext());
             dir.Dispose();
         }
     }

@@ -50,7 +50,7 @@ namespace Lucene.Net.Search.Suggest.Analyzing
             MockAnalyzer analyzer = new MockAnalyzer(Random, MockTokenizer.KEYWORD, false);
             FuzzySuggester suggester = new FuzzySuggester(analyzer, analyzer, SuggesterOptions.EXACT_FIRST | SuggesterOptions.PRESERVE_SEP, 256, -1, true, FuzzySuggester.DEFAULT_MAX_EDITS, FuzzySuggester.DEFAULT_TRANSPOSITIONS,
                                                           0, FuzzySuggester.DEFAULT_MIN_FUZZY_LENGTH, FuzzySuggester.DEFAULT_UNICODE_AWARE);
-            suggester.Build(new InputArrayIterator(keys));
+            suggester.Build(new InputArrayEnumerator(keys));
             int numIters = AtLeast(10);
             for (int i = 0; i < numIters; i++)
             {
@@ -75,7 +75,7 @@ namespace Lucene.Net.Search.Suggest.Analyzing
             MockAnalyzer analyzer = new MockAnalyzer(Random, MockTokenizer.KEYWORD, false);
             FuzzySuggester suggester = new FuzzySuggester(analyzer, analyzer, SuggesterOptions.EXACT_FIRST | SuggesterOptions.PRESERVE_SEP, 256, -1, true, FuzzySuggester.DEFAULT_MAX_EDITS, FuzzySuggester.DEFAULT_TRANSPOSITIONS,
                 0, FuzzySuggester.DEFAULT_MIN_FUZZY_LENGTH, true);
-            suggester.Build(new InputArrayIterator(keys));
+            suggester.Build(new InputArrayEnumerator(keys));
             int numIters = AtLeast(10);
             for (int i = 0; i < numIters; i++)
             {
@@ -99,7 +99,7 @@ namespace Lucene.Net.Search.Suggest.Analyzing
             };
 
             FuzzySuggester suggester = new FuzzySuggester(new MockAnalyzer(Random, MockTokenizer.KEYWORD, false));
-            suggester.Build(new InputArrayIterator(keys));
+            suggester.Build(new InputArrayEnumerator(keys));
 
             IList<Lookup.LookupResult> results = suggester.DoLookup(TestUtil.StringToCharSequence("bariar", Random).ToString(), false, 2);
             assertEquals(2, results.size());
@@ -175,7 +175,7 @@ namespace Lucene.Net.Search.Suggest.Analyzing
             Analyzer standard = new MockAnalyzer(Random, MockTokenizer.WHITESPACE, true, MockTokenFilter.ENGLISH_STOPSET);
             FuzzySuggester suggester = new FuzzySuggester(standard, standard, SuggesterOptions.EXACT_FIRST | SuggesterOptions.PRESERVE_SEP, 256, -1, false, FuzzySuggester.DEFAULT_MAX_EDITS, FuzzySuggester.DEFAULT_TRANSPOSITIONS,
                 FuzzySuggester.DEFAULT_NON_FUZZY_PREFIX, FuzzySuggester.DEFAULT_MIN_FUZZY_LENGTH, FuzzySuggester.DEFAULT_UNICODE_AWARE);
-            suggester.Build(new InputArrayIterator(keys));
+            suggester.Build(new InputArrayEnumerator(keys));
 
             IList<Lookup.LookupResult> results = suggester.DoLookup(TestUtil.StringToCharSequence("the ghost of chris", Random).ToString(), false, 1);
             assertEquals(1, results.size());
@@ -207,7 +207,7 @@ namespace Lucene.Net.Search.Suggest.Analyzing
 
             Analyzer a = new MockAnalyzer(Random);
             FuzzySuggester suggester = new FuzzySuggester(a, a, options, 256, -1, true, 1, true, 1, 3, false);
-            suggester.Build(new InputArrayIterator(keys));
+            suggester.Build(new InputArrayEnumerator(keys));
             // TODO: would be nice if "ab " would allow the test to
             // pass, and more generally if the analyzer can know
             // that the user's current query has ended at a word, 
@@ -220,6 +220,7 @@ namespace Lucene.Net.Search.Suggest.Analyzing
             // appear first:
             assertEquals("abcd", r[0].Key.toString());
         }
+
         internal class TestGraphDupsTokenStreamComponents : TokenStreamComponents
         {
             private readonly FuzzySuggesterTest outerInstance;
@@ -294,7 +295,7 @@ namespace Lucene.Net.Search.Suggest.Analyzing
                 new Input("wi fi network is fast", 10),
             };
             FuzzySuggester suggester = new FuzzySuggester(analyzer);
-            suggester.Build(new InputArrayIterator(keys));
+            suggester.Build(new InputArrayEnumerator(keys));
 
             IList<Lookup.LookupResult> results = suggester.DoLookup("wifi network", false, 10);
             if (Verbose)
@@ -312,7 +313,7 @@ namespace Lucene.Net.Search.Suggest.Analyzing
         public void TestEmpty()
         {
             FuzzySuggester suggester = new FuzzySuggester(new MockAnalyzer(Random, MockTokenizer.KEYWORD, false));
-            suggester.Build(new InputArrayIterator(new Input[0]));
+            suggester.Build(new InputArrayEnumerator(new Input[0]));
 
             IList<Lookup.LookupResult> result = suggester.DoLookup("a", false, 20);
             assertTrue(result.Count == 0);
@@ -395,7 +396,7 @@ namespace Lucene.Net.Search.Suggest.Analyzing
                 new Input("ba xd", 50),
             };
             FuzzySuggester suggester = new FuzzySuggester(analyzer);
-            suggester.Build(new InputArrayIterator(keys));
+            suggester.Build(new InputArrayEnumerator(keys));
             IList<Lookup.LookupResult> results = suggester.DoLookup("ab x", false, 1);
             assertTrue(results.size() == 1);
         }
@@ -490,7 +491,7 @@ namespace Lucene.Net.Search.Suggest.Analyzing
 
             Analyzer a = GetUnusualAnalyzer();
             FuzzySuggester suggester = new FuzzySuggester(a, a, SuggesterOptions.EXACT_FIRST | SuggesterOptions.PRESERVE_SEP, 256, -1, true, 1, true, 1, 3, false);
-            suggester.Build(new InputArrayIterator(new Input[] {
+            suggester.Build(new InputArrayEnumerator(new Input[] {
                 new Input("x y", 1),
                 new Input("x y z", 3),
                 new Input("x", 2),
@@ -536,7 +537,7 @@ namespace Lucene.Net.Search.Suggest.Analyzing
             Analyzer a = GetUnusualAnalyzer();
             FuzzySuggester suggester = new FuzzySuggester(a, a, SuggesterOptions.PRESERVE_SEP, 256, -1, true, 1, true, 1, 3, false);
 
-            suggester.Build(new InputArrayIterator(new Input[] {
+            suggester.Build(new InputArrayEnumerator(new Input[] {
                 new Input("x y", 1),
                 new Input("x y z", 3),
                 new Input("x", 2),
@@ -673,8 +674,8 @@ namespace Lucene.Net.Search.Suggest.Analyzing
 
         internal class MockTokenEatingAnalyzer : Analyzer
         {
-            private int numStopChars;
-            private bool preserveHoles;
+            private readonly int numStopChars;
+            private readonly bool preserveHoles;
 
             public MockTokenEatingAnalyzer(int numStopChars, bool preserveHoles)
             {
@@ -818,7 +819,7 @@ namespace Lucene.Net.Search.Suggest.Analyzing
                 // altering the test:
                 List<TermFreqPayload2> sorted = new List<TermFreqPayload2>(slowCompletor);
                 // LUCENENET NOTE: Must use TimSort because comparer is not expecting ties
-                CollectionUtil.TimSort(sorted); 
+                CollectionUtil.TimSort(sorted);
                 foreach (TermFreqPayload2 ent in sorted)
                 {
                     Console.WriteLine("  surface='" + ent.surfaceForm + " analyzed='" + ent.analyzedForm + "' weight=" + ent.weight);
@@ -828,7 +829,7 @@ namespace Lucene.Net.Search.Suggest.Analyzing
             Analyzer a = new MockTokenEatingAnalyzer(numStopChars, preserveHoles);
             FuzzySuggester suggester = new FuzzySuggester(a, a,
                                                           preserveSep ? SuggesterOptions.PRESERVE_SEP : 0, 256, -1, true, 1, false, 1, 3, unicodeAware);
-            suggester.Build(new InputArrayIterator(keys));
+            suggester.Build(new InputArrayEnumerator(keys));
 
             foreach (string prefix in allPrefixes)
             {
@@ -911,7 +912,7 @@ namespace Lucene.Net.Search.Suggest.Analyzing
                 // this:
                 Automaton automaton = suggester.ConvertAutomaton(suggester.ToLevenshteinAutomata(suggester.ToLookupAutomaton(analyzedKey)));
                 assertTrue(automaton.IsDeterministic);
-                                                     // TODO: could be faster... but its slowCompletor for a reason
+                // TODO: could be faster... but its slowCompletor for a reason
                 BytesRef spare = new BytesRef();
                 foreach (TermFreqPayload2 e in slowCompletor)
                 {
@@ -995,7 +996,7 @@ namespace Lucene.Net.Search.Suggest.Analyzing
             };
 
             keys.Shuffle(Random);
-            suggester.Build(new InputArrayIterator(keys));
+            suggester.Build(new InputArrayEnumerator(keys));
 
             IList<Lookup.LookupResult> results = suggester.DoLookup("a", false, 5);
             assertEquals(2, results.Count);
@@ -1019,7 +1020,7 @@ namespace Lucene.Net.Search.Suggest.Analyzing
             };
 
             keys.Shuffle(Random);
-            suggester.Build(new InputArrayIterator(keys));
+            suggester.Build(new InputArrayEnumerator(keys));
 
             assertEquals("[foo bar baz/50, foo bar/40]", suggester.DoLookup("foobar", false, 5).toString());
             assertEquals("[foo bar baz/50]", suggester.DoLookup("foobarbaz", false, 5).toString());
@@ -1154,7 +1155,7 @@ namespace Lucene.Net.Search.Suggest.Analyzing
             }
 
             answers.Shuffle(Random);
-            suggest.Build(new InputArrayIterator(answers.ToArray()));
+            suggest.Build(new InputArrayEnumerator(answers.ToArray()));
 
             int ITERS = AtLeast(100);
             for (int iter = 0; iter < ITERS; iter++)

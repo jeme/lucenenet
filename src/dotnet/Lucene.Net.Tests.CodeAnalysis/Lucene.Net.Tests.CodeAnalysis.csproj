@@ -36,7 +36,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\Lucene.Net\Lucene.Net.csproj" />
-    <ProjectReference Include="..\Lucene.Net.CodeAnalysis\Lucene.Net.CodeAnalysis.csproj" />
+    <ProjectReference Include="..\Lucene.Net.CodeAnalysis.CSharp\Lucene.Net.CodeAnalysis.CSharp.csproj" />
+    <ProjectReference Include="..\Lucene.Net.CodeAnalysis.VisualBasic\Lucene.Net.CodeAnalysis.VisualBasic.csproj" />
   </ItemGroup>
 
 </Project>

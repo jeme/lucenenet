@@ -73,7 +73,7 @@ namespace Lucene.Net.Search.Suggest
             Input[] keys = new Input[this.keys.Length];
             for (int i = 0; i < keys.Length; i++)
                 keys[i] = new Input(this.keys[i], i);
-            lookup.Build(new InputArrayIterator(keys));
+            lookup.Build(new InputArrayEnumerator(keys));
 
             // Store the suggester.
             DirectoryInfo storeDir = CreateTempDir(this.GetType().Name);

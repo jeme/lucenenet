@@ -100,11 +100,11 @@ namespace Lucene.Net.Index
             MultiReader mr3 = new MultiReader(readers2);
 
             // test mixing up TermDocs and TermEnums from different readers.
-            TermsEnum te2 = MultiFields.GetTerms(mr2, "body").GetIterator(null);
+            TermsEnum te2 = MultiFields.GetTerms(mr2, "body").GetEnumerator();
             te2.SeekCeil(new BytesRef("wow"));
             DocsEnum td = TestUtil.Docs(Random, mr2, "body", te2.Term, MultiFields.GetLiveDocs(mr2), null, 0);
 
-            TermsEnum te3 = MultiFields.GetTerms(mr3, "body").GetIterator(null);
+            TermsEnum te3 = MultiFields.GetTerms(mr3, "body").GetEnumerator();
             te3.SeekCeil(new BytesRef("wow"));
             td = TestUtil.Docs(Random, te3, MultiFields.GetLiveDocs(mr3), td, 0);
 
@@ -677,15 +677,16 @@ namespace Lucene.Net.Index
                     Assert.IsNull(fields2.GetTerms(field1));
                     continue;
                 }
-                TermsEnum enum1 = terms1.GetIterator(null);
+                TermsEnum enum1 = terms1.GetEnumerator();
 
                 Terms terms2 = fields2.GetTerms(field1);
                 Assert.IsNotNull(terms2);
-                TermsEnum enum2 = terms2.GetIterator(null);
+                TermsEnum enum2 = terms2.GetEnumerator();
 
-                while (enum1.Next() != null)
+                while (enum1.MoveNext())
                 {
-                    Assert.AreEqual(enum1.Term, enum2.Next(), "Different terms");
+                    Assert.IsTrue(enum2.MoveNext());
+                    Assert.AreEqual(enum1.Term, enum2.Term, "Different terms");
                     DocsAndPositionsEnum tp1 = enum1.DocsAndPositions(liveDocs, null);
                     DocsAndPositionsEnum tp2 = enum2.DocsAndPositions(liveDocs, null);
 

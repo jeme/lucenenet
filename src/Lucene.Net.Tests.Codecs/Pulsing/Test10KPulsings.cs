@@ -80,14 +80,15 @@ namespace Lucene.Net.Codecs.Pulsing
             IndexReader ir = iw.GetReader();
             iw.Dispose();
 
-            TermsEnum te = MultiFields.GetTerms(ir, "field").GetIterator(null);
+            TermsEnum te = MultiFields.GetTerms(ir, "field").GetEnumerator();
             DocsEnum de = null;
 
             for (int i = 0; i < 10050; i++)
             {
                 //string expected = df.format(i);
                 string expected = i.ToString("00000", CultureInfo.InvariantCulture);
-                assertEquals(expected, te.Next().Utf8ToString());
+                te.MoveNext();
+                assertEquals(expected, te.Term.Utf8ToString());
                 de = TestUtil.Docs(Random, te, null, de, DocsFlags.NONE);
                 assertTrue(de.NextDoc() != DocIdSetIterator.NO_MORE_DOCS);
                 assertEquals(DocIdSetIterator.NO_MORE_DOCS, de.NextDoc());
@@ -152,14 +153,15 @@ namespace Lucene.Net.Codecs.Pulsing
             IndexReader ir = iw.GetReader();
             iw.Dispose();
 
-            TermsEnum te = MultiFields.GetTerms(ir, "field").GetIterator(null);
+            TermsEnum te = MultiFields.GetTerms(ir, "field").GetEnumerator();
             DocsEnum de = null;
 
             for (int i = 0; i < 10050; i++)
             {
                 //string expected = df.format(i);
                 string expected = i.ToString("00000", CultureInfo.InvariantCulture);
-                assertEquals(expected, te.Next().Utf8ToString());
+                assertTrue(te.MoveNext());
+                assertEquals(expected, te.Term.Utf8ToString());
                 de = TestUtil.Docs(Random, te, null, de, DocsFlags.NONE);
                 assertTrue(de.NextDoc() != DocIdSetIterator.NO_MORE_DOCS);
                 assertEquals(DocIdSetIterator.NO_MORE_DOCS, de.NextDoc());

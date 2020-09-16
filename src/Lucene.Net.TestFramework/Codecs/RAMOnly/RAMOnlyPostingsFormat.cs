@@ -164,7 +164,7 @@ namespace Lucene.Net.Codecs.RAMOnly
 
             public override int DocCount => docCount;
 
-            public override TermsEnum GetIterator(TermsEnum reuse)
+            public override TermsEnum GetEnumerator()
             {
                 return new RAMTermsEnum(this);
             }
@@ -359,28 +359,41 @@ namespace Lucene.Net.Codecs.RAMOnly
             public override IComparer<BytesRef> Comparer
                 => BytesRef.UTF8SortedAsUnicodeComparer;
 
+            public override bool MoveNext()
+            {
+                EnsureEnumeratorInitialized();
+                if (it.MoveNext())
+                {
+                    current = it.Current;
+                    return true;
+                }
+                else
+                {
+                    return false;
+                }
+            }
+
+            [Obsolete("Use MoveNext() and Term instead. This method will be removed in 4.8.0 release candidate."), System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
             public override BytesRef Next()
             {
-                if (it == null)
+                if (MoveNext())
+                    return new BytesRef(current);
+                return null;
+            }
+
+            private void EnsureEnumeratorInitialized() // LUCENENET specific - factored out initialization step
+            {
+                if (it is null)
                 {
-                    if (current == null)
+                    if (current is null)
                     {
                         it = ramField.termToDocs.Keys.GetEnumerator();
                     }
                     else
                     {
                         //It = RamField.TermToDocs.tailMap(Current).Keys.GetEnumerator();
-                        it = ramField.termToDocs.Where(kvpair => string.CompareOrdinal(kvpair.Key, current) >= 0).ToDictionary(kvpair => kvpair.Key, kvpair => kvpair.Value).Keys.GetEnumerator();
+                        it = ramField.termToDocs.Where(kvpair => string.CompareOrdinal(kvpair.Key, current) >= 0).Select(pair => pair.Key).GetEnumerator();
                     }
-                }
-                if (it.MoveNext())
-                {
-                    current = it.Current;
-                    return new BytesRef(current);
-                }
-                else
-                {
-                    return null;
                 }
             }
 

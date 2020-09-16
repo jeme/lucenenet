@@ -107,7 +107,7 @@ namespace Lucene.Net.Misc
                 Terms terms = fields.GetTerms(field);
                 if (terms != null)
                 {
-                    TermsEnum termsEnum = terms.GetIterator(null);
+                    TermsEnum termsEnum = terms.GetEnumerator();
                     tiq = new TermStatsQueue(numTerms, comparer);
                     tiq.Fill(field, termsEnum);
                 }
@@ -125,7 +125,7 @@ namespace Lucene.Net.Misc
                     Terms terms = fields.GetTerms(fieldName);
                     if (terms != null)
                     {
-                        tiq.Fill(fieldName, terms.GetIterator(null));
+                        tiq.Fill(fieldName, terms.GetEnumerator());
                     }
                 }
             }
@@ -204,10 +204,9 @@ namespace Lucene.Net.Misc
 
             internal void Fill(string field, TermsEnum termsEnum)
             {
-                BytesRef term = null;
-                while ((term = termsEnum.Next()) != null)
+                while (termsEnum.MoveNext())
                 {
-                    InsertWithOverflow(new TermStats(field, term, termsEnum.DocFreq, termsEnum.TotalTermFreq));
+                    InsertWithOverflow(new TermStats(field, termsEnum.Term, termsEnum.DocFreq, termsEnum.TotalTermFreq));
                 }
             }
         }

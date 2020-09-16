@@ -29,11 +29,11 @@ namespace Lucene.Net.Search.Suggest
         [Test]
         public void TestEmpty()
         {
-            InputArrayIterator iterator = new InputArrayIterator(new Input[0]);
-            IInputIterator wrapper = new SortedInputIterator(iterator, BytesRef.UTF8SortedAsUnicodeComparer);
-            assertNull(wrapper.Next());
-            wrapper = new UnsortedInputIterator(iterator);
-            assertNull(wrapper.Next());
+            InputArrayEnumerator iterator = new InputArrayEnumerator(new Input[0]);
+            IInputEnumerator wrapper = new SortedInputEnumerator(iterator, BytesRef.UTF8SortedAsUnicodeComparer);
+            assertFalse(wrapper.MoveNext());
+            wrapper = new UnsortedInputEnumerator(iterator);
+            assertFalse(wrapper.MoveNext());
         }
 
         [Test]
@@ -79,81 +79,82 @@ namespace Lucene.Net.Search.Suggest
             }
 
             // test the sorted iterator wrapper with payloads
-            IInputIterator wrapper = new SortedInputIterator(new InputArrayIterator(unsorted), comparer);
+            IInputEnumerator wrapper = new SortedInputEnumerator(new InputArrayEnumerator(unsorted), comparer);
             IEnumerator<KeyValuePair<BytesRef, KeyValuePair<long, BytesRef>>> expected = sorted.GetEnumerator();
             while (expected.MoveNext())
             {
                 KeyValuePair<BytesRef, KeyValuePair<long, BytesRef>> entry = expected.Current;
 
-
-                assertEquals(entry.Key, wrapper.Next());
+                assertTrue(wrapper.MoveNext());
+                assertEquals(entry.Key, wrapper.Current);
                 assertEquals(Convert.ToInt64(entry.Value.Key), wrapper.Weight);
                 assertEquals(entry.Value.Value, wrapper.Payload);
             }
-            assertNull(wrapper.Next());
+            assertFalse(wrapper.MoveNext());
 
             // test the sorted iterator wrapper with contexts
-            wrapper = new SortedInputIterator(new InputArrayIterator(unsortedWithContexts), comparer);
+            wrapper = new SortedInputEnumerator(new InputArrayEnumerator(unsortedWithContexts), comparer);
             IEnumerator<KeyValuePair<BytesRef, KeyValuePair<long, ISet<BytesRef>>>> actualEntries = sortedWithContext.GetEnumerator();
             while (actualEntries.MoveNext())
             {
                 KeyValuePair<BytesRef, KeyValuePair<long, ISet<BytesRef>>> entry = actualEntries.Current;
-                assertEquals(entry.Key, wrapper.Next());
+                assertTrue(wrapper.MoveNext());
+                assertEquals(entry.Key, wrapper.Current);
                 assertEquals(Convert.ToInt64(entry.Value.Key), wrapper.Weight);
                 ISet<BytesRef> actualCtxs = entry.Value.Value;
                 assertEquals(actualCtxs, wrapper.Contexts);
             }
-            assertNull(wrapper.Next());
+            assertFalse(wrapper.MoveNext());
 
             // test the sorted iterator wrapper with contexts and payload
-            wrapper = new SortedInputIterator(new InputArrayIterator(unsortedWithPayloadAndContext), comparer);
+            wrapper = new SortedInputEnumerator(new InputArrayEnumerator(unsortedWithPayloadAndContext), comparer);
             IEnumerator<KeyValuePair<BytesRef, KeyValuePair<long, KeyValuePair<BytesRef, ISet<BytesRef>>>>> expectedPayloadContextEntries = sortedWithPayloadAndContext.GetEnumerator();
             while (expectedPayloadContextEntries.MoveNext())
             {
                 KeyValuePair<BytesRef, KeyValuePair<long, KeyValuePair<BytesRef, ISet<BytesRef>>>> entry = expectedPayloadContextEntries.Current;
-                assertEquals(entry.Key, wrapper.Next());
+                assertTrue(wrapper.MoveNext());
+                assertEquals(entry.Key, wrapper.Current);
                 assertEquals(Convert.ToInt64(entry.Value.Key), wrapper.Weight);
                 ISet<BytesRef> actualCtxs = entry.Value.Value.Value;
                 assertEquals(actualCtxs, wrapper.Contexts);
                 BytesRef actualPayload = entry.Value.Value.Key;
                 assertEquals(actualPayload, wrapper.Payload);
             }
-            assertNull(wrapper.Next());
+            assertFalse(wrapper.MoveNext());
 
             // test the unsorted iterator wrapper with payloads
-            wrapper = new UnsortedInputIterator(new InputArrayIterator(unsorted));
+            wrapper = new UnsortedInputEnumerator(new InputArrayEnumerator(unsorted));
             IDictionary<BytesRef, KeyValuePair<long, BytesRef>> actual = new JCG.SortedDictionary<BytesRef, KeyValuePair<long, BytesRef>>();
-            BytesRef key;
-            while ((key = wrapper.Next()) != null)
+            while (wrapper.MoveNext())
             {
                 long value = wrapper.Weight;
                 BytesRef payload = wrapper.Payload;
-                actual.Put(BytesRef.DeepCopyOf(key), new KeyValuePair<long, BytesRef>(value, BytesRef.DeepCopyOf(payload)));
+                actual.Put(BytesRef.DeepCopyOf(wrapper.Current), new KeyValuePair<long, BytesRef>(value, BytesRef.DeepCopyOf(payload)));
             }
             assertEquals(sorted, actual, aggressive: false);
 
             // test the sorted iterator wrapper without payloads
-            IInputIterator wrapperWithoutPayload = new SortedInputIterator(new InputArrayIterator(unsortedWithoutPayload), comparer);
+            IInputEnumerator wrapperWithoutPayload = new SortedInputEnumerator(new InputArrayEnumerator(unsortedWithoutPayload), comparer);
             IEnumerator<KeyValuePair<BytesRef, long>> expectedWithoutPayload = sortedWithoutPayload.GetEnumerator();
             while (expectedWithoutPayload.MoveNext())
             {
                 KeyValuePair<BytesRef, long> entry = expectedWithoutPayload.Current;
 
-
-                assertEquals(entry.Key, wrapperWithoutPayload.Next());
+                assertTrue(wrapperWithoutPayload.MoveNext());
+                assertEquals(entry.Key, wrapperWithoutPayload.Current);
                 assertEquals(Convert.ToInt64(entry.Value), wrapperWithoutPayload.Weight);
                 assertNull(wrapperWithoutPayload.Payload);
             }
-            assertNull(wrapperWithoutPayload.Next());
+            assertFalse(wrapperWithoutPayload.MoveNext());
 
             // test the unsorted iterator wrapper without payloads
-            wrapperWithoutPayload = new UnsortedInputIterator(new InputArrayIterator(unsortedWithoutPayload));
+            wrapperWithoutPayload = new UnsortedInputEnumerator(new InputArrayEnumerator(unsortedWithoutPayload));
             IDictionary<BytesRef, long> actualWithoutPayload = new JCG.SortedDictionary<BytesRef, long>();
-            while ((key = wrapperWithoutPayload.Next()) != null)
+            while (wrapperWithoutPayload.MoveNext())
             {
                 long value = wrapperWithoutPayload.Weight;
                 assertNull(wrapperWithoutPayload.Payload);
-                actualWithoutPayload.Put(BytesRef.DeepCopyOf(key), value);
+                actualWithoutPayload.Put(BytesRef.DeepCopyOf(wrapperWithoutPayload.Current), value);
             }
             assertEquals(sortedWithoutPayload, actualWithoutPayload, aggressive: false);
         }

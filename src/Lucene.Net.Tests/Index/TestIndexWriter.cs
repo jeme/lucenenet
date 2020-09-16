@@ -787,7 +787,7 @@ namespace Lucene.Net.Index
             dir.Dispose();
         }
 
-#if !NETSTANDARD1_6 //NOTE: Cannot set ThreadPriority in .NET Core.
+#if FEATURE_THREAD_PRIORITY
         // LUCENE-1036
         [Test]
         public virtual void TestMaxThreadPriority()
@@ -927,11 +927,14 @@ namespace Lucene.Net.Index
             writer.Dispose();
             DirectoryReader reader = DirectoryReader.Open(dir);
             AtomicReader subreader = GetOnlySegmentReader(reader);
-            TermsEnum te = subreader.Fields.GetTerms("").GetIterator(null);
-            Assert.AreEqual(new BytesRef("a"), te.Next());
-            Assert.AreEqual(new BytesRef("b"), te.Next());
-            Assert.AreEqual(new BytesRef("c"), te.Next());
-            Assert.IsNull(te.Next());
+            TermsEnum te = subreader.Fields.GetTerms("").GetEnumerator();
+            Assert.IsTrue(te.MoveNext());
+            Assert.AreEqual(new BytesRef("a"), te.Term);
+            Assert.IsTrue(te.MoveNext());
+            Assert.AreEqual(new BytesRef("b"), te.Term);
+            Assert.IsTrue(te.MoveNext());
+            Assert.AreEqual(new BytesRef("c"), te.Term);
+            Assert.IsFalse(te.MoveNext());
             reader.Dispose();
             dir.Dispose();
         }
@@ -950,12 +953,16 @@ namespace Lucene.Net.Index
             writer.Dispose();
             DirectoryReader reader = DirectoryReader.Open(dir);
             AtomicReader subreader = GetOnlySegmentReader(reader);
-            TermsEnum te = subreader.Fields.GetTerms("").GetIterator(null);
-            Assert.AreEqual(new BytesRef(""), te.Next());
-            Assert.AreEqual(new BytesRef("a"), te.Next());
-            Assert.AreEqual(new BytesRef("b"), te.Next());
-            Assert.AreEqual(new BytesRef("c"), te.Next());
-            Assert.IsNull(te.Next());
+            TermsEnum te = subreader.Fields.GetTerms("").GetEnumerator();
+            Assert.IsTrue(te.MoveNext());
+            Assert.AreEqual(new BytesRef(""), te.Term);
+            Assert.IsTrue(te.MoveNext());
+            Assert.AreEqual(new BytesRef("a"), te.Term);
+            Assert.IsTrue(te.MoveNext());
+            Assert.AreEqual(new BytesRef("b"), te.Term);
+            Assert.IsTrue(te.MoveNext());
+            Assert.AreEqual(new BytesRef("c"), te.Term);
+            Assert.IsFalse(te.MoveNext());
             reader.Dispose();
             dir.Dispose();
         }
@@ -1088,21 +1095,21 @@ namespace Lucene.Net.Index
 
             IndexReader r = DirectoryReader.Open(dir);
             Terms tpv = r.GetTermVectors(0).GetTerms("field");
-            TermsEnum termsEnum = tpv.GetIterator(null);
-            Assert.IsNotNull(termsEnum.Next());
+            TermsEnum termsEnum = tpv.GetEnumerator();
+            Assert.IsTrue(termsEnum.MoveNext());
             DocsAndPositionsEnum dpEnum = termsEnum.DocsAndPositions(null, null);
             Assert.IsNotNull(dpEnum);
             Assert.IsTrue(dpEnum.NextDoc() != DocIdSetIterator.NO_MORE_DOCS);
             Assert.AreEqual(1, dpEnum.Freq);
             Assert.AreEqual(100, dpEnum.NextPosition());
 
-            Assert.IsNotNull(termsEnum.Next());
+            Assert.IsTrue(termsEnum.MoveNext());
             dpEnum = termsEnum.DocsAndPositions(null, dpEnum);
             Assert.IsNotNull(dpEnum);
             Assert.IsTrue(dpEnum.NextDoc() != DocIdSetIterator.NO_MORE_DOCS);
             Assert.AreEqual(1, dpEnum.Freq);
             Assert.AreEqual(101, dpEnum.NextPosition());
-            Assert.IsNull(termsEnum.Next());
+            Assert.IsFalse(termsEnum.MoveNext());
 
             r.Dispose();
             dir.Dispose();
@@ -1331,7 +1338,7 @@ namespace Lucene.Net.Index
                             allowInterrupt = true;
                         }
                     }
-#if !NETSTANDARD1_6
+#if FEATURE_THREAD_INTERRUPT
                     catch (ThreadInterruptedException re)
                     {
                         // NOTE: important to leave this verbosity/noise
@@ -1376,7 +1383,7 @@ namespace Lucene.Net.Index
                         {
                             w.Rollback();
                         }
-#if !NETSTANDARD1_6
+#if FEATURE_THREAD_INTERRUPT
                         // LUCENENET specific - there is a chance that our thread will be
                         // interrupted here, so we need to catch and ignore that exception
                         // when our MockDirectoryWrapper throws it.
@@ -1623,9 +1630,9 @@ namespace Lucene.Net.Index
             w.AddDocument(d);
 
             AtomicReader r = GetOnlySegmentReader(w.GetReader());
-            TermsEnum t = r.Fields.GetTerms("field").GetIterator(null);
+            TermsEnum t = r.Fields.GetTerms("field").GetEnumerator();
             int count = 0;
-            while (t.Next() != null)
+            while (t.MoveNext())
             {
                 DocsEnum docs = TestUtil.Docs(Random, t, null, null, DocsFlags.NONE);
                 Assert.AreEqual(0, docs.NextDoc());

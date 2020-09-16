@@ -157,19 +157,25 @@ namespace Lucene.Net.Codecs.SimpleText
 
             }
 
-            public override BytesRef Next()
+            public override bool MoveNext()
             {
                 //if (Debugging.AssertsEnabled) Debugging.Assert(!ended); // LUCENENET: Ended field is never set, so this can never fail
-                var result = _fstEnum.Next();
+                if (!_fstEnum.MoveNext()) return false;
 
-                if (result == null) return null;
-
-                var pair1 = result.Output;
+                var pair1 = _fstEnum.Current.Output;
                 var pair2 = pair1.Output2;
                 _docsStart = pair1.Output1.Value;
                 _docFreq = (int)pair2.Output1;
                 _totalTermFreq = pair2.Output2.Value;
-                return result.Input;
+                return true;
+            }
+
+            [Obsolete("Use MoveNext() and Term instead. This method will be removed in 4.8.0 release candidate."), System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+            public override BytesRef Next()
+            {
+                if (MoveNext())
+                    return _fstEnum.Current.Input;
+                return null;
             }
 
             public override BytesRef Term => _fstEnum.Current.Input;
@@ -646,10 +652,10 @@ namespace Lucene.Net.Codecs.SimpleText
                 return (_fst != null) ? _fst.GetSizeInBytes() : 0;
             }
 
-            public override TermsEnum GetIterator(TermsEnum reuse)
+            public override TermsEnum GetEnumerator()
             {
-                return (_fst != null) 
-                    ? new SimpleTextTermsEnum(_outerInstance, _fst, _fieldInfo.IndexOptions) 
+                return (_fst != null)
+                    ? new SimpleTextTermsEnum(_outerInstance, _fst, _fieldInfo.IndexOptions)
                     : TermsEnum.EMPTY;
             }
 

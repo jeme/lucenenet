@@ -251,7 +251,7 @@ namespace Lucene.Net.Index.Sorter
         [Test]
         public virtual void TestDocsAndPositionsEnum()
         {
-            TermsEnum termsEnum = reader.GetTerms(DOC_POSITIONS_FIELD).GetIterator(null);
+            TermsEnum termsEnum = reader.GetTerms(DOC_POSITIONS_FIELD).GetEnumerator();
             assertEquals(TermsEnum.SeekStatus.FOUND, termsEnum.SeekCeil(new BytesRef(DOC_POSITIONS_TERM)));
             DocsAndPositionsEnum sortedPositions = termsEnum.DocsAndPositions(null, null);
             int doc;
@@ -332,7 +332,7 @@ namespace Lucene.Net.Index.Sorter
         public virtual void TestDocsEnum()
         {
             IBits mappedLiveDocs = RandomLiveDocs(reader.MaxDoc);
-            TermsEnum termsEnum = reader.GetTerms(DOCS_ENUM_FIELD).GetIterator(null);
+            TermsEnum termsEnum = reader.GetTerms(DOCS_ENUM_FIELD).GetEnumerator();
             assertEquals(TermsEnum.SeekStatus.FOUND, termsEnum.SeekCeil(new BytesRef(DOCS_ENUM_TERM)));
             DocsEnum docs = termsEnum.Docs(mappedLiveDocs, null);
 
@@ -437,7 +437,9 @@ namespace Lucene.Net.Index.Sorter
             {
                 Terms terms = reader.GetTermVector(i, TERM_VECTORS_FIELD);
                 assertNotNull("term vectors not found for doc " + i + " field [" + TERM_VECTORS_FIELD + "]", terms);
-                assertEquals("incorrect term vector for doc " + i, sortedValues[i].toString(), terms.GetIterator(null).Next().Utf8ToString());
+                var iter = terms.GetEnumerator();
+                iter.MoveNext();
+                assertEquals("incorrect term vector for doc " + i, sortedValues[i].toString(), iter.Term.Utf8ToString());
             }
         }
     }

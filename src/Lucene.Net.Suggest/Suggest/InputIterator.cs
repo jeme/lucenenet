@@ -1,4 +1,5 @@
 ﻿using Lucene.Net.Util;
+using System;
 using System.Collections.Generic;
 
 namespace Lucene.Net.Search.Suggest
@@ -25,9 +26,8 @@ namespace Lucene.Net.Search.Suggest
     /// currently only <see cref="Analyzing.AnalyzingSuggester"/>, <see cref="Analyzing.FuzzySuggester"/>
     /// and <see cref="Analyzing.AnalyzingInfixSuggester"/> support payloads.
     /// </summary>
-    public interface IInputIterator : IBytesRefIterator
+    public interface IInputEnumerator : IBytesRefEnumerator
     {
-
         /// <summary>
         /// A term's weight, higher numbers mean better suggestions. </summary>
         long Weight { get; }
@@ -54,36 +54,38 @@ namespace Lucene.Net.Search.Suggest
         bool HasContexts { get; }
     }
 
-    /// <summary>
-    /// Singleton <see cref="IInputIterator"/> that iterates over 0 BytesRefs.
-    /// </summary>
-    public static class EmptyInputIterator
+    public static class InputEnumerator
     {
-        public static readonly IInputIterator Instance = new InputIteratorWrapper(BytesRefIterator.EMPTY);
+        /// <summary>
+        /// Singleton <see cref="IInputEnumerator"/> that iterates over 0 <see cref="BytesRef"/>s.
+        /// </summary>
+        public static readonly IInputEnumerator EMPTY = new InputEnumeratorWrapper(BytesRefEnumerator.EMPTY);
     }
 
     /// <summary>
-    /// Wraps a <see cref="IBytesRefIterator"/> as a suggester <see cref="IInputIterator"/>, with all weights
+    /// Wraps a <see cref="IBytesRefEnumerator"/> as a suggester <see cref="IInputEnumerator"/>, with all weights
     /// set to <c>1</c> and carries no payload
     /// </summary>
-    public class InputIteratorWrapper : IInputIterator
+    public class InputEnumeratorWrapper : IInputEnumerator
     {
-        internal readonly IBytesRefIterator wrapped;
+        internal readonly IBytesRefEnumerator wrapped;
 
         /// <summary>
         /// Creates a new wrapper, wrapping the specified iterator and 
         /// specifying a weight value of <c>1</c> for all terms 
         /// and nullifies associated payloads.
         /// </summary>
-        public InputIteratorWrapper(IBytesRefIterator wrapped)
+        public InputEnumeratorWrapper(IBytesRefEnumerator wrapped)
         {
             this.wrapped = wrapped;
         }
 
         public virtual long Weight => 1;
 
-        public virtual BytesRef Next()
-            => wrapped.Next();
+        public virtual BytesRef Current => wrapped.Current;
+
+        public virtual bool MoveNext()
+            => wrapped.MoveNext();
 
         public virtual BytesRef Payload => null;
 

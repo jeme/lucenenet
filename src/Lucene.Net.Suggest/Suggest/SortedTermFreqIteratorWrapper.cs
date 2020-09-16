@@ -28,12 +28,12 @@ namespace Lucene.Net.Search.Suggest
 
     /// <summary>
     /// This wrapper buffers incoming elements and makes sure they are sorted based on given comparer.
+    /// <para/>
     /// @lucene.experimental
     /// </summary>
-    public class SortedTermFreqIteratorWrapper : ITermFreqIterator
+    public class SortedTermFreqEnumeratorWrapper : ITermFreqEnumerator
     {
-
-        private readonly ITermFreqIterator source;
+        private readonly ITermFreqEnumerator source;
         private FileInfo tempInput;
         private FileInfo tempSorted;
         private readonly OfflineSorter.ByteSequencesReader reader;
@@ -42,28 +42,27 @@ namespace Lucene.Net.Search.Suggest
 
         private long weight;
         private readonly BytesRef scratch = new BytesRef();
+        private BytesRef current;
 
         /// <summary>
         /// Creates a new sorted wrapper, using <see cref="BytesRef.UTF8SortedAsUnicodeComparer"/>
         /// for sorting. 
         /// </summary>
-        public SortedTermFreqIteratorWrapper(ITermFreqIterator source)
+        public SortedTermFreqEnumeratorWrapper(ITermFreqEnumerator source)
             : this(source, BytesRef.UTF8SortedAsUnicodeComparer)
-        {
-        }
+        { }
 
         /// <summary>
         /// Creates a new sorted wrapper, sorting by BytesRef
         /// (ascending) then cost (ascending).
         /// </summary>
-        public SortedTermFreqIteratorWrapper(ITermFreqIterator source, IComparer<BytesRef> comparer)
+        public SortedTermFreqEnumeratorWrapper(ITermFreqEnumerator source, IComparer<BytesRef> comparer)
         {
             this.source = source;
             this.comparer = comparer;
             this.reader = Sort();
             this.tieBreakByCostComparer = Comparer<BytesRef>.Create((left, right) =>
             {
-                SortedTermFreqIteratorWrapper outerInstance = this;
                 BytesRef leftScratch = new BytesRef();
                 BytesRef rightScratch = new BytesRef();
 
@@ -75,9 +74,9 @@ namespace Lucene.Net.Search.Suggest
                 rightScratch.Bytes = right.Bytes;
                 rightScratch.Offset = right.Offset;
                 rightScratch.Length = right.Length;
-                long leftCost = outerInstance.Decode(leftScratch, input);
-                long rightCost = outerInstance.Decode(rightScratch, input);
-                int cmp = outerInstance.comparer.Compare(leftScratch, rightScratch);
+                long leftCost = Decode(leftScratch, input);
+                long rightCost = Decode(rightScratch, input);
+                int cmp = comparer.Compare(leftScratch, rightScratch);
                 if (cmp != 0)
                 {
                     return cmp;
@@ -88,13 +87,12 @@ namespace Lucene.Net.Search.Suggest
 
         public virtual IComparer<BytesRef> Comparer => comparer;
 
-        public virtual BytesRef Next()
+        public virtual BytesRef Current => current;
+
+        public virtual bool MoveNext()
         {
+            if (done) return false;
             bool success = false;
-            if (done)
-            {
-                return null;
-            }
             try
             {
                 var input = new ByteArrayDataInput();
@@ -102,18 +100,20 @@ namespace Lucene.Net.Search.Suggest
                 {
                     weight = Decode(scratch, input);
                     success = true;
-                    return scratch;
+                    current = scratch;
+                    return true;
                 }
-                Dispose();
+                Close();
                 success = done = true;
-                return null;
+                current = null;
+                return false;
             }
             finally
             {
                 if (!success)
                 {
                     done = true;
-                    Dispose();
+                    Close();
                 }
             }
         }
@@ -136,13 +136,12 @@ namespace Lucene.Net.Search.Suggest
             bool success = false;
             try
             {
-                BytesRef spare;
                 byte[] buffer = Arrays.Empty<byte>();
                 ByteArrayDataOutput output = new ByteArrayDataOutput(buffer);
 
-                while ((spare = source.Next()) != null)
+                while (source.MoveNext())
                 {
-                    Encode(writer, output, buffer, spare, source.Weight);
+                    Encode(writer, output, buffer, source.Current, source.Weight);
                 }
                 writer.Dispose();
                 (new OfflineSorter(tieBreakByCostComparer)).Sort(tempInput, tempSorted);
@@ -165,13 +164,13 @@ namespace Lucene.Net.Search.Suggest
                     }
                     finally
                     {
-                        Dispose();
+                        Close();
                     }
                 }
             }
         }
 
-        private void Dispose()
+        private void Close()
         {
             IOUtils.Dispose(reader);
             if (tempInput != null)

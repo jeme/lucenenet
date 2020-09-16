@@ -1,4 +1,5 @@
 ﻿using Lucene.Net.Util;
+using System;
 using System.Collections.Generic;
 
 namespace Lucene.Net.Search.Spell
@@ -23,7 +24,7 @@ namespace Lucene.Net.Search.Spell
     /// <summary>
     /// Interface for enumerating term,weight pairs.
     /// </summary>
-    public interface ITermFreqIterator : IBytesRefIterator
+    public interface ITermFreqEnumerator : IBytesRefEnumerator
     {
 
         /// <summary>
@@ -33,28 +34,27 @@ namespace Lucene.Net.Search.Spell
     }
 
     /// <summary>
-    /// Wraps a BytesRefIterator as a TermFreqIterator, with all weights
-    /// set to <code>1</code>
+    /// Wraps a <see cref="BytesRefEnumerator"/> as a <see cref="ITermFreqEnumerator"/>, with all weights
+    /// set to <c>1</c>.
     /// </summary>
-    public class TermFreqIteratorWrapper : ITermFreqIterator
+    public class TermFreqEnumeratorWrapper : ITermFreqEnumerator
     {
-        internal IBytesRefIterator wrapped;
+        internal IBytesRefEnumerator wrapped;
 
         /// <summary>
         /// Creates a new wrapper, wrapping the specified iterator and 
         /// specifying a weight value of <code>1</code> for all terms.
         /// </summary>
-        public TermFreqIteratorWrapper(IBytesRefIterator wrapped)
+        public TermFreqEnumeratorWrapper(IBytesRefEnumerator wrapped)
         {
             this.wrapped = wrapped;
         }
 
         public virtual long Weight => 1;
 
-        public virtual BytesRef Next()
-        {
-            return wrapped.Next();
-        }
+        public BytesRef Current => wrapped.Current;
+
+        public bool MoveNext() => wrapped.MoveNext();
 
         public virtual IComparer<BytesRef> Comparer => wrapped.Comparer;
     }

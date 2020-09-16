@@ -26,9 +26,8 @@ namespace Lucene.Net.Search.Suggest.Fst
         [Test]
         public void TestExternalRefSorter()
         {
-            ExternalRefSorter s = new ExternalRefSorter(new OfflineSorter());
-            Check(s);
-            s.Dispose();
+            using (ExternalRefSorter s = new ExternalRefSorter(new OfflineSorter()))
+                Check(s);
         }
 
         [Test]
@@ -41,14 +40,14 @@ namespace Lucene.Net.Search.Suggest.Fst
         {
             for (int i = 0; i < 100; i++)
             {
-                byte[] current = new byte[Random.nextInt(256)];
+                byte[] current = new byte[Random.Next(256)];
                 Random.NextBytes(current);
                 sorter.Add(new BytesRef(current));
             }
 
             // Create two iterators and check that they're aligned with each other.
-            IBytesRefIterator i1 = sorter.GetIterator();
-            IBytesRefIterator i2 = sorter.GetIterator();
+            IBytesRefEnumerator i1 = sorter.GetEnumerator();
+            IBytesRefEnumerator i2 = sorter.GetEnumerator();
 
             // Verify sorter contract.
             try
@@ -60,14 +59,12 @@ namespace Lucene.Net.Search.Suggest.Fst
             {
                 // Expected.
             }
-            BytesRef spare1;
-            BytesRef spare2;
-            while ((spare1 = i1.Next()) != null && (spare2 = i2.Next()) != null)
+            while (i1.MoveNext() && i2.MoveNext())
             {
-                assertEquals(spare1, spare2);
+                assertEquals(i1.Current, i2.Current);
             }
-            assertNull(i1.Next());
-            assertNull(i2.Next());
+            assertFalse(i1.MoveNext());
+            assertFalse(i2.MoveNext());
         }
     }
 }

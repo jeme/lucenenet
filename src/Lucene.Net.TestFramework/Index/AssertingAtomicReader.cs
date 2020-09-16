@@ -64,15 +64,22 @@ namespace Lucene.Net.Index
             return new AssertingAtomicReader.AssertingTermsEnum(termsEnum);
         }
 
-        public override TermsEnum GetIterator(TermsEnum reuse)
+        public override TermsEnum GetEnumerator()
+        {
+            var termsEnum = base.GetEnumerator();
+            if (Debugging.AssertsEnabled) Debugging.Assert(termsEnum != null);
+            return new AssertingAtomicReader.AssertingTermsEnum(termsEnum);
+        }
+
+        public override TermsEnum GetEnumerator(TermsEnum reuse)
         {
             // TODO: should we give this thing a random to be super-evil,
             // and randomly *not* unwrap?
-            if (reuse is AssertingAtomicReader.AssertingTermsEnum)
+            if (!(reuse is null) && reuse is AssertingAtomicReader.AssertingTermsEnum reusable)
             {
-                reuse = ((AssertingAtomicReader.AssertingTermsEnum)reuse).m_input;
+                reuse = reusable.m_input;
             }
-            TermsEnum termsEnum = base.GetIterator(reuse);
+            TermsEnum termsEnum = base.GetEnumerator(reuse);
             if (Debugging.AssertsEnabled) Debugging.Assert(termsEnum != null);
             return new AssertingAtomicReader.AssertingTermsEnum(termsEnum);
         }
@@ -435,22 +442,31 @@ namespace Lucene.Net.Index
                 return docs == null ? null : new AssertingDocsAndPositionsEnum(docs);
             }
 
-            // TODO: we should separately track if we are 'at the end' ?
-            // someone should not call next() after it returns null!!!!
-            public override BytesRef Next()
+            public override bool MoveNext()
             {
-                if (Debugging.AssertsEnabled) Debugging.Assert(state == State.INITIAL || state == State.POSITIONED, "Next() called on unpositioned TermsEnum");
-                BytesRef result = base.Next();
-                if (result == null)
+                if (Debugging.AssertsEnabled) Debugging.Assert(state == State.INITIAL || state == State.POSITIONED, "MoveNext() called on unpositioned TermsEnum");
+                if (!base.MoveNext())
                 {
                     state = State.UNPOSITIONED;
+                    return false;
                 }
                 else
                 {
-                    if (Debugging.AssertsEnabled) Debugging.Assert(result.IsValid());
+                    if (Debugging.AssertsEnabled) Debugging.Assert(base.Term.IsValid());
                     state = State.POSITIONED;
+                    return true;
                 }
-                return result;
+            }
+
+            // TODO: we should separately track if we are 'at the end' ?
+            // someone should not call next() after it returns null!!!!
+            [Obsolete("Use MoveNext() and Term instead. This method will be removed in 4.8.0 release candidate."), System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+            public override BytesRef Next()
+            {
+                if (Debugging.AssertsEnabled) Debugging.Assert(state == State.INITIAL || state == State.POSITIONED, "Next() called on unpositioned TermsEnum");
+                if (MoveNext())
+                    return base.Term;
+                return null;
             }
 
             public override long Ord
@@ -678,7 +694,7 @@ namespace Lucene.Net.Index
         public override NumericDocValues GetNumericDocValues(string field)
         {
             NumericDocValues dv = base.GetNumericDocValues(field);
-            FieldInfo fi = FieldInfos.FieldInfo(field);
+            FieldInfo fi = base.FieldInfos.FieldInfo(field);
             if (dv != null)
             {
                 if (Debugging.AssertsEnabled) Debugging.Assert(fi != null);
@@ -695,7 +711,7 @@ namespace Lucene.Net.Index
         public override BinaryDocValues GetBinaryDocValues(string field)
         {
             BinaryDocValues dv = base.GetBinaryDocValues(field);
-            FieldInfo fi = FieldInfos.FieldInfo(field);
+            FieldInfo fi = base.FieldInfos.FieldInfo(field);
             if (dv != null)
             {
                 if (Debugging.AssertsEnabled) Debugging.Assert(fi != null);
@@ -712,7 +728,7 @@ namespace Lucene.Net.Index
         public override SortedDocValues GetSortedDocValues(string field)
         {
             SortedDocValues dv = base.GetSortedDocValues(field);
-            FieldInfo fi = FieldInfos.FieldInfo(field);
+            FieldInfo fi = base.FieldInfos.FieldInfo(field);
             if (dv != null)
             {
                 if (Debugging.AssertsEnabled) Debugging.Assert(fi != null);
@@ -729,7 +745,7 @@ namespace Lucene.Net.Index
         public override SortedSetDocValues GetSortedSetDocValues(string field)
         {
             SortedSetDocValues dv = base.GetSortedSetDocValues(field);
-            FieldInfo fi = FieldInfos.FieldInfo(field);
+            FieldInfo fi = base.FieldInfos.FieldInfo(field);
             if (dv != null)
             {
                 if (Debugging.AssertsEnabled) Debugging.Assert(fi != null);
@@ -746,7 +762,7 @@ namespace Lucene.Net.Index
         public override NumericDocValues GetNormValues(string field)
         {
             NumericDocValues dv = base.GetNormValues(field);
-            FieldInfo fi = FieldInfos.FieldInfo(field);
+            FieldInfo fi = base.FieldInfos.FieldInfo(field);
             if (dv != null)
             {
                 if (Debugging.AssertsEnabled) Debugging.Assert(fi != null);
@@ -784,7 +800,7 @@ namespace Lucene.Net.Index
         public override IBits GetDocsWithField(string field)
         {
             IBits docsWithField = base.GetDocsWithField(field);
-            FieldInfo fi = FieldInfos.FieldInfo(field);
+            FieldInfo fi = base.FieldInfos.FieldInfo(field);
             if (docsWithField != null)
             {
                 if (Debugging.AssertsEnabled) Debugging.Assert(fi != null);

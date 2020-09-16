@@ -1,4 +1,5 @@
-﻿using Lucene.Net.Util;
+﻿using Lucene.Net.Attributes;
+using Lucene.Net.Util;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
@@ -79,16 +80,15 @@ namespace Lucene.Net.Search.Suggest
             Stream inputReader = new MemoryStream(fileInput.Value.getBytes(Encoding.UTF8));
             FileDictionary dictionary = new FileDictionary(inputReader);
             List<List<string>> entries = fileInput.Key;
-            IInputIterator inputIter = dictionary.GetEntryIterator();
+            IInputEnumerator inputIter = dictionary.GetEntryEnumerator();
             assertFalse(inputIter.HasPayloads);
-            BytesRef term;
             int count = 0;
-            while ((term = inputIter.Next()) != null)
+            while (inputIter.MoveNext())
             {
                 assertTrue(entries.size() > count);
                 List<string> entry = entries[count];
                 assertTrue(entry.size() >= 1); // at least a term
-                assertEquals(entry[0], term.Utf8ToString());
+                assertEquals(entry[0], inputIter.Current.Utf8ToString());
                 assertEquals(1, inputIter.Weight);
                 assertNull(inputIter.Payload);
                 count++;
@@ -103,16 +103,15 @@ namespace Lucene.Net.Search.Suggest
             Stream inputReader = new MemoryStream(fileInput.Value.getBytes(Encoding.UTF8));
             FileDictionary dictionary = new FileDictionary(inputReader);
             List<List<String>> entries = fileInput.Key;
-            IInputIterator inputIter = dictionary.GetEntryIterator();
+            IInputEnumerator inputIter = dictionary.GetEntryEnumerator();
             assertFalse(inputIter.HasPayloads);
-            BytesRef term;
             int count = 0;
-            while ((term = inputIter.Next()) != null)
+            while (inputIter.MoveNext())
             {
                 assertTrue(entries.size() > count);
                 List<String> entry = entries[count];
                 assertTrue(entry.size() >= 1); // at least a term
-                assertEquals(entry[0], term.Utf8ToString());
+                assertEquals(entry[0], inputIter.Current.Utf8ToString());
                 assertEquals((entry.size() == 2) ? long.Parse(entry[1], CultureInfo.InvariantCulture) : 1, inputIter.Weight);
                 assertNull(inputIter.Payload);
                 count++;
@@ -127,16 +126,15 @@ namespace Lucene.Net.Search.Suggest
             Stream inputReader = new MemoryStream(fileInput.Value.getBytes(Encoding.UTF8));
             FileDictionary dictionary = new FileDictionary(inputReader);
             List<List<string>> entries = fileInput.Key;
-            IInputIterator inputIter = dictionary.GetEntryIterator();
+            IInputEnumerator inputIter = dictionary.GetEntryEnumerator();
             assertTrue(inputIter.HasPayloads);
-            BytesRef term;
             int count = 0;
-            while ((term = inputIter.Next()) != null)
+            while (inputIter.MoveNext())
             {
                 assertTrue(entries.size() > count);
                 List<string> entry = entries[count];
                 assertTrue(entry.size() >= 2); // at least term and weight
-                assertEquals(entry[0], term.Utf8ToString());
+                assertEquals(entry[0], inputIter.Current.Utf8ToString());
                 assertEquals(long.Parse(entry[1], CultureInfo.InvariantCulture), inputIter.Weight);
                 if (entry.size() == 3)
                 {
@@ -158,16 +156,15 @@ namespace Lucene.Net.Search.Suggest
             Stream inputReader = new MemoryStream(fileInput.Value.getBytes(Encoding.UTF8));
             FileDictionary dictionary = new FileDictionary(inputReader);
             List<List<string>> entries = fileInput.Key;
-            IInputIterator inputIter = dictionary.GetEntryIterator();
+            IInputEnumerator inputIter = dictionary.GetEntryEnumerator();
             assertTrue(inputIter.HasPayloads);
-            BytesRef term;
             int count = 0;
-            while ((term = inputIter.Next()) != null)
+            while (inputIter.MoveNext())
             {
                 assertTrue(entries.size() > count);
                 List<string> entry = entries[count];
                 assertTrue(entry.size() >= 2); // at least term and weight
-                assertEquals(entry[0], term.Utf8ToString());
+                assertEquals(entry[0], inputIter.Current.Utf8ToString());
                 assertEquals(long.Parse(entry[1], CultureInfo.InvariantCulture), inputIter.Weight);
                 if (entry.size() == 3)
                 {
@@ -182,7 +179,6 @@ namespace Lucene.Net.Search.Suggest
             assertEquals(count, entries.size());
         }
 
-
         [Test]
         public void TestFileWithDifferentDelimiter()
         {
@@ -190,16 +186,15 @@ namespace Lucene.Net.Search.Suggest
             Stream inputReader = new MemoryStream(fileInput.Value.getBytes(Encoding.UTF8));
             FileDictionary dictionary = new FileDictionary(inputReader, " , ");
             List<List<string>> entries = fileInput.Key;
-            IInputIterator inputIter = dictionary.GetEntryIterator();
+            IInputEnumerator inputIter = dictionary.GetEntryEnumerator();
             assertTrue(inputIter.HasPayloads);
-            BytesRef term;
             int count = 0;
-            while ((term = inputIter.Next()) != null)
+            while (inputIter.MoveNext())
             {
                 assertTrue(entries.size() > count);
                 List<string> entry = entries[count];
                 assertTrue(entry.size() >= 2); // at least term and weight
-                assertEquals(entry[0], term.Utf8ToString());
+                assertEquals(entry[0], inputIter.Current.Utf8ToString());
                 assertEquals(long.Parse(entry[1], CultureInfo.InvariantCulture), inputIter.Weight);
                 if (entry.size() == 3)
                 {

@@ -1,4 +1,5 @@
 ﻿using Lucene.Net.Util;
+using System;
 using System.Collections.Generic;
 
 namespace Lucene.Net.Search.Suggest
@@ -21,9 +22,9 @@ namespace Lucene.Net.Search.Suggest
      */
 
     /// <summary>
-    /// A <seealso cref="InputIterator"/> over a sequence of <seealso cref="Input"/>s.
+    /// A <seealso cref="InputEnumerator"/> over a sequence of <seealso cref="Input"/>s.
     /// </summary>
-    public sealed class InputArrayIterator : IInputIterator
+    public sealed class InputArrayEnumerator : IInputEnumerator
     {
         private readonly IEnumerator<Input> i;
         private readonly bool hasPayloads;
@@ -32,7 +33,7 @@ namespace Lucene.Net.Search.Suggest
         private Input current;
         private readonly BytesRef spare = new BytesRef();
 
-        public InputArrayIterator(IEnumerator<Input> i)
+        public InputArrayEnumerator(IEnumerator<Input> i)
         {
             this.i = i;
             if (i.MoveNext())
@@ -49,25 +50,27 @@ namespace Lucene.Net.Search.Suggest
             }
         }
 
-        public InputArrayIterator(Input[] i)
+        public InputArrayEnumerator(Input[] i)
             : this((IEnumerable<Input>)i)
         {
         }
-        public InputArrayIterator(IEnumerable<Input> i)
+        public InputArrayEnumerator(IEnumerable<Input> i)
             : this(i.GetEnumerator())
         {
         }
 
         public long Weight => current.v;
 
-        public BytesRef Next()
+        public BytesRef Current { get; private set; }
+
+        public bool MoveNext()
         {
             // LUCENENET NOTE: We moved the cursor when 
             // the instance was created. Make sure we don't
             // move it again until the second call to Next().
             if (first && current != null)
             {
-                first = false; 
+                first = false;
             }
             else if (i.MoveNext())
             {
@@ -75,11 +78,13 @@ namespace Lucene.Net.Search.Suggest
             }
             else
             {
-                return null;
+                Current = null;
+                return false;
             }
 
             spare.CopyBytes(current.term);
-            return spare;
+            Current = spare;
+            return true;
         }
 
         public BytesRef Payload => current.payload;

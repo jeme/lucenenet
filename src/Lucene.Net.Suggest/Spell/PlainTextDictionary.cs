@@ -1,5 +1,6 @@
 ﻿using Lucene.Net.Search.Suggest;
 using Lucene.Net.Util;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
@@ -34,7 +35,7 @@ namespace Lucene.Net.Search.Spell
     public class PlainTextDictionary : IDictionary
     {
 
-        private TextReader @in;
+        private readonly TextReader @in;
 
         /// <summary>
         /// Creates a dictionary based on a File.
@@ -66,44 +67,47 @@ namespace Lucene.Net.Search.Spell
             @in = reader;
         }
 
-        public virtual IInputIterator GetEntryIterator()
+        public virtual IInputEnumerator GetEntryEnumerator()
         {
-            return new InputIteratorWrapper(new FileIterator(this));
+            return new InputEnumeratorWrapper(new FileEnumerator(this));
         }
 
-        internal sealed class FileIterator : IBytesRefIterator
+        internal sealed class FileEnumerator : IBytesRefEnumerator
         {
             private readonly PlainTextDictionary outerInstance;
 
-            public FileIterator(PlainTextDictionary outerInstance)
+            public FileEnumerator(PlainTextDictionary outerInstance)
             {
                 this.outerInstance = outerInstance;
             }
 
             internal bool done = false;
             internal readonly BytesRef spare = new BytesRef();
+            private BytesRef current;
 
-            public BytesRef Next()
+            public BytesRef Current => current;
+
+            public bool MoveNext()
             {
                 if (done)
-                {
-                    return null;
-                }
+                    return false;
+
                 bool success = false;
-                BytesRef result;
+                bool hasNext = true;
                 try
                 {
                     string line;
                     if ((line = outerInstance.@in.ReadLine()) != null)
                     {
                         spare.CopyChars(line);
-                        result = spare;
+                        current = spare;
                     }
                     else
                     {
                         done = true;
                         IOUtils.Dispose(outerInstance.@in);
-                        result = null;
+                        current = null;
+                        hasNext = false;
                     }
                     success = true;
                 }
@@ -114,7 +118,7 @@ namespace Lucene.Net.Search.Spell
                         IOUtils.DisposeWhileHandlingException(outerInstance.@in);
                     }
                 }
-                return result;
+                return hasNext;
             }
 
             public IComparer<BytesRef> Comparer => null;

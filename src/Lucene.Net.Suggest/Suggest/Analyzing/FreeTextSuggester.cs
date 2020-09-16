@@ -41,7 +41,7 @@ namespace Lucene.Net.Search.Suggest.Analyzing
     //   - add pruning of low-freq ngrams?   
 
     /// <summary>
-    /// Builds an ngram model from the text sent to <see cref="Build(IInputIterator, double)"/>
+    /// Builds an ngram model from the text sent to <see cref="Build(IInputEnumerator, double)"/>
     /// and predicts based on the last grams-1 tokens in
     /// the request sent to <see cref="DoLookup(string, IEnumerable{BytesRef}, bool, int)"/>.  This tries to
     /// handle the "long tail" of suggestions for when the
@@ -287,23 +287,23 @@ namespace Lucene.Net.Search.Suggest.Analyzing
             }
         }
 
-        public override void Build(IInputIterator iterator)
+        public override void Build(IInputEnumerator enumerator)
         {
-            Build(iterator, IndexWriterConfig.DEFAULT_RAM_BUFFER_SIZE_MB);
+            Build(enumerator, IndexWriterConfig.DEFAULT_RAM_BUFFER_SIZE_MB);
         }
 
         /// <summary>
         /// Build the suggest index, using up to the specified
-        ///  amount of temporary RAM while building.  Note that
-        ///  the weights for the suggestions are ignored. 
+        /// amount of temporary RAM while building.  Note that
+        /// the weights for the suggestions are ignored.
         /// </summary>
-        public virtual void Build(IInputIterator iterator, double ramBufferSizeMB)
+        public virtual void Build(IInputEnumerator enumerator, double ramBufferSizeMB)
         {
-            if (iterator.HasPayloads)
+            if (enumerator.HasPayloads)
             {
                 throw new ArgumentException("this suggester doesn't support payloads");
             }
-            if (iterator.HasContexts)
+            if (enumerator.HasContexts)
             {
                 throw new ArgumentException("this suggester doesn't support contexts");
             }
@@ -350,17 +350,14 @@ namespace Lucene.Net.Search.Suggest.Analyzing
                 count = 0;
                 try
                 {
-                    while (true)
+                    while (enumerator.MoveNext())
                     {
-                        BytesRef surfaceForm = iterator.Next();
-                        if (surfaceForm == null)
-                        {
-                            break;
-                        }
+                        BytesRef surfaceForm = enumerator.Current;
                         field.SetStringValue(surfaceForm.Utf8ToString());
                         writer.AddDocument(doc);
                         count++;
                     }
+
                     reader = DirectoryReader.Open(writer, false);
 
                     Terms terms = MultiFields.GetTerms(reader, "body");
@@ -370,19 +367,15 @@ namespace Lucene.Net.Search.Suggest.Analyzing
                     }
 
                     // Move all ngrams into an FST:
-                    TermsEnum termsEnum = terms.GetIterator(null);
+                    TermsEnum termsEnum = terms.GetEnumerator(null);
 
                     Outputs<long?> outputs = PositiveInt32Outputs.Singleton;
                     Builder<long?> builder = new Builder<long?>(FST.INPUT_TYPE.BYTE1, outputs);
 
                     Int32sRef scratchInts = new Int32sRef();
-                    while (true)
+                    while (termsEnum.MoveNext())
                     {
-                        BytesRef term = termsEnum.Next();
-                        if (term == null)
-                        {
-                            break;
-                        }
+                        BytesRef term = termsEnum.Term;
                         int ngramCount = CountGrams(term);
                         if (ngramCount > grams)
                         {
