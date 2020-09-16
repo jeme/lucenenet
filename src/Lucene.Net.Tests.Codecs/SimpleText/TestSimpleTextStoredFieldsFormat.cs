@@ -1,4 +1,5 @@
-﻿using Lucene.Net.Index;
+﻿using Lucene.Net.Attributes;
+using Lucene.Net.Index;
 
 namespace Lucene.Net.Codecs.SimpleText
 {
@@ -25,6 +26,12 @@ namespace Lucene.Net.Codecs.SimpleText
         protected override Codec GetCodec()
         {
             return new SimpleTextCodec();
+        }
+
+        [Deadlock]
+        public override void TestConcurrentReads()
+        {
+            base.TestConcurrentReads();
         }
     }
 }

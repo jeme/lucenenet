@@ -1,8 +1,8 @@
 ﻿using J2N.Threading.Atomic;
+using Lucene.Net.Diagnostics;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Reflection;
 using System.Threading;
 
 namespace Lucene.Net.Facet.Taxonomy
@@ -74,36 +74,43 @@ namespace Lucene.Net.Facet.Taxonomy
         /// <summary>
         /// An iterator over a category's children.
         /// </summary>
-        public class ChildrenIterator
+        public class ChildrenEnumerator
         {
             private readonly int[] siblings;
             private int child;
+            private int currentChild = TaxonomyReader.INVALID_ORDINAL;
 
-            internal ChildrenIterator(int child, int[] siblings)
+            internal ChildrenEnumerator(int child, int[] siblings)
             {
-                this.siblings = siblings;
+                this.siblings = siblings ?? throw new ArgumentNullException(nameof(siblings)); // LUCENENT specific - added guard clause
                 this.child = child;
             }
 
             /// <summary>
-            /// Return the next child ordinal, or <see cref="TaxonomyReader.INVALID_ORDINAL"/>
-            /// if no more children.
+            /// Gets the current child. Returns <see cref="TaxonomyReader.INVALID_ORDINAL"/> if
+            /// positioned before the first child or after the last child.
             /// </summary>
-            public virtual int Next()
+            public virtual int Current => currentChild;
+
+            /// <summary>
+            /// Move to the next child ordinal. Returns <c>false</c> if there are no more children.
+            /// </summary>
+            /// <returns></returns>
+            public virtual bool MoveNext()
             {
-                int res = child;
-                if (child != TaxonomyReader.INVALID_ORDINAL)
-                {
-                    child = siblings[child];
-                }
-                return res;
+                if (child == TaxonomyReader.INVALID_ORDINAL)
+                    return false;
+
+                currentChild = child;
+                child = siblings[child];
+                return true;
             }
         }
 
         /// <summary>
         /// Sole constructor.
         /// </summary>
-        public TaxonomyReader()
+        protected TaxonomyReader() // LUCENENET specific - marked protected instead of public
         {
         }
 
@@ -136,7 +143,7 @@ namespace Lucene.Net.Facet.Taxonomy
         public static T OpenIfChanged<T>(T oldTaxoReader) where T : TaxonomyReader
         {
             T newTaxoReader = (T)oldTaxoReader.DoOpenIfChanged();
-            Debug.Assert(newTaxoReader != oldTaxoReader);
+            if (Debugging.AssertsEnabled) Debugging.Assert(newTaxoReader != oldTaxoReader);
             return newTaxoReader;
         }
 
@@ -145,11 +152,9 @@ namespace Lucene.Net.Facet.Taxonomy
         // set refCount to 1 at start
         private readonly AtomicInt32 refCount = new AtomicInt32(1);
 
-        /// <summary>
-        /// performs the actual task of closing the resources that are used by the
-        /// taxonomy reader.
-        /// </summary>
-        protected internal abstract void DoClose();
+        private readonly object syncLock = new object(); // LUCENENET specific - avoid lock (this)
+
+        // LUCENENET specific - Removed DoClose() and replaced with Dispose(true)
 
         /// <summary>
         /// Implements the actual opening of a new <see cref="TaxonomyReader"/> instance if
@@ -170,27 +175,26 @@ namespace Lucene.Net.Facet.Taxonomy
         }
 
         // LUCENENET specific - implementing proper dispose pattern
+#pragma warning disable CA1063 // Implement IDisposable Correctly
         public void Dispose()
+#pragma warning restore CA1063 // Implement IDisposable Correctly
         {
+            if (closed) return;
+            lock (syncLock)
+            {
+                if (closed) return;
+                DecRef();
+                closed = true;
+            }
             Dispose(true);
             GC.SuppressFinalize(this);
         }
 
-        protected virtual void Dispose(bool disposing)
-        {
-            if (disposing)
-            {
-                lock (this)
-                {
-                    if (!closed)
-                    {
-                        DecRef();
-                        closed = true;
-                    }
-                }
-            }
-        }
-
+        /// <summary>
+        /// Performs the actual task of closing the resources that are used by the
+        /// taxonomy reader.
+        /// </summary>
+        protected abstract void Dispose(bool disposing); // LUCENENET: Refactored from DoClose()
 
         /// <summary>
         /// Expert: decreases the refCount of this TaxonomyReader instance. If the
@@ -205,7 +209,7 @@ namespace Lucene.Net.Facet.Taxonomy
                 bool success = false;
                 try
                 {
-                    DoClose();
+                    Dispose(true); // LUCENENET specific - changed from DoClose() to Dispose(bool)
                     closed = true;
                     success = true;
                 }
@@ -233,11 +237,11 @@ namespace Lucene.Net.Facet.Taxonomy
         /// <summary>
         /// Returns an iterator over the children of the given ordinal.
         /// </summary>
-        public virtual ChildrenIterator GetChildren(int ordinal)
+        public virtual ChildrenEnumerator GetChildren(int ordinal)
         {
             ParallelTaxonomyArrays arrays = ParallelTaxonomyArrays;
             int child = ordinal >= 0 ? arrays.Children[ordinal] : INVALID_ORDINAL;
-            return new ChildrenIterator(child, arrays.Siblings);
+            return new ChildrenEnumerator(child, arrays.Siblings);
         }
 
         /// <summary>
@@ -316,7 +320,5 @@ namespace Lucene.Net.Facet.Taxonomy
             }
             return false;
         }
-
-        
     }
 }

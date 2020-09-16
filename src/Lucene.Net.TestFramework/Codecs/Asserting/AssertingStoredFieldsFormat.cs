@@ -1,7 +1,7 @@
 using Lucene.Net.Codecs.Lucene41;
+using Lucene.Net.Diagnostics;
 using Lucene.Net.Index;
 using Lucene.Net.Store;
-using Debug = Lucene.Net.Diagnostics.Debug; // LUCENENET NOTE: We cannot use System.Diagnostics.Debug because those calls will be optimized out of the release!
 
 namespace Lucene.Net.Codecs.Asserting
 {
@@ -58,7 +58,7 @@ namespace Lucene.Net.Codecs.Asserting
 
             public override void VisitDocument(int n, StoredFieldVisitor visitor)
             {
-                Debug.Assert(n >= 0 && n < maxDoc);
+                if (Debugging.AssertsEnabled) Debugging.Assert(n >= 0 && n < maxDoc);
                 @in.VisitDocument(n, visitor);
             }
 
@@ -100,9 +100,9 @@ namespace Lucene.Net.Codecs.Asserting
 
             public override void StartDocument(int numStoredFields)
             {
-                Debug.Assert(docStatus != Status.STARTED);
+                if (Debugging.AssertsEnabled) Debugging.Assert(docStatus != Status.STARTED);
                 @in.StartDocument(numStoredFields);
-                Debug.Assert(fieldCount == 0);
+                if (Debugging.AssertsEnabled) Debugging.Assert(fieldCount == 0);
                 fieldCount = numStoredFields;
                 numWritten++;
                 docStatus = Status.STARTED;
@@ -110,17 +110,17 @@ namespace Lucene.Net.Codecs.Asserting
 
             public override void FinishDocument()
             {
-                Debug.Assert(docStatus == Status.STARTED);
-                Debug.Assert(fieldCount == 0);
+                if (Debugging.AssertsEnabled) Debugging.Assert(docStatus == Status.STARTED);
+                if (Debugging.AssertsEnabled) Debugging.Assert(fieldCount == 0);
                 @in.FinishDocument();
                 docStatus = Status.FINISHED;
             }
 
             public override void WriteField(FieldInfo info, IIndexableField field)
             {
-                Debug.Assert(docStatus == Status.STARTED);
+                if (Debugging.AssertsEnabled) Debugging.Assert(docStatus == Status.STARTED);
                 @in.WriteField(info, field);
-                Debug.Assert(fieldCount > 0);
+                if (Debugging.AssertsEnabled) Debugging.Assert(fieldCount > 0);
                 fieldCount--;
             }
 
@@ -131,10 +131,10 @@ namespace Lucene.Net.Codecs.Asserting
 
             public override void Finish(FieldInfos fis, int numDocs)
             {
-                Debug.Assert(docStatus == (numDocs > 0 ? Status.FINISHED : Status.UNDEFINED));
+                if (Debugging.AssertsEnabled) Debugging.Assert(docStatus == (numDocs > 0 ? Status.FINISHED : Status.UNDEFINED));
                 @in.Finish(fis, numDocs);
-                Debug.Assert(fieldCount == 0);
-                Debug.Assert(numDocs == numWritten);
+                if (Debugging.AssertsEnabled) Debugging.Assert(fieldCount == 0);
+                if (Debugging.AssertsEnabled) Debugging.Assert(numDocs == numWritten);
             }
 
             protected override void Dispose(bool disposing)

@@ -1,4 +1,5 @@
 ﻿using J2N.Text;
+using Lucene.Net.Diagnostics;
 using Lucene.Net.Support;
 using System;
 using System.Diagnostics;
@@ -64,7 +65,7 @@ namespace Lucene.Net.Facet.Taxonomy
             // while the code which calls this method is safe, at some point a test
             // tripped on AIOOBE in toString, but we failed to reproduce. adding the
             // assert as a safety check.
-            Debug.Assert(prefixLen > 0 && prefixLen <= copyFrom.Components.Length, "prefixLen cannot be negative nor larger than the given components' length: prefixLen=" + prefixLen + " components.length=" + copyFrom.Components.Length);
+            if (Debugging.AssertsEnabled) Debugging.Assert(prefixLen > 0 && prefixLen <= copyFrom.Components.Length, () => "prefixLen cannot be negative nor larger than the given components' length: prefixLen=" + prefixLen + " components.length=" + copyFrom.Components.Length);
             this.Components = copyFrom.Components;
             Length = prefixLen;
         }
@@ -74,7 +75,7 @@ namespace Lucene.Net.Facet.Taxonomy
         /// </summary>
         public CategoryPath(params string[] components)
         {
-            Debug.Assert(components.Length > 0, "use CategoryPath.EMPTY to create an empty path");
+            if (Debugging.AssertsEnabled) Debugging.Assert(components.Length > 0, "use CategoryPath.EMPTY to create an empty path");
             foreach (string comp in components)
             {
                 if (string.IsNullOrEmpty(comp))
@@ -116,20 +117,23 @@ namespace Lucene.Net.Facet.Taxonomy
         /// delimiter characters, for using with
         /// <see cref="CopyFullPath(char[], int, char)"/>.
         /// </summary>
-        public virtual int FullPathLength()
+        public virtual int FullPathLength
         {
-            if (Length == 0)
+            get
             {
-                return 0;
-            }
+                if (Length == 0)
+                {
+                    return 0;
+                }
 
-            int charsNeeded = 0;
-            for (int i = 0; i < Length; i++)
-            {
-                charsNeeded += Components[i].Length;
+                int charsNeeded = 0;
+                for (int i = 0; i < Length; i++)
+                {
+                    charsNeeded += Components[i].Length;
+                }
+                charsNeeded += Length - 1; // num delimter chars
+                return charsNeeded;
             }
-            charsNeeded += Length - 1; // num delimter chars
-            return charsNeeded;
         }
 
         /// <summary>
@@ -316,8 +320,45 @@ namespace Lucene.Net.Facet.Taxonomy
                 }
                 sb.Append(Components[i]).Append(delimiter);
             }
-            sb.Length = sb.Length - 1; // remove last delimiter
+            sb.Length -= 1; // remove last delimiter
             return sb.ToString();
         }
+
+        #region Operators for better .NET support
+        public static bool operator ==(CategoryPath left, CategoryPath right)
+        {
+            if (left is null)
+            {
+                return right is null;
+            }
+
+            return left.Equals(right);
+        }
+
+        public static bool operator !=(CategoryPath left, CategoryPath right)
+        {
+            return !(left == right);
+        }
+
+        public static bool operator <(CategoryPath left, CategoryPath right)
+        {
+            return left is null ? !(right is null) : left.CompareTo(right) < 0;
+        }
+
+        public static bool operator <=(CategoryPath left, CategoryPath right)
+        {
+            return left is null || left.CompareTo(right) <= 0;
+        }
+
+        public static bool operator >(CategoryPath left, CategoryPath right)
+        {
+            return !(left is null) && left.CompareTo(right) > 0;
+        }
+
+        public static bool operator >=(CategoryPath left, CategoryPath right)
+        {
+            return left is null ? right is null : left.CompareTo(right) >= 0;
+        }
+        #endregion
     }
 }

@@ -1,5 +1,6 @@
 using J2N.Threading;
 using J2N.Threading.Atomic;
+using Lucene.Net.Attributes;
 using Lucene.Net.Documents;
 using Lucene.Net.Index.Extensions;
 using Lucene.Net.Store;
@@ -50,6 +51,7 @@ namespace Lucene.Net.Index
     using TopDocs = Lucene.Net.Search.TopDocs;
 
     [TestFixture]
+    [Deadlock]
     public class TestIndexWriterReader : LuceneTestCase
     {
         private readonly int numThreads = TestNightly ? 5 : 3;
@@ -461,11 +463,6 @@ namespace Lucene.Net.Index
 
         private class AddDirectoriesThreads
         {
-            internal virtual void InitializeInstanceFields()
-            {
-                threads = new ThreadJob[outerInstance.numThreads];
-            }
-
             private readonly TestIndexWriterReader outerInstance;
 
             internal Directory addDir;
@@ -482,8 +479,7 @@ namespace Lucene.Net.Index
             public AddDirectoriesThreads(TestIndexWriterReader outerInstance, int numDirs, IndexWriter mainWriter)
             {
                 this.outerInstance = outerInstance;
-
-                InitializeInstanceFields();
+                threads = new ThreadJob[outerInstance.numThreads];
                 this.numDirs = numDirs;
                 this.mainWriter = mainWriter;
                 addDir = NewDirectory();
@@ -571,7 +567,7 @@ namespace Lucene.Net.Index
             {
                 private readonly AddDirectoriesThreads outerInstance;
 
-                private int numIter;
+                private readonly int numIter;
 
                 public ThreadAnonymousInnerClassHelper(AddDirectoriesThreads outerInstance, int numIter)
                 {
@@ -951,10 +947,10 @@ namespace Lucene.Net.Index
 
         private class ThreadAnonymousInnerClassHelper : ThreadJob
         {
-            private IndexWriter writer;
-            private Directory[] dirs;
-            private long endTime;
-            private ConcurrentQueue<Exception> excs;
+            private readonly IndexWriter writer;
+            private readonly Directory[] dirs;
+            private readonly long endTime;
+            private readonly ConcurrentQueue<Exception> excs;
 
             public ThreadAnonymousInnerClassHelper(IndexWriter writer, Directory[] dirs, long endTime, ConcurrentQueue<Exception> excs)
             {
@@ -1013,7 +1009,7 @@ namespace Lucene.Net.Index
             var threads = new ThreadJob[numThreads];
             for (int i = 0; i < numThreads; i++)
             {
-                threads[i] = new ThreadAnonymousInnerClassHelper2(writer, r, endTime, excs);
+                threads[i] = new ThreadAnonymousInnerClassHelper2(writer, endTime, excs);
                 threads[i].IsBackground = (true);
                 threads[i].Start();
             }
@@ -1057,15 +1053,13 @@ namespace Lucene.Net.Index
 
         private class ThreadAnonymousInnerClassHelper2 : ThreadJob
         {
-            private IndexWriter writer;
-            private DirectoryReader r;
-            private long endTime;
-            private ConcurrentQueue<Exception> excs;
+            private readonly IndexWriter writer;
+            private readonly long endTime;
+            private readonly ConcurrentQueue<Exception> excs;
 
-            public ThreadAnonymousInnerClassHelper2(IndexWriter writer, DirectoryReader r, long endTime, ConcurrentQueue<Exception> excs)
+            public ThreadAnonymousInnerClassHelper2(IndexWriter writer, long endTime, ConcurrentQueue<Exception> excs)
             {
                 this.writer = writer;
-                this.r = r;
                 this.endTime = endTime;
                 this.excs = excs;
                 rand = new Random(Random.Next());
@@ -1176,7 +1170,7 @@ namespace Lucene.Net.Index
         {
             Directory dir = NewDirectory();
             AtomicBoolean didWarm = new AtomicBoolean();
-            IndexWriter w = new IndexWriter(dir, NewIndexWriterConfig(TEST_VERSION_CURRENT, new MockAnalyzer(Random)).SetMaxBufferedDocs(2).SetReaderPooling(true).SetMergedSegmentWarmer(new IndexReaderWarmerAnonymousInnerClassHelper(this, didWarm)).
+            IndexWriter w = new IndexWriter(dir, NewIndexWriterConfig(TEST_VERSION_CURRENT, new MockAnalyzer(Random)).SetMaxBufferedDocs(2).SetReaderPooling(true).SetMergedSegmentWarmer(new IndexReaderWarmerAnonymousInnerClassHelper(didWarm)).
                     SetMergePolicy(NewLogMergePolicy(10)));
 
             Document doc = new Document();
@@ -1193,13 +1187,10 @@ namespace Lucene.Net.Index
 
         private class IndexReaderWarmerAnonymousInnerClassHelper : IndexWriter.IndexReaderWarmer
         {
-            private readonly TestIndexWriterReader outerInstance;
+            private readonly AtomicBoolean didWarm;
 
-            private AtomicBoolean didWarm;
-
-            public IndexReaderWarmerAnonymousInnerClassHelper(TestIndexWriterReader outerInstance, AtomicBoolean didWarm)
+            public IndexReaderWarmerAnonymousInnerClassHelper(AtomicBoolean didWarm)
             {
-                this.outerInstance = outerInstance;
                 this.didWarm = didWarm;
             }
 
@@ -1221,7 +1212,7 @@ namespace Lucene.Net.Index
         {
             Directory dir = NewDirectory();
             AtomicBoolean didWarm = new AtomicBoolean();
-            InfoStream infoStream = new InfoStreamAnonymousInnerClassHelper(this, didWarm);
+            InfoStream infoStream = new InfoStreamAnonymousInnerClassHelper(didWarm);
             IndexWriter w = new IndexWriter(dir, NewIndexWriterConfig(TEST_VERSION_CURRENT, new MockAnalyzer(Random)).SetMaxBufferedDocs(2).SetReaderPooling(true).SetInfoStream(infoStream).SetMergedSegmentWarmer(new SimpleMergedSegmentWarmer(infoStream)).SetMergePolicy(NewLogMergePolicy(10)));
 
             Document doc = new Document();
@@ -1238,13 +1229,10 @@ namespace Lucene.Net.Index
 
         private class InfoStreamAnonymousInnerClassHelper : InfoStream
         {
-            private readonly TestIndexWriterReader outerInstance;
+            private readonly AtomicBoolean didWarm;
 
-            private AtomicBoolean didWarm;
-
-            public InfoStreamAnonymousInnerClassHelper(TestIndexWriterReader outerInstance, AtomicBoolean didWarm)
+            public InfoStreamAnonymousInnerClassHelper(AtomicBoolean didWarm)
             {
-                this.outerInstance = outerInstance;
                 this.didWarm = didWarm;
             }
 

@@ -1,11 +1,13 @@
+using J2N;
 using J2N.Threading.Atomic;
 using Lucene.Net.Documents;
+using Lucene.Net.Support.IO;
 using System;
 using System.Globalization;
 using System.IO;
 using System.IO.Compression;
 using System.Text;
-using System.Threading;
+using System.Threading.Tasks;
 using Console = Lucene.Net.Util.SystemConsole;
 
 namespace Lucene.Net.Util
@@ -35,10 +37,14 @@ namespace Lucene.Net.Util
     public class LineFileDocs : IDisposable
     {
         private TextReader reader;
-        //private static readonly int BUFFER_SIZE = 1 << 16; // 64K // LUCENENET NOTE: Not used because we don't have a BufferedReader in .NET
+        private const int BUFFER_SIZE = 1 << 16; // 64K
+        private const string TEMP_FILE_PREFIX = "lucene-linefiledocs-"; // LUCENENET specific
+        private const string TEMP_FILE_SUFFIX = ".tmp"; // LUCENENET specific
         private readonly AtomicInt32 id = new AtomicInt32();
         private readonly string path;
         private readonly bool useDocValues;
+        private readonly object syncLock = new object(); // LUCENENET specific
+        private string tempFilePath; // LUCENENET specific
 
         /// <summary>
         /// If forever is true, we rewind the file at EOF (repeat
@@ -52,13 +58,45 @@ namespace Lucene.Net.Util
         }
 
         public LineFileDocs(Random random)
-            : this(random, LuceneTestCase.TestLineDocsFile, true)
+            : this(random, LuceneTestCase.TempLineDocsFile ?? LuceneTestCase.TestLineDocsFile, true)
         {
         }
 
         public LineFileDocs(Random random, bool useDocValues)
-            : this(random, LuceneTestCase.TestLineDocsFile, useDocValues)
+            : this(random, LuceneTestCase.TempLineDocsFile ?? LuceneTestCase.TestLineDocsFile, useDocValues)
         {
+        }
+
+        private void Close()
+        {
+            lock (syncLock)
+            {
+                if (reader != null)
+                {
+                    reader.Dispose();
+                    reader = null;
+                }
+                if (!string.IsNullOrEmpty(tempFilePath))
+                {
+                    DeleteAsync(tempFilePath);
+                    tempFilePath = null;
+                }
+            }
+        }
+
+        private static Task DeleteAsync(string path)
+        {
+            return Task.Run(() =>
+            {
+                if (string.IsNullOrEmpty(path) || !File.Exists(path))
+                    return; // Nothing to do
+
+                try
+                {
+                    File.Delete(path);
+                }
+                catch { }
+            });
         }
 
         public void Dispose()
@@ -72,14 +110,10 @@ namespace Lucene.Net.Util
         {
             if (disposing)
             {
-                lock (this)
+                lock (syncLock)
                 {
+                    Close();
                     threadDocs?.Dispose();
-                    if (reader != null)
-                    {
-                        reader.Dispose();
-                        reader = null;
-                    }
                 }
             }
         }
@@ -90,15 +124,32 @@ namespace Lucene.Net.Util
             {
                 return 0L;
             }
-            return (random.NextInt64() & long.MaxValue) % (size / 3);
+            var result = (random.NextInt64() & long.MaxValue) % (size / 3);
+            return result;
+        }
+
+
+        // LUCENENET specific - this was added to unzip our LineDocsFile to a specific folder
+        // so tests can be run without the overhead of seeking within a MemoryStream
+        private Stream PrepareGZipStream(Stream input)
+        {
+            using (var gzs = new GZipStream(input, CompressionMode.Decompress, leaveOpen: false))
+            {
+                FileInfo tempFile = LuceneTestCase.CreateTempFile(TEMP_FILE_PREFIX, TEMP_FILE_SUFFIX);
+                tempFilePath = tempFile.FullName;
+                Stream result = new FileStream(tempFilePath, FileMode.Open, FileAccess.ReadWrite, FileShare.Read);
+                gzs.CopyTo(result);
+                // Use the decompressed stream now
+                return new BufferedStream(result);
+            }
         }
 
         private void Open(Random random)
         {
-            lock (this)
+            lock (syncLock)
             {
-                Stream @is;
-                bool needSkip = true, failed = false;
+                Stream @is = null;
+                bool needSkip = true, isExternal = false;
                 long size = 0L, seekTo = 0L;
 
                 try
@@ -106,40 +157,40 @@ namespace Lucene.Net.Util
                     // LUCENENET: We have embedded the default file, so if that filename is passed,
                     // open the local resource instead of an external file.
                     if (path == LuceneTestCase.DEFAULT_LINE_DOCS_FILE)
-                    {
-                        @is = this.GetType().getResourceAsStream(path);
-                    }
+                        @is = this.GetType().FindAndGetManifestResourceStream(path);
                     else
-                    {
-                        @is = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
-                    }
+                        isExternal = true;
                 }
                 catch (Exception)
                 {
-                    failed = true;
+                    isExternal = true;
+                }
+                if (isExternal)
+                {
                     // if its not in classpath, we load it as absolute filesystem path (e.g. Hudson's home dir)
                     FileInfo file = new FileInfo(path);
                     size = file.Length;
                     if (path.EndsWith(".gz", StringComparison.Ordinal))
                     {
                         // if it is a gzip file, we need to use InputStream and slowly skipTo:
-                        @is = new FileStream(file.FullName, FileMode.Append, FileAccess.Write, FileShare.Read);
+                        @is = new FileStream(file.FullName, FileMode.Open, FileAccess.Read, FileShare.Read);
                     }
                     else
                     {
                         // optimized seek using RandomAccessFile:
                         seekTo = RandomSeekPos(random, size);
-                        FileStream channel = new FileStream(path, FileMode.Open);
                         if (LuceneTestCase.Verbose)
                         {
-                            Console.WriteLine("TEST: LineFileDocs: file seek to fp=" + seekTo + " on open");
+                            Console.WriteLine($"TEST: LineFileDocs: file seek to fp={seekTo} on open");
                         }
-                        channel.Position = seekTo;
-                        @is = new FileStream(channel.ToString(), FileMode.Append, FileAccess.Write, FileShare.Read);
+                        @is = new BufferedStream(new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read)
+                        {
+                            Position = seekTo
+                        });
                         needSkip = false;
                     }
                 }
-                if (!failed)
+                else
                 {
                     // if the file comes from Classpath:
                     size = @is.Length;// available();
@@ -147,15 +198,7 @@ namespace Lucene.Net.Util
 
                 if (path.EndsWith(".gz", StringComparison.Ordinal))
                 {
-                    using (var gzs = new GZipStream(@is, CompressionMode.Decompress))
-                    {
-                        var temp = new MemoryStream();
-                        gzs.CopyTo(temp);
-                        // Free up the previous stream
-                        @is.Dispose();
-                        // Use the decompressed stream now
-                        @is = temp;
-                    }
+                    @is = PrepareGZipStream(@is);
                     // guestimate:
                     size = (long)(size * 2.8);
                 }
@@ -167,7 +210,7 @@ namespace Lucene.Net.Util
                     seekTo = RandomSeekPos(random, size);
                     if (LuceneTestCase.Verbose)
                     {
-                        Console.WriteLine("TEST: LineFileDocs: stream skip to fp=" + seekTo + " on open");
+                        Console.WriteLine($"TEST: LineFileDocs: stream skip to fp={seekTo} on open");
                     }
                     @is.Position = seekTo;
                 }
@@ -176,34 +219,27 @@ namespace Lucene.Net.Util
                 if (seekTo > 0L)
                 {
                     int b;
-                    byte[] bytes = new byte[sizeof(int)];
                     do
                     {
-                        @is.Read(bytes, 0, sizeof(int));
-                        b = BitConverter.ToInt32(bytes, 0);
+                        b = @is.ReadByte();
                     } while (b >= 0 && b != 13 && b != 10);
                 }
 
-                //CharsetDecoder decoder = StandardCharsets.UTF_8.newDecoder().onMalformedInput(CodingErrorAction.REPORT).onUnmappableCharacter(CodingErrorAction.REPORT);
-                MemoryStream ms = new MemoryStream();
-                @is.CopyTo(ms);
-                reader = new StringReader(Encoding.UTF8.GetString(ms.ToArray()));//, BUFFER_SIZE);
+                reader = new StreamReader(@is, Encoding.UTF8, detectEncodingFromByteOrderMarks: false, bufferSize: BUFFER_SIZE);
 
                 if (seekTo > 0L)
                 {
                     // read one more line, to make sure we are not inside a Windows linebreak (\r\n):
                     reader.ReadLine();
                 }
-
-                @is.Dispose();
             }
         }
 
         public virtual void Reset(Random random)
         {
-            lock (this)
+            lock (syncLock)
             {
-                Dispose();
+                Close();
                 Open(random);
                 id.Value = 0;
             }
@@ -228,10 +264,12 @@ namespace Lucene.Net.Util
                 Title = new StringField("title", "", Field.Store.NO);
                 Doc.Add(Title);
 
-                FieldType ft = new FieldType(TextField.TYPE_STORED);
-                ft.StoreTermVectors = true;
-                ft.StoreTermVectorOffsets = true;
-                ft.StoreTermVectorPositions = true;
+                FieldType ft = new FieldType(TextField.TYPE_STORED)
+                {
+                    StoreTermVectors = true,
+                    StoreTermVectorOffsets = true,
+                    StoreTermVectorPositions = true
+                };
 
                 TitleTokenized = new Field("titleTokenized", "", ft);
                 Doc.Add(TitleTokenized);
@@ -257,14 +295,14 @@ namespace Lucene.Net.Util
             }
         }
 
-        private readonly ThreadLocal<DocState> threadDocs = new ThreadLocal<DocState>();
+        private readonly DisposableThreadLocal<DocState> threadDocs = new DisposableThreadLocal<DocState>();
 
         /// <summary>
         /// Note: Document instance is re-used per-thread </summary>
         public virtual Document NextDoc()
         {
             string line;
-            lock (this)
+            lock (syncLock)
             {
                 line = reader.ReadLine();
                 if (line == null)
@@ -274,7 +312,7 @@ namespace Lucene.Net.Util
                     {
                         Console.WriteLine("TEST: LineFileDocs: now rewind file...");
                     }
-                    Dispose();
+                    Close();
                     Open(null);
                     line = reader.ReadLine();
                 }
@@ -309,6 +347,33 @@ namespace Lucene.Net.Util
             docState.Date.SetStringValue(line.Substring(1 + spot, spot2 - (1 + spot)));
             docState.Id.SetStringValue(Convert.ToString(id.GetAndIncrement(), CultureInfo.InvariantCulture));
             return docState.Doc;
+        }
+
+        internal static string MaybeCreateTempFile(bool removeAfterClass = true)
+        {
+            string result = null;
+            Stream temp = null;
+            if (LuceneTestCase.TestLineDocsFile == LuceneTestCase.DEFAULT_LINE_DOCS_FILE) // Always GZipped
+            {
+                temp = typeof(LineFileDocs).FindAndGetManifestResourceStream(LuceneTestCase.TestLineDocsFile);
+            }
+            else if (LuceneTestCase.TestLineDocsFile.EndsWith(".gz", StringComparison.Ordinal))
+            {
+                temp = new FileStream(LuceneTestCase.TestLineDocsFile, FileMode.Open, FileAccess.Read, FileShare.Read);
+            }
+            if (null != temp)
+            {
+                var file = removeAfterClass
+                    ? LuceneTestCase.CreateTempFile(TEMP_FILE_PREFIX, TEMP_FILE_SUFFIX)
+                    : FileSupport.CreateTempFile(TEMP_FILE_PREFIX, TEMP_FILE_SUFFIX);
+                result = file.FullName;
+                using (var gzs = new GZipStream(temp, CompressionMode.Decompress, leaveOpen: false))
+                using (Stream output = new FileStream(result, FileMode.Open, FileAccess.Write, FileShare.Read))
+                {
+                    gzs.CopyTo(output);
+                }
+            }
+            return result;
         }
     }
 }

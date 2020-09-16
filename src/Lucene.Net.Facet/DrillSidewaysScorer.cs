@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Lucene.Net.Diagnostics;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 
@@ -47,7 +48,7 @@ namespace Lucene.Net.Facet
         internal readonly bool scoreSubDocsAtOnce;
 
         private const int CHUNK = 2048;
-        private static readonly int MASK = CHUNK - 1;
+        private const int MASK = CHUNK - 1;
 
         private int collectDocID = -1;
         private float collectScore;
@@ -88,7 +89,28 @@ namespace Lucene.Net.Facet
             // TODO: if we ever allow null baseScorer ... it will
             // mean we DO score docs out of order ... hmm, or if we
             // change up the order of the conjuntions below
-            Debug.Assert(baseScorer != null);
+            if (Debugging.AssertsEnabled) Debugging.Assert(baseScorer != null);
+
+            // some scorers, eg ReqExlScorer, can hit NPE if cost is called after nextDoc
+            long baseQueryCost = baseScorer.GetCost();
+
+            int numDims = dims.Length;
+
+            long drillDownCost = 0;
+            for (int dim = 0; dim < numDims; dim++)
+            {
+                DocIdSetIterator disi = dims[dim].disi;
+                if (dims[dim].bits == null && disi != null)
+                {
+                    drillDownCost += disi.GetCost();
+                }
+            }
+
+            long drillDownAdvancedCost = 0;
+            if (numDims > 1 && dims[1].disi != null)
+            {
+                drillDownAdvancedCost = dims[1].disi.GetCost();
+            }
 
             // Position all scorers to their first matching doc:
             baseScorer.NextDoc();
@@ -105,14 +127,11 @@ namespace Lucene.Net.Facet
                 }
             }
 
-            int numDims = dims.Length;
-
             IBits[] bits = new IBits[numBits];
             ICollector[] bitsSidewaysCollectors = new ICollector[numBits];
 
             DocIdSetIterator[] disis = new DocIdSetIterator[numDims - numBits];
             ICollector[] sidewaysCollectors = new ICollector[numDims - numBits];
-            long drillDownCost = 0;
             int disiUpto = 0;
             int bitsUpto = 0;
             for (int dim = 0; dim < numDims; dim++)
@@ -123,10 +142,6 @@ namespace Lucene.Net.Facet
                     disis[disiUpto] = disi;
                     sidewaysCollectors[disiUpto] = dims[dim].sidewaysCollector;
                     disiUpto++;
-                    if (disi != null)
-                    {
-                        drillDownCost += disi.GetCost();
-                    }
                 }
                 else
                 {
@@ -135,8 +150,6 @@ namespace Lucene.Net.Facet
                     bitsUpto++;
                 }
             }
-
-            long baseQueryCost = baseScorer.GetCost();
 
             /*
             System.out.println("\nbaseDocID=" + baseScorer.docID() + " est=" + estBaseHitCount);
@@ -153,7 +166,7 @@ namespace Lucene.Net.Facet
                 //System.out.println("queryFirst: baseScorer=" + baseScorer + " disis.length=" + disis.length + " bits.length=" + bits.length);
                 DoQueryFirstScoring(collector, disis, sidewaysCollectors, bits, bitsSidewaysCollectors);
             }
-            else if (numDims > 1 && (dims[1].disi == null || dims[1].disi.GetCost() < baseQueryCost / 10))
+            else if (numDims > 1 && (dims[1].disi == null || drillDownAdvancedCost < baseQueryCost / 10))
             {
                 //System.out.println("drillDownAdvance");
                 DoDrillDownAdvanceScoring(collector, disis, sidewaysCollectors);
@@ -382,7 +395,7 @@ namespace Lucene.Net.Facet
                 while (slot0 < CHUNK && (slot0 = seen.NextSetBit(slot0)) != -1)
                 {
                     int ddDocID = docIDs[slot0];
-                    Debug.Assert(ddDocID != -1);
+                    if (Debugging.AssertsEnabled) Debugging.Assert(ddDocID != -1);
 
                     int baseDocID = baseScorer.DocID;
                     if (baseDocID < ddDocID)
@@ -537,7 +550,7 @@ namespace Lucene.Net.Facet
                     //}
 
                     // Mark slot as valid:
-                    Debug.Assert(docIDs[slot] != docID, "slot=" + slot + " docID=" + docID);
+                    if (Debugging.AssertsEnabled) Debugging.Assert(docIDs[slot] != docID, () => "slot=" + slot + " docID=" + docID);
                     docIDs[slot] = docID;
                     scores[slot] = baseScorer.GetScore();
                     filledSlots[filledCount++] = slot;

@@ -1,3 +1,4 @@
+using Lucene.Net.Diagnostics;
 using Lucene.Net.Index;
 using Lucene.Net.Store;
 using Lucene.Net.Util;
@@ -125,13 +126,11 @@ namespace Lucene.Net.Codecs.Bloom
 
         internal class BloomFilteredFieldsProducer : FieldsProducer
         {
-            private readonly BloomFilteringPostingsFormat outerInstance;
             private readonly FieldsProducer _delegateFieldsProducer;
             private readonly JCG.Dictionary<string, FuzzySet> _bloomsByFieldName = new JCG.Dictionary<string, FuzzySet>();
 
             public BloomFilteredFieldsProducer(BloomFilteringPostingsFormat outerInstance, SegmentReadState state)
             {
-                this.outerInstance = outerInstance;
                 var bloomFileName = IndexFileNames.SegmentFileName(
                     state.SegmentInfo.Name, state.SegmentSuffix, BLOOM_EXTENSION);
                 ChecksumIndexInput bloomIn = null;
@@ -381,7 +380,7 @@ namespace Lucene.Net.Codecs.Bloom
                 var bloomFilter = outerInstance._bloomFilterFactory.GetSetForField(_state, field);
                 if (bloomFilter != null)
                 {
-                    Debug.Assert((_bloomFilters.ContainsKey(field) == false));
+                    if (Debugging.AssertsEnabled) Debugging.Assert((_bloomFilters.ContainsKey(field) == false));
 
                     _bloomFilters.Add(field, bloomFilter);
                     return new WrappedTermsConsumer(_delegateFieldsConsumer.AddField(field), bloomFilter);

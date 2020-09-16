@@ -1,5 +1,6 @@
 ﻿using Lucene.Net.Analysis;
 using Lucene.Net.Codecs;
+using Lucene.Net.Diagnostics;
 using Lucene.Net.Documents;
 using Lucene.Net.Index;
 using Lucene.Net.Index.Extensions;
@@ -27,7 +28,6 @@ using System.Threading.Tasks;
 using System.Text.RegularExpressions;
 using JCG = J2N.Collections.Generic;
 using Console = Lucene.Net.Util.SystemConsole;
-using Debug = Lucene.Net.Diagnostics.Debug; // LUCENENET NOTE: We cannot use System.Diagnostics.Debug because those calls will be optimized out of the release!
 using Assert = Lucene.Net.TestFramework.Assert;
 using Directory = Lucene.Net.Store.Directory;
 using FieldInfo = Lucene.Net.Index.FieldInfo;
@@ -51,6 +51,7 @@ using Test = NUnit.Framework.TestAttribute;
 using TestFixture = NUnit.Framework.TestFixtureAttribute;
 using NUnit.Framework.Interfaces;
 using NUnit.Framework.Internal;
+using NUnit.Framework.Internal.Commands;
 #elif TESTFRAMEWORK_XUNIT
 using Before = Lucene.Net.Attributes.NoOpAttribute;
 using After = Lucene.Net.Attributes.NoOpAttribute;
@@ -225,6 +226,50 @@ namespace Lucene.Net.Util
         ///// <seealso cref="IgnoreAfterMaxFailures"/>
         internal const string SYSPROP_FAILFAST = "tests:failfast"; // LUCENENET specific - made internal, because not fully implemented
 
+#if TESTFRAMEWORK_NUNIT
+        private class LuceneDelegatingTestCommand : DelegatingTestCommand
+        {
+            private readonly Func<bool> shouldSkip;
+            public LuceneDelegatingTestCommand(TestCommand command, Func<bool> shouldSkip, string skipReason) : base(command)
+            {
+                this.shouldSkip = shouldSkip ?? throw new ArgumentNullException(nameof(shouldSkip));
+                SkipReason = skipReason ?? throw new ArgumentNullException(nameof(skipReason));
+            }
+
+            public RunState RunState { get; set; } = RunState.Skipped;
+            public string SkipReason { get; }
+
+            public override TestResult Execute(TestExecutionContext context)
+            {
+                var test = context.CurrentTest;
+                // The test framework setting overrides the NUnit category setting, if false
+                bool skip = shouldSkip();
+                if (skip)
+                {
+                    test.RunState = RunState;
+                    test.Properties.Set(PropertyNames.SkipReason, SkipReason);
+                }
+
+                context.CurrentResult = test.MakeTestResult();
+
+                if (!skip)
+                {
+                    try
+                    {
+                        context.CurrentResult = innerCommand.Execute(context);
+                    }
+                    catch (Exception ex)
+                    {
+                        context.CurrentResult.RecordException(ex);
+                    }
+                }
+
+                return context.CurrentResult;
+            }
+        }
+#endif
+
+
         /// <summary>
         /// Attribute for tests that should only be run during nightly builds.
         /// </summary>
@@ -232,17 +277,38 @@ namespace Lucene.Net.Util
         [SuppressMessage("Design", "CA1034:Nested types should not be visible", Justification = "API looks better with this nested.")]
         public sealed class NightlyAttribute : System.Attribute
 #if TESTFRAMEWORK_NUNIT
-            , IApplyToTest
+            , IApplyToTest, IApplyToContext, IWrapTestMethod
         {
-            public void ApplyToTest(NUnit.Framework.Internal.Test test)
+            private const string SKIP_REASON = "This is a nightly test.";
+
+            void IApplyToTest.ApplyToTest(NUnit.Framework.Internal.Test test)
             {
-                LuceneTestFrameworkInitializer.EnsureInitialized();
-                if (!TestNightly)
-                {
-                    test.RunState = RunState.Skipped;
-                    test.Properties.Set(PropertyNames.SkipReason, "This is a nightly test.");
-                }
+                // This method is called before initialization. The only thing
+                // we can do here is set the category.
                 test.Properties.Add(PropertyNames.Category, "Nightly");
+            }
+
+            void IApplyToContext.ApplyToContext(TestExecutionContext context)
+            {
+                // Cover the case where this attribute is applied to the whole test fixture
+                var currentTest = context.CurrentTest;
+                if (!TestNightly && currentTest is NUnit.Framework.Internal.TestFixture)
+                {
+                    var fixture = (NUnit.Framework.Internal.TestFixture)currentTest;
+                    foreach (var testInterface in fixture.Tests)
+                    {
+                        var test = (NUnit.Framework.Internal.Test)testInterface;
+                        test.RunState = RunState.Skipped;
+                        test.Properties.Set(PropertyNames.SkipReason, SKIP_REASON);
+                    }
+                }
+            }
+
+            TestCommand ICommandWrapper.Wrap(TestCommand command)
+            {
+                // This is to cover the case where the test is decorated with the attribute
+                // directly.
+                return new LuceneDelegatingTestCommand(command, () => !TestNightly, SKIP_REASON);
             }
         }
 #else
@@ -256,17 +322,38 @@ namespace Lucene.Net.Util
         [SuppressMessage("Design", "CA1034:Nested types should not be visible", Justification = "API looks better with this nested.")]
         public sealed class WeeklyAttribute : System.Attribute
 #if TESTFRAMEWORK_NUNIT
-            , IApplyToTest
+            , IApplyToTest, IApplyToContext, IWrapTestMethod
         {
-            public void ApplyToTest(NUnit.Framework.Internal.Test test)
+            private const string SKIP_REASON = "This is a weekly test.";
+
+            void IApplyToTest.ApplyToTest(NUnit.Framework.Internal.Test test)
             {
-                LuceneTestFrameworkInitializer.EnsureInitialized();
-                if (!TestWeekly)
-                {
-                    test.RunState = RunState.Skipped;
-                    test.Properties.Set(PropertyNames.SkipReason, "This is a weekly test.");
-                }
+                // This method is called before initialization. The only thing
+                // we can do here is set the category.
                 test.Properties.Add(PropertyNames.Category, "Weekly");
+            }
+
+            void IApplyToContext.ApplyToContext(TestExecutionContext context)
+            {
+                // Cover the case where this attribute is applied to the whole test fixture
+                var currentTest = context.CurrentTest;
+                if (!TestWeekly && currentTest is NUnit.Framework.Internal.TestFixture)
+                {
+                    var fixture = (NUnit.Framework.Internal.TestFixture)currentTest;
+                    foreach (var testInterface in fixture.Tests)
+                    {
+                        var test = (NUnit.Framework.Internal.Test)testInterface;
+                        test.RunState = RunState.Skipped;
+                        test.Properties.Set(PropertyNames.SkipReason, SKIP_REASON);
+                    }
+                }
+            }
+
+            TestCommand ICommandWrapper.Wrap(TestCommand command)
+            {
+                // This is to cover the case where the test is decorated with the attribute
+                // directly.
+                return new LuceneDelegatingTestCommand(command, () => !TestWeekly, SKIP_REASON);
             }
         }
 #else
@@ -280,17 +367,36 @@ namespace Lucene.Net.Util
         [SuppressMessage("Design", "CA1034:Nested types should not be visible", Justification = "API looks better with this nested.")]
         public sealed class AwaitsFixAttribute : System.Attribute
 #if TESTFRAMEWORK_NUNIT
-            , IApplyToTest
+            , IApplyToTest, IApplyToContext, IWrapTestMethod
         {
-            public void ApplyToTest(NUnit.Framework.Internal.Test test)
+            void IApplyToTest.ApplyToTest(NUnit.Framework.Internal.Test test)
             {
-                LuceneTestFrameworkInitializer.EnsureInitialized();
-                if (!TestAwaitsFix)
-                {
-                    test.RunState = RunState.Ignored;
-                    test.Properties.Set(PropertyNames.SkipReason, BugUrl);
-                }
+                // This method is called before initialization. The only thing
+                // we can do here is set the category.
                 test.Properties.Add(PropertyNames.Category, "AwaitsFix");
+            }
+
+            void IApplyToContext.ApplyToContext(TestExecutionContext context)
+            {
+                // Cover the case where this attribute is applied to the whole test fixture
+                var currentTest = context.CurrentTest;
+                if (!TestAwaitsFix && currentTest is NUnit.Framework.Internal.TestFixture)
+                {
+                    var fixture = (NUnit.Framework.Internal.TestFixture)currentTest;
+                    foreach (var testInterface in fixture.Tests)
+                    {
+                        var test = (NUnit.Framework.Internal.Test)testInterface;
+                        test.RunState = RunState.Skipped;
+                        test.Properties.Set(PropertyNames.SkipReason, BugUrl);
+                    }
+                }
+            }
+
+            TestCommand ICommandWrapper.Wrap(TestCommand command)
+            {
+                // This is to cover the case where the test is decorated with the attribute
+                // directly.
+                return new LuceneDelegatingTestCommand(command, () => !TestAwaitsFix, BugUrl) { RunState = RunState.Ignored };
             }
 #else
         {
@@ -308,18 +414,36 @@ namespace Lucene.Net.Util
         [SuppressMessage("Design", "CA1034:Nested types should not be visible", Justification = "API looks better with this nested.")]
         public sealed class SlowAttribute : System.Attribute
 #if TESTFRAMEWORK_NUNIT
-            , IApplyToTest
+            , IApplyToTest, IApplyToContext, IWrapTestMethod
         {
             void IApplyToTest.ApplyToTest(NUnit.Framework.Internal.Test test)
             {
-                LuceneTestFrameworkInitializer.EnsureInitialized();
-                // The test framework setting overrides the NUnit category setting, if false
-                if (!TestSlow)
-                {
-                    test.RunState = RunState.Skipped;
-                    test.Properties.Set(PropertyNames.SkipReason, Message);
-                }
+                // This method is called before initialization. The only thing
+                // we can do here is set the category.
                 test.Properties.Add(PropertyNames.Category, "Slow");
+            }
+
+            void IApplyToContext.ApplyToContext(TestExecutionContext context)
+            {
+                // Cover the case where this attribute is applied to the whole test fixture
+                var currentTest = context.CurrentTest;
+                if (!TestSlow && currentTest is NUnit.Framework.Internal.TestFixture)
+                {
+                    var fixture = (NUnit.Framework.Internal.TestFixture)currentTest;
+                    foreach (var testInterface in fixture.Tests)
+                    {
+                        var test = (NUnit.Framework.Internal.Test)testInterface;
+                        test.RunState = RunState.Skipped;
+                        test.Properties.Set(PropertyNames.SkipReason, Message);
+                    }
+                }
+            }
+
+            TestCommand ICommandWrapper.Wrap(TestCommand command)
+            {
+                // This is to cover the case where the test is decorated with the attribute
+                // directly.
+                return new LuceneDelegatingTestCommand(command, () => !TestSlow, Message);
             }
 #else
         {
@@ -480,7 +604,7 @@ namespace Lucene.Net.Util
 
             /// <summary>
             /// The line file used by LineFileDocs </summary>
-            public string TestLineDocsFile { get; } // LUCENENET specific - changed from field to property, and renamed
+            public string TestLineDocsFile { get; set; } // LUCENENET specific - changed from field to property, and renamed
 
             /// <summary>
             /// Whether or not <see cref="NightlyAttribute"/> tests should run. </summary>
@@ -565,8 +689,22 @@ namespace Lucene.Net.Util
         public static string TestDirectory => TestProperties.TestDirectory; // LUCENENET specific - changed from field to property, and renamed
 
         /// <summary>
-        /// The line file used by LineFileDocs </summary>
-        public static string TestLineDocsFile => TestProperties.TestLineDocsFile; // LUCENENET specific - changed from field to property, and renamed
+        /// The line file used by <see cref="LineFileDocs"/> </summary>
+        public static string TestLineDocsFile // LUCENENET specific - changed from field to property, and renamed
+        {
+            get => TestProperties.TestLineDocsFile;
+            set => TestProperties.TestLineDocsFile = value;
+        }
+
+        /// <summary>
+        /// The line file used by <see cref="LineFileDocs"/> to override <see cref="TestLineDocsFile"/> if it exists (points to an unzipped file).</summary>
+        // LUCENENET specific - used to unzip the LineDocsFile at the class level so we don't have to do it in every test.
+        internal static string TempLineDocsFile { get; set; }
+
+        /// <summary>
+        /// Whether to use the temporary line docs file. This should be set to <c>true</c> when a subclass requires <see cref="LineFileDocs"/>.</summary>
+        // LUCENENET specific - used to unzip the LineDocsFile at the class level so we don't have to do it in every test.
+        internal bool UseTempLineDocsFile { get; set; }
 
         /// <summary>
         /// Whether or not <see cref="NightlyAttribute"/> tests should run. </summary>
@@ -945,6 +1083,11 @@ namespace Lucene.Net.Util
 
                 // LUCENENET TODO: Scan for a custom attribute and setup ordering to
                 // initialize data from this class to the top class
+
+                if (UseTempLineDocsFile)
+                {
+                    TempLineDocsFile = LineFileDocs.MaybeCreateTempFile();
+                }
             }
             catch (Exception ex)
             {
@@ -977,6 +1120,11 @@ namespace Lucene.Net.Util
                 // LUCENENET: Generate the info once so it can be printed out for each test
                 codecType = ClassEnvRule.codec.GetType().Name;
                 similarityName = ClassEnvRule.similarity.ToString();
+
+                if (UseTempLineDocsFile)
+                {
+                    TempLineDocsFile = LineFileDocs.MaybeCreateTempFile();
+                }
             }
             catch (Exception ex)
             {
@@ -997,6 +1145,10 @@ namespace Lucene.Net.Util
             {
                 ClassEnvRule.After(null);
                 CleanupTemporaryFiles();
+                if (UseTempLineDocsFile)
+                {
+                    TempLineDocsFile = null;
+                }
             }
             catch (Exception ex)
             {
@@ -1022,6 +1174,10 @@ namespace Lucene.Net.Util
             {
                 ClassEnvRule.After(this);
                 CleanupTemporaryFiles();
+                if (UseTempLineDocsFile)
+                {
+                    TempLineDocsFile = null;
+                }
             }
             catch (Exception ex)
             {
@@ -1408,11 +1564,11 @@ namespace Lucene.Net.Util
 #if !FEATURE_CONCURRENTMERGESCHEDULER
                 mergeScheduler = new TaskMergeScheduler();
 #else
-                if (Rarely(random))
-                {
-                    mergeScheduler = new TaskMergeScheduler();
-                }
-                else
+                //if (Rarely(random))
+                //{
+                //    mergeScheduler = new TaskMergeScheduler();
+                //}
+                //else
                 {
                     mergeScheduler = new ConcurrentMergeScheduler();
                 }
@@ -1450,32 +1606,8 @@ namespace Lucene.Net.Util
             {
                 int maxNumThreadStates = Rarely(random) ? TestUtil.NextInt32(random, 5, 20) : TestUtil.NextInt32(random, 1, 4); // reasonable value -  crazy value
 
-                if (Rarely(random))
-                {
-                    //// Retrieve the package-private setIndexerThreadPool
-                    //// method:
-                    ////MethodInfo setIndexerThreadPoolMethod = typeof(IndexWriterConfig).GetMethod("SetIndexerThreadPool", new Type[] { typeof(DocumentsWriterPerThreadPool) });
-                    //MethodInfo setIndexerThreadPoolMethod = typeof(IndexWriterConfig).GetMethod(
-                    //    "SetIndexerThreadPool", 
-                    //    BindingFlags.NonPublic | BindingFlags.Instance, 
-                    //    null, 
-                    //    new Type[] { typeof(DocumentsWriterPerThreadPool) }, 
-                    //    null);
-                    ////setIndexerThreadPoolMethod.setAccessible(true);
-                    //Type clazz = typeof(RandomDocumentsWriterPerThreadPool);
-                    //ConstructorInfo ctor = clazz.GetConstructor(new[] { typeof(int), typeof(Random) });
-                    ////ctor.Accessible = true;
-                    //// random thread pool
-                    //setIndexerThreadPoolMethod.Invoke(c, new[] { ctor.Invoke(new object[] { maxNumThreadStates, r }) });
-
-                    // LUCENENET specific: Since we are using InternalsVisibleTo, there is no need for Reflection
-                    c.SetIndexerThreadPool(new RandomDocumentsWriterPerThreadPool(maxNumThreadStates, random));
-                }
-                else
-                {
-                    // random thread pool
-                    c.SetMaxThreadStates(maxNumThreadStates);
-                }
+                // LUCENENET specific - Removed RandomDocumentsWriterPerThreadPool, as was done in Lucene 4.8.1 (see #208)
+                c.SetMaxThreadStates(maxNumThreadStates);
             }
 #if !FEATURE_INSTANCE_TESTDATA_INITIALIZATION
             c.SetMergePolicy(NewMergePolicy(random));
@@ -2522,7 +2654,7 @@ namespace Lucene.Net.Util
         /// </summary>
         public virtual void AssertTermsStatisticsEquals(string info, Terms leftTerms, Terms rightTerms)
         {
-            Debug.Assert(leftTerms.Comparer == rightTerms.Comparer);
+            if (Debugging.AssertsEnabled) Debugging.Assert(leftTerms.Comparer == rightTerms.Comparer);
             if (leftTerms.DocCount != -1 && rightTerms.DocCount != -1)
             {
                 Assert.AreEqual(leftTerms.DocCount, rightTerms.DocCount, info);
@@ -2897,7 +3029,7 @@ namespace Lucene.Net.Util
         /// </summary>
         public virtual void AssertStoredFieldsEquals(string info, IndexReader leftReader, IndexReader rightReader)
         {
-            Debug.Assert(leftReader.MaxDoc == rightReader.MaxDoc);
+            if (Debugging.AssertsEnabled) Debugging.Assert(leftReader.MaxDoc == rightReader.MaxDoc);
             for (int i = 0; i < leftReader.MaxDoc; i++)
             {
                 Document leftDoc = leftReader.Document(i);
@@ -2944,7 +3076,7 @@ namespace Lucene.Net.Util
         /// </summary>
         public virtual void AssertTermVectorsEquals(string info, IndexReader leftReader, IndexReader rightReader)
         {
-            Debug.Assert(leftReader.MaxDoc == rightReader.MaxDoc);
+            if (Debugging.AssertsEnabled) Debugging.Assert(leftReader.MaxDoc == rightReader.MaxDoc);
             for (int i = 0; i < leftReader.MaxDoc; i++)
             {
                 Fields leftFields = leftReader.GetTermVectors(i);
@@ -3114,7 +3246,7 @@ namespace Lucene.Net.Util
         // TODO: this is kinda stupid, we don't delete documents in the test.
         public virtual void AssertDeletedDocsEquals(string info, IndexReader leftReader, IndexReader rightReader)
         {
-            Debug.Assert(leftReader.NumDeletedDocs == rightReader.NumDeletedDocs);
+            if (Debugging.AssertsEnabled) Debugging.Assert(leftReader.NumDeletedDocs == rightReader.NumDeletedDocs);
             IBits leftBits = MultiFields.GetLiveDocs(leftReader);
             IBits rightBits = MultiFields.GetLiveDocs(rightReader);
 
@@ -3125,7 +3257,7 @@ namespace Lucene.Net.Util
                 return;
             }
 
-            Debug.Assert(leftReader.MaxDoc == rightReader.MaxDoc);
+            if (Debugging.AssertsEnabled) Debugging.Assert(leftReader.MaxDoc == rightReader.MaxDoc);
             Assert.AreEqual(leftBits.Length, rightBits.Length, info);
             for (int i = 0; i < leftReader.MaxDoc; i++)
             {
@@ -3194,7 +3326,7 @@ namespace Lucene.Net.Util
         /// <summary>
         /// Retry to create temporary file name this many times.
         /// </summary>
-        private static int TEMP_NAME_RETRY_THRESHOLD = 9999;
+        private const int TEMP_NAME_RETRY_THRESHOLD = 9999;
 
         // LUCENENET: Not Implemented
         /////// <summary>
@@ -3209,7 +3341,7 @@ namespace Lucene.Net.Util
         ////        if (TempDirBase == null)
         ////        {
         ////            DirectoryInfo directory = new DirectoryInfo(System.IO.Path.GetTempPath());
-        ////            //Debug.Assert(directory.Exists && directory.Directory != null && directory.CanWrite());
+        ////            //if (Debugging.AssertsEnabled) Debugging.Assert(directory.Exists && directory.Directory != null && directory.CanWrite());
 
         ////            RandomizedContext ctx = RandomizedContext.Current;
         ////            Type clazz = ctx.GetTargetType;
@@ -3348,7 +3480,7 @@ namespace Lucene.Net.Util
         /// </summary>
         private static void RegisterToRemoveAfterSuite(FileSystemInfo f)
         {
-            Debug.Assert(f != null);
+            if (Debugging.AssertsEnabled) Debugging.Assert(f != null);
 
             if (LuceneTestCase.LeaveTemporary)
             {
@@ -3435,8 +3567,8 @@ namespace Lucene.Net.Util
                     var schedulerFactories = new List<Func<IConcurrentMergeScheduler>>();
 #if FEATURE_CONCURRENTMERGESCHEDULER
                     schedulerFactories.Add(() => new ConcurrentMergeScheduler());
-                    if (Rarely())
-                        schedulerFactories.Add(() => new TaskMergeScheduler());
+                    //if (Rarely())
+                    //    schedulerFactories.Add(() => new TaskMergeScheduler());
 #else
                     schedulerFactories.Add(() => new TaskMergeScheduler());
 #endif

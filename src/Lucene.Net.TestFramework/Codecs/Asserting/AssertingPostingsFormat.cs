@@ -1,9 +1,9 @@
 using Lucene.Net.Codecs.Lucene41;
+using Lucene.Net.Diagnostics;
 using Lucene.Net.Index;
 using Lucene.Net.Util;
 using System;
 using System.Collections.Generic;
-using Debug = Lucene.Net.Diagnostics.Debug; // LUCENENET NOTE: We cannot use System.Diagnostics.Debug because those calls will be optimized out of the release!
 
 namespace Lucene.Net.Codecs.Asserting
 {
@@ -67,7 +67,7 @@ namespace Lucene.Net.Codecs.Asserting
             public override IEnumerator<string> GetEnumerator()
             {
                 IEnumerator<string> iterator = @in.GetEnumerator();
-                Debug.Assert(iterator != null);
+                if (Debugging.AssertsEnabled) Debugging.Assert(iterator != null);
                 return iterator;
             }
 
@@ -105,7 +105,7 @@ namespace Lucene.Net.Codecs.Asserting
             public override TermsConsumer AddField(FieldInfo field)
             {
                 TermsConsumer consumer = @in.AddField(field);
-                Debug.Assert(consumer != null);
+                if (Debugging.AssertsEnabled) Debugging.Assert(consumer != null);
                 return new AssertingTermsConsumer(consumer, field);
             }
 
@@ -144,28 +144,28 @@ namespace Lucene.Net.Codecs.Asserting
 
             public override PostingsConsumer StartTerm(BytesRef text)
             {
-                Debug.Assert(state == TermsConsumerState.INITIAL || state == TermsConsumerState.START && lastPostingsConsumer.docFreq == 0);
+                if (Debugging.AssertsEnabled) Debugging.Assert(state == TermsConsumerState.INITIAL || state == TermsConsumerState.START && lastPostingsConsumer.docFreq == 0);
                 state = TermsConsumerState.START;
-                Debug.Assert(lastTerm == null || @in.Comparer.Compare(text, lastTerm) > 0);
+                if (Debugging.AssertsEnabled) Debugging.Assert(lastTerm == null || @in.Comparer.Compare(text, lastTerm) > 0);
                 lastTerm = BytesRef.DeepCopyOf(text);
                 return lastPostingsConsumer = new AssertingPostingsConsumer(@in.StartTerm(text), fieldInfo, visitedDocs);
             }
 
             public override void FinishTerm(BytesRef text, TermStats stats)
             {
-                Debug.Assert(state == TermsConsumerState.START);
+                if (Debugging.AssertsEnabled) Debugging.Assert(state == TermsConsumerState.START);
                 state = TermsConsumerState.INITIAL;
-                Debug.Assert(text.Equals(lastTerm));
-                Debug.Assert(stats.DocFreq > 0); // otherwise, this method should not be called.
-                Debug.Assert(stats.DocFreq == lastPostingsConsumer.docFreq);
+                if (Debugging.AssertsEnabled) Debugging.Assert(text.Equals(lastTerm));
+                if (Debugging.AssertsEnabled) Debugging.Assert(stats.DocFreq > 0); // otherwise, this method should not be called.
+                if (Debugging.AssertsEnabled) Debugging.Assert(stats.DocFreq == lastPostingsConsumer.docFreq);
                 sumDocFreq += stats.DocFreq;
                 if (fieldInfo.IndexOptions == IndexOptions.DOCS_ONLY)
                 {
-                    Debug.Assert(stats.TotalTermFreq == -1);
+                    if (Debugging.AssertsEnabled) Debugging.Assert(stats.TotalTermFreq == -1);
                 }
                 else
                 {
-                    Debug.Assert(stats.TotalTermFreq == lastPostingsConsumer.totalTermFreq);
+                    if (Debugging.AssertsEnabled) Debugging.Assert(stats.TotalTermFreq == lastPostingsConsumer.totalTermFreq);
                     sumTotalTermFreq += stats.TotalTermFreq;
                 }
                 @in.FinishTerm(text, stats);
@@ -173,20 +173,20 @@ namespace Lucene.Net.Codecs.Asserting
 
             public override void Finish(long sumTotalTermFreq, long sumDocFreq, int docCount)
             {
-                Debug.Assert(state == TermsConsumerState.INITIAL || state == TermsConsumerState.START && lastPostingsConsumer.docFreq == 0);
+                if (Debugging.AssertsEnabled) Debugging.Assert(state == TermsConsumerState.INITIAL || state == TermsConsumerState.START && lastPostingsConsumer.docFreq == 0);
                 state = TermsConsumerState.FINISHED;
-                Debug.Assert(docCount >= 0);
-                Debug.Assert(docCount == visitedDocs.Cardinality());
-                Debug.Assert(sumDocFreq >= docCount);
-                Debug.Assert(sumDocFreq == this.sumDocFreq);
+                if (Debugging.AssertsEnabled) Debugging.Assert(docCount >= 0);
+                if (Debugging.AssertsEnabled) Debugging.Assert(docCount == visitedDocs.Cardinality());
+                if (Debugging.AssertsEnabled) Debugging.Assert(sumDocFreq >= docCount);
+                if (Debugging.AssertsEnabled) Debugging.Assert(sumDocFreq == this.sumDocFreq);
                 if (fieldInfo.IndexOptions == IndexOptions.DOCS_ONLY)
                 {
-                    Debug.Assert(sumTotalTermFreq == -1);
+                    if (Debugging.AssertsEnabled) Debugging.Assert(sumTotalTermFreq == -1);
                 }
                 else
                 {
-                    Debug.Assert(sumTotalTermFreq >= sumDocFreq);
-                    Debug.Assert(sumTotalTermFreq == this.sumTotalTermFreq);
+                    if (Debugging.AssertsEnabled) Debugging.Assert(sumTotalTermFreq >= sumDocFreq);
+                    if (Debugging.AssertsEnabled) Debugging.Assert(sumTotalTermFreq == this.sumTotalTermFreq);
                 }
                 @in.Finish(sumTotalTermFreq, sumDocFreq, docCount);
             }
@@ -222,17 +222,17 @@ namespace Lucene.Net.Codecs.Asserting
 
             public override void StartDoc(int docID, int freq)
             {
-                Debug.Assert(state == PostingsConsumerState.INITIAL);
+                if (Debugging.AssertsEnabled) Debugging.Assert(state == PostingsConsumerState.INITIAL);
                 state = PostingsConsumerState.START;
-                Debug.Assert(docID >= 0);
+                if (Debugging.AssertsEnabled) Debugging.Assert(docID >= 0);
                 if (fieldInfo.IndexOptions == IndexOptions.DOCS_ONLY)
                 {
-                    Debug.Assert(freq == -1);
+                    if (Debugging.AssertsEnabled) Debugging.Assert(freq == -1);
                     this.freq = 0; // we don't expect any positions here
                 }
                 else
                 {
-                    Debug.Assert(freq > 0);
+                    if (Debugging.AssertsEnabled) Debugging.Assert(freq > 0);
                     this.freq = freq;
                     totalTermFreq += freq;
                 }
@@ -246,41 +246,41 @@ namespace Lucene.Net.Codecs.Asserting
 
             public override void AddPosition(int position, BytesRef payload, int startOffset, int endOffset)
             {
-                Debug.Assert(state == PostingsConsumerState.START);
-                Debug.Assert(positionCount < freq);
+                if (Debugging.AssertsEnabled) Debugging.Assert(state == PostingsConsumerState.START);
+                if (Debugging.AssertsEnabled) Debugging.Assert(positionCount < freq);
                 positionCount++;
-                Debug.Assert(position >= lastPosition || position == -1); // we still allow -1 from old 3.x indexes
+                if (Debugging.AssertsEnabled) Debugging.Assert(position >= lastPosition || position == -1); // we still allow -1 from old 3.x indexes
                 lastPosition = position;
                 if (fieldInfo.IndexOptions == IndexOptions.DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS)
                 {
-                    Debug.Assert(startOffset >= 0);
-                    Debug.Assert(startOffset >= lastStartOffset);
+                    if (Debugging.AssertsEnabled) Debugging.Assert(startOffset >= 0);
+                    if (Debugging.AssertsEnabled) Debugging.Assert(startOffset >= lastStartOffset);
                     lastStartOffset = startOffset;
-                    Debug.Assert(endOffset >= startOffset);
+                    if (Debugging.AssertsEnabled) Debugging.Assert(endOffset >= startOffset);
                 }
                 else
                 {
-                    Debug.Assert(startOffset == -1);
-                    Debug.Assert(endOffset == -1);
+                    if (Debugging.AssertsEnabled) Debugging.Assert(startOffset == -1);
+                    if (Debugging.AssertsEnabled) Debugging.Assert(endOffset == -1);
                 }
                 if (payload != null)
                 {
-                    Debug.Assert(fieldInfo.HasPayloads);
+                    if (Debugging.AssertsEnabled) Debugging.Assert(fieldInfo.HasPayloads);
                 }
                 @in.AddPosition(position, payload, startOffset, endOffset);
             }
 
             public override void FinishDoc()
             {
-                Debug.Assert(state == PostingsConsumerState.START);
+                if (Debugging.AssertsEnabled) Debugging.Assert(state == PostingsConsumerState.START);
                 state = PostingsConsumerState.INITIAL;
                 if (fieldInfo.IndexOptions.CompareTo(IndexOptions.DOCS_AND_FREQS_AND_POSITIONS) < 0)
                 {
-                    Debug.Assert(positionCount == 0); // we should not have fed any positions!
+                    if (Debugging.AssertsEnabled) Debugging.Assert(positionCount == 0); // we should not have fed any positions!
                 }
                 else
                 {
-                    Debug.Assert(positionCount == freq);
+                    if (Debugging.AssertsEnabled) Debugging.Assert(positionCount == freq);
                 }
                 @in.FinishDoc();
             }

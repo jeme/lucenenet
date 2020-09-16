@@ -1,6 +1,7 @@
 using J2N.Collections.Generic.Extensions;
 using J2N.Threading;
 using Lucene.Net.Analysis;
+using Lucene.Net.Diagnostics;
 using Lucene.Net.Index;
 using Lucene.Net.Index.Extensions;
 using Lucene.Net.Store;
@@ -11,7 +12,6 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using JCG = J2N.Collections.Generic;
 using Console = Lucene.Net.Util.SystemConsole;
-using Debug = Lucene.Net.Diagnostics.Debug; // LUCENENET NOTE: We cannot use System.Diagnostics.Debug because those calls will be optimized out of the release!
 #if FEATURE_SERIALIZABLE_EXCEPTIONS
 using System.Runtime.Serialization;
 #endif
@@ -82,13 +82,21 @@ namespace Lucene.Net.Search
 #else
     {
 #endif
+        // LUCENENET specific - Specify to unzip the line file docs
+        public override void BeforeClass()
+        {
+            UseTempLineDocsFile = true;
+            base.BeforeClass();
+        }
+
+
         // LUCENENET specific - de-nested SearcherExpiredException
 
         internal class FieldAndShardVersion
         {
-            private long version;
-            private int nodeID;
-            private string field;
+            private readonly long version;
+            private readonly int nodeID;
+            private readonly string field;
 
             public FieldAndShardVersion(int nodeID, long version, string field)
             {
@@ -212,7 +220,7 @@ namespace Lucene.Net.Search
                 }
                 else
                 {
-                    Debug.Assert(searchAfter == null); // not supported yet
+                    if (Debugging.AssertsEnabled) Debugging.Assert(searchAfter == null); // not supported yet
                     return s.LocalSearch(q, numHits, sort);
                 }
             }
@@ -298,7 +306,7 @@ namespace Lucene.Net.Search
                     this.outerInstance = nodeState;
                     this.nodeVersions = nodeVersions;
                     MyNodeID = nodeID;
-                    Debug.Assert(MyNodeID == nodeState.MyNodeID, "myNodeID=" + nodeID + " NodeState.this.myNodeID=" + nodeState.MyNodeID);
+                    if (Debugging.AssertsEnabled) Debugging.Assert(MyNodeID == nodeState.MyNodeID, () => "myNodeID=" + nodeID + " NodeState.this.myNodeID=" + nodeState.MyNodeID);
                 }
 
                 public override Query Rewrite(Query original)
@@ -340,7 +348,7 @@ namespace Lucene.Net.Search
 
                 public override TermStatistics TermStatistics(Term term, TermContext context)
                 {
-                    Debug.Assert(term != null);
+                    if (Debugging.AssertsEnabled) Debugging.Assert(term != null);
                     long docFreq = 0;
                     long totalTermFreq = 0;
                     for (int nodeID = 0; nodeID < nodeVersions.Length; nodeID++)
@@ -356,7 +364,7 @@ namespace Lucene.Net.Search
                             subStats = outerInstance.termStatsCache[key];
                             // We pre-cached during rewrite so all terms
                             // better be here...
-                            Debug.Assert(subStats != null);
+                            if (Debugging.AssertsEnabled) Debugging.Assert(subStats != null);
                         }
 
                         long nodeDocFreq = subStats.DocFreq;
@@ -411,7 +419,7 @@ namespace Lucene.Net.Search
                         }
                         // Collection stats are pre-shared on reopen, so,
                         // we better not have a cache miss:
-                        Debug.Assert(nodeStats != null, "myNodeID=" + MyNodeID + " nodeID=" + nodeID + " version=" + nodeVersions[nodeID] + " field=" + field);
+                        if (Debugging.AssertsEnabled) Debugging.Assert(nodeStats != null, () => "myNodeID=" + MyNodeID + " nodeID=" + nodeID + " version=" + nodeVersions[nodeID] + " field=" + field);
 
                         long nodeDocCount = nodeStats.DocCount;
                         if (docCount >= 0 && nodeDocCount >= 0)
@@ -443,7 +451,7 @@ namespace Lucene.Net.Search
                             sumDocFreq = -1;
                         }
 
-                        Debug.Assert(nodeStats.MaxDoc >= 0);
+                        if (Debugging.AssertsEnabled) Debugging.Assert(nodeStats.MaxDoc >= 0);
                         maxDoc += nodeStats.MaxDoc;
                     }
 
@@ -543,7 +551,7 @@ namespace Lucene.Net.Search
 
                 public override TopFieldDocs Search(Query query, int numHits, Sort sort)
                 {
-                    Debug.Assert(sort != null);
+                    if (Debugging.AssertsEnabled) Debugging.Assert(sort != null);
                     TopDocs[] shardHits = new TopDocs[nodeVersions.Length];
                     for (int nodeID = 0; nodeID < nodeVersions.Length; nodeID++)
                     {
@@ -596,7 +604,7 @@ namespace Lucene.Net.Search
 
             public void InitSearcher(long[] nodeVersions)
             {
-                Debug.Assert(currentShardSearcher == null);
+                if (Debugging.AssertsEnabled) Debugging.Assert(currentShardSearcher == null);
                 Array.Copy(nodeVersions, 0, currentNodeVersions, 0, currentNodeVersions.Length);
                 currentShardSearcher = new ShardIndexSearcher(this, GetCurrentNodeVersions(), Mgr.Acquire().IndexReader, MyNodeID);
             }
@@ -773,8 +781,8 @@ namespace Lucene.Net.Search
             for (int nodeID = 0; nodeID < numNodes; nodeID++)
             {
                 IndexSearcher s = m_nodes[nodeID].Mgr.Acquire();
-                Debug.Assert(nodeVersions[nodeID] == m_nodes[nodeID].Searchers.Record(s));
-                Debug.Assert(s != null);
+                if (Debugging.AssertsEnabled) Debugging.Assert(nodeVersions[nodeID] == m_nodes[nodeID].Searchers.Record(s));
+                if (Debugging.AssertsEnabled) Debugging.Assert(s != null);
                 try
                 {
                     BroadcastNodeReopen(nodeID, nodeVersions[nodeID], s);

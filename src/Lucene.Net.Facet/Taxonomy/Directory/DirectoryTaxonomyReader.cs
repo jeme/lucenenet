@@ -72,10 +72,13 @@ namespace Lucene.Net.Facet.Taxonomy.Directory
         private readonly DirectoryReader indexReader;
 
         // TODO: test DoubleBarrelLRUCache and consider using it instead
-        private LRUHashMap<FacetLabel, Int32Class> ordinalCache;
-        private LRUHashMap<int, FacetLabel> categoryCache;
+        private LruDictionary<FacetLabel, Int32Class> ordinalCache;
+        private LruDictionary<int, FacetLabel> categoryCache;
+        private readonly ReaderWriterLockSlim ordinalCacheLock = new ReaderWriterLockSlim(LockRecursionPolicy.NoRecursion);
+        private readonly ReaderWriterLockSlim categoryCacheLock = new ReaderWriterLockSlim(LockRecursionPolicy.NoRecursion);
 
         private /*volatile*/ TaxonomyIndexArrays taxoArrays; // LUCENENET specific: LazyInitalizer negates the need for volatile
+        private bool isDisposed = false;
 
         /// <summary>
         /// Called only from <see cref="DoOpenIfChanged()"/>. If the taxonomy has been
@@ -83,7 +86,7 @@ namespace Lucene.Net.Facet.Taxonomy.Directory
         /// arrays.
         /// </summary>
         private DirectoryTaxonomyReader(DirectoryReader indexReader, DirectoryTaxonomyWriter taxoWriter, 
-            LRUHashMap<FacetLabel, Int32Class> ordinalCache, LRUHashMap<int, FacetLabel> categoryCache, 
+            LruDictionary<FacetLabel, Int32Class> ordinalCache, LruDictionary<int, FacetLabel> categoryCache, 
             TaxonomyIndexArrays taxoArrays)
         {
             this.indexReader = indexReader;
@@ -91,8 +94,8 @@ namespace Lucene.Net.Facet.Taxonomy.Directory
             this.taxoEpoch = taxoWriter == null ? -1 : taxoWriter.TaxonomyEpoch;
 
             // use the same instance of the cache, note the protective code in getOrdinal and getPath
-            this.ordinalCache = ordinalCache ?? new LRUHashMap<FacetLabel, Int32Class>(DEFAULT_CACHE_VALUE);
-            this.categoryCache = categoryCache ?? new LRUHashMap<int, FacetLabel>(DEFAULT_CACHE_VALUE);
+            this.ordinalCache = ordinalCache ?? new LruDictionary<FacetLabel, Int32Class>(DEFAULT_CACHE_VALUE);
+            this.categoryCache = categoryCache ?? new LruDictionary<int, FacetLabel>(DEFAULT_CACHE_VALUE);
 
             this.taxoArrays = taxoArrays != null ? new TaxonomyIndexArrays(indexReader, taxoArrays) : null;
         }
@@ -112,8 +115,8 @@ namespace Lucene.Net.Facet.Taxonomy.Directory
             // These are the default cache sizes; they can be configured after
             // construction with the cache's setMaxSize() method
 
-            ordinalCache = new LRUHashMap<FacetLabel, Int32Class>(DEFAULT_CACHE_VALUE);
-            categoryCache = new LRUHashMap<int, FacetLabel>(DEFAULT_CACHE_VALUE);
+            ordinalCache = new LruDictionary<FacetLabel, Int32Class>(DEFAULT_CACHE_VALUE);
+            categoryCache = new LruDictionary<int, FacetLabel>(DEFAULT_CACHE_VALUE);
         }
 
         /// <summary>
@@ -132,19 +135,25 @@ namespace Lucene.Net.Facet.Taxonomy.Directory
             // These are the default cache sizes; they can be configured after
             // construction with the cache's setMaxSize() method
 
-            ordinalCache = new LRUHashMap<FacetLabel, Int32Class>(DEFAULT_CACHE_VALUE);
-            categoryCache = new LRUHashMap<int, FacetLabel>(DEFAULT_CACHE_VALUE);
+            ordinalCache = new LruDictionary<FacetLabel, Int32Class>(DEFAULT_CACHE_VALUE);
+            categoryCache = new LruDictionary<int, FacetLabel>(DEFAULT_CACHE_VALUE);
         }
 
         // LUCENENET specific - eliminated the InitTaxoArrays() method in favor of LazyInitializer
 
-        protected internal override void DoClose()
+        protected override void Dispose(bool disposing) // LUCENENET specific - changed from DoClose()
         {
-            indexReader.Dispose();
-            taxoArrays = null;
-            // do not clear() the caches, as they may be used by other DTR instances.
-            ordinalCache = null;
-            categoryCache = null;
+            if (disposing && !isDisposed)
+            {
+                indexReader.Dispose();
+                taxoArrays = null;
+                // do not clear() the caches, as they may be used by other DTR instances.
+                ordinalCache = null;
+                categoryCache = null;
+                ordinalCacheLock.Dispose(); // LUCENENET specific - cleanup ReaderWriterLockSlim instances
+                categoryCacheLock.Dispose();
+                isDisposed = true;
+            }
         }
 
         /// <summary>
@@ -290,25 +299,33 @@ namespace Lucene.Net.Facet.Taxonomy.Directory
 
             // First try to find the answer in the LRU cache:
 
-            // LUCENENET: Lock was removed here because the underlying cache is thread-safe,
-            // and removing the lock seems to make the performance better.
-            if (ordinalCache.TryGetValue(cp, out Int32Class res) && res != null)
+            // LUCENENET: Despite LRUHashMap being thread-safe, we get much better performance
+            // if reads are separated from writes.
+            ordinalCacheLock.EnterReadLock();
+            try
             {
-                if (res < indexReader.MaxDoc)
+                if (ordinalCache.TryGetValue(cp, out Int32Class res))
                 {
-                    // Since the cache is shared with DTR instances allocated from
-                    // doOpenIfChanged, we need to ensure that the ordinal is one that
-                    // this DTR instance recognizes.
-                    return res;
+                    if (res < indexReader.MaxDoc)
+                    {
+                        // Since the cache is shared with DTR instances allocated from
+                        // doOpenIfChanged, we need to ensure that the ordinal is one that
+                        // this DTR instance recognizes.
+                        return res;
+                    }
+                    else
+                    {
+                        // if we get here, it means that the category was found in the cache,
+                        // but is not recognized by this TR instance. Therefore there's no
+                        // need to continue search for the path on disk, because we won't find
+                        // it there too.
+                        return TaxonomyReader.INVALID_ORDINAL;
+                    }
                 }
-                else
-                {
-                    // if we get here, it means that the category was found in the cache,
-                    // but is not recognized by this TR instance. Therefore there's no
-                    // need to continue search for the path on disk, because we won't find
-                    // it there too.
-                    return TaxonomyReader.INVALID_ORDINAL;
-                }
+            }
+            finally
+            {
+                ordinalCacheLock.ExitReadLock();
             }
 
             // If we're still here, we have a cache miss. We need to fetch the
@@ -325,9 +342,15 @@ namespace Lucene.Net.Facet.Taxonomy.Directory
                 // information about found categories, we cannot accidently tell a new
                 // generation of DTR that a category does not exist.
 
-                // LUCENENET: Lock was removed here because the underlying cache is thread-safe,
-                // and removing the lock seems to make the performance better.
-                ordinalCache.Put(cp, ret);
+                ordinalCacheLock.EnterWriteLock();
+                try
+                {
+                    ordinalCache[cp] = ret;
+                }
+                finally
+                {
+                    ordinalCacheLock.ExitWriteLock();
+                }
             }
 
             return ret;
@@ -350,20 +373,32 @@ namespace Lucene.Net.Facet.Taxonomy.Directory
             // wrapped as LRU?
 
             // LUCENENET NOTE: We don't need to convert ordinal from int to int here as was done in Java.
-            // LUCENENET: Lock was removed here because the underlying cache is thread-safe,
-            // and removing the lock seems to make the performance better.
-            if (categoryCache.TryGetValue(ordinal, out FacetLabel res))
+            // LUCENENET: Despite LRUHashMap being thread-safe, we get much better performance
+            // if reads are separated from writes.
+            categoryCacheLock.EnterReadLock();
+            try
             {
-                return res;
+                if (categoryCache.TryGetValue(ordinal, out FacetLabel res))
+                    return res;
+            }
+            finally
+            {
+                categoryCacheLock.ExitReadLock();
             }
 
             Document doc = indexReader.Document(ordinal);
-            res = new FacetLabel(FacetsConfig.StringToPath(doc.Get(Consts.FULL)));
-            // LUCENENET: Lock was removed here because the underlying cache is thread-safe,
-            // and removing the lock seems to make the performance better.
-            categoryCache.Put(ordinal, res);
+            var result = new FacetLabel(FacetsConfig.StringToPath(doc.Get(Consts.FULL)));
+            categoryCacheLock.EnterWriteLock();
+            try
+            {
+                categoryCache[ordinal] = result;
+            }
+            finally
+            {
+                categoryCacheLock.ExitWriteLock();
+            }
 
-            return res;
+            return result;
         }
 
         public override int Count
@@ -382,7 +417,7 @@ namespace Lucene.Net.Facet.Taxonomy.Directory
         /// Currently, if the given size is smaller than the current size of
         /// a cache, it will not shrink, and rather we be limited to its current
         /// size. </summary>
-        /// <param name="size"> the new maximum cache size, in number of entries. </param>
+        /// <param name="size"> The new maximum cache size, in number of entries. </param>
         public virtual void SetCacheSize(int size)
         {
             EnsureOpen();
@@ -407,7 +442,7 @@ namespace Lucene.Net.Facet.Taxonomy.Directory
                 try
                 {
                     FacetLabel category = this.GetPath(i);
-                    if (category == null)
+                    if (category is null)
                     {
                         sb.Append(i + ": NULL!! \n");
                         continue;

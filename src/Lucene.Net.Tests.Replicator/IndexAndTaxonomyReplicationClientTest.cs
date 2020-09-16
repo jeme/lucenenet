@@ -1,4 +1,6 @@
 ﻿using J2N.Threading.Atomic;
+using Lucene.Net.Attributes;
+using Lucene.Net.Diagnostics;
 using Lucene.Net.Documents;
 using Lucene.Net.Facet;
 using Lucene.Net.Facet.Taxonomy;
@@ -10,7 +12,6 @@ using Lucene.Net.Util;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Threading;
@@ -41,10 +42,11 @@ namespace Lucene.Net.Replicator
     {
         private class IndexAndTaxonomyReadyCallback : IDisposable
         {
-            private Directory indexDir, taxoDir;
+            private readonly Directory indexDir;
+            private readonly Directory taxoDir;
             private DirectoryReader indexReader;
             private DirectoryTaxonomyReader taxoReader;
-            private FacetsConfig config;
+            private readonly FacetsConfig config;
             private long lastIndexGeneration = -1;
 
             public IndexAndTaxonomyReadyCallback(MockDirectoryWrapper indexDir, MockDirectoryWrapper taxoDir)
@@ -288,6 +290,7 @@ namespace Lucene.Net.Replicator
         // handler copies them to the index directory.
         [Test]
         [Slow]
+        [Deadlock]
         public void TestConsistencyOnExceptions()
         {
             // so the handler's index isn't empty
@@ -458,7 +461,7 @@ namespace Lucene.Net.Replicator
                     {
                         // count-down number of failures
                         failures.DecrementAndGet();
-                        Debug.Assert(failures >= 0, "handler failed too many times: " + failures);
+                        if (Debugging.AssertsEnabled) Debugging.Assert(failures >= 0, () => "handler failed too many times: " + failures);
                         if (Verbose)
                         {
                             if (failures == 0)

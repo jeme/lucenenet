@@ -1,3 +1,4 @@
+using Lucene.Net.Diagnostics;
 using Lucene.Net.Index;
 using Lucene.Net.Store;
 using Lucene.Net.Support;
@@ -5,7 +6,6 @@ using Lucene.Net.Util;
 using Lucene.Net.Util.Fst;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 
 namespace Lucene.Net.Codecs.BlockTerms
 {
@@ -34,11 +34,11 @@ namespace Lucene.Net.Codecs.BlockTerms
     public class VariableGapTermsIndexReader : TermsIndexReaderBase
     {
         private readonly PositiveInt32Outputs fstOutputs = PositiveInt32Outputs.Singleton;
-        private int indexDivisor;
+        private readonly int indexDivisor;
 
         // Closed if indexLoaded is true:
-        private IndexInput input;
-        private volatile bool indexLoaded;
+        private readonly IndexInput input;
+        private readonly /*volatile*/ bool indexLoaded;
 
         private readonly IDictionary<FieldInfo, FieldIndexData> fields = new Dictionary<FieldInfo, FieldIndexData>();
 
@@ -47,15 +47,15 @@ namespace Lucene.Net.Codecs.BlockTerms
 
         private readonly int version;
 
-        private readonly string segment;
+        //private readonly string segment; // LUCENENET: Not used
 
         public VariableGapTermsIndexReader(Directory dir, FieldInfos fieldInfos, string segment, int indexDivisor,
             string segmentSuffix, IOContext context)
         {
             input = dir.OpenInput(IndexFileNames.SegmentFileName(segment, segmentSuffix, VariableGapTermsIndexWriter.TERMS_INDEX_EXTENSION), new IOContext(context, true));
-            this.segment = segment;
+            //this.segment = segment; // LUCENENET: Not used
             bool success = false;
-            Debug.Assert(indexDivisor == -1 || indexDivisor > 0);
+            if (Debugging.AssertsEnabled) Debugging.Assert(indexDivisor == -1 || indexDivisor > 0);
 
             try
             {
@@ -258,8 +258,7 @@ namespace Lucene.Net.Codecs.BlockTerms
 
         public override FieldIndexEnum GetFieldEnum(FieldInfo fieldInfo)
         {
-            FieldIndexData fieldData;
-            if (!fields.TryGetValue(fieldInfo, out fieldData) || fieldData == null || fieldData.fst == null)
+            if (!fields.TryGetValue(fieldInfo, out FieldIndexData fieldData) || fieldData == null || fieldData.fst == null)
             {
                 return null;
             }

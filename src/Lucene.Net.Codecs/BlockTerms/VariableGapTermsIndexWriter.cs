@@ -1,10 +1,10 @@
+using Lucene.Net.Diagnostics;
 using Lucene.Net.Index;
 using Lucene.Net.Store;
 using Lucene.Net.Util;
 using Lucene.Net.Util.Fst;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 
 namespace Lucene.Net.Codecs.BlockTerms
 {
@@ -49,7 +49,7 @@ namespace Lucene.Net.Codecs.BlockTerms
 
         private readonly IList<FSTFieldWriter> fields = new List<FSTFieldWriter>();
 
-        private readonly FieldInfos fieldInfos; // unread
+        //private readonly FieldInfos fieldInfos; // unread  // LUCENENET: Not used
         private readonly IndexTermSelector policy;
 
         /// <summary>
@@ -187,7 +187,7 @@ namespace Lucene.Net.Codecs.BlockTerms
             bool success = false;
             try
             {
-                fieldInfos = state.FieldInfos;
+                //fieldInfos = state.FieldInfos; // LUCENENET: Not used
                 this.policy = policy;
                 WriteHeader(m_output);
                 success = true;
@@ -292,7 +292,7 @@ namespace Lucene.Net.Codecs.BlockTerms
                 if (text.Length == 0)
                 {
                     // We already added empty string in ctor
-                    Debug.Assert(termsFilePointer == startTermsFilePointer);
+                    if (Debugging.AssertsEnabled) Debugging.Assert(termsFilePointer == startTermsFilePointer);
                     return;
                 }
                 int lengthSave = text.Length;

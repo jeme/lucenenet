@@ -6,7 +6,6 @@ using Lucene.Net.Tartarus.Snowball.Ext;
 using Lucene.Net.Util;
 using NUnit.Framework;
 using System;
-using System.IO;
 
 namespace Lucene.Net.Analysis.Snowball
 {
@@ -107,7 +106,7 @@ namespace Lucene.Net.Analysis.Snowball
         [Test]
         public virtual void TestFilterTokens()
         {
-            SnowballFilter filter = new SnowballFilter(new TestTokenStream(this), "English");
+            SnowballFilter filter = new SnowballFilter(new TestTokenStream(), "English");
             ICharTermAttribute termAtt = filter.GetAttribute<ICharTermAttribute>();
             IOffsetAttribute offsetAtt = filter.GetAttribute<IOffsetAttribute>();
             ITypeAttribute typeAtt = filter.GetAttribute<ITypeAttribute>();
@@ -128,8 +127,6 @@ namespace Lucene.Net.Analysis.Snowball
 
         private sealed class TestTokenStream : TokenStream
         {
-            private readonly TestSnowball outerInstance;
-
             internal readonly ICharTermAttribute termAtt;
             internal readonly IOffsetAttribute offsetAtt;
             internal readonly ITypeAttribute typeAtt;
@@ -137,9 +134,8 @@ namespace Lucene.Net.Analysis.Snowball
             internal readonly IPositionIncrementAttribute posIncAtt;
             internal readonly IFlagsAttribute flagsAtt;
 
-            internal TestTokenStream(TestSnowball outerInstance) : base()
+            internal TestTokenStream() : base()
             {
-                this.outerInstance = outerInstance;
                 this.termAtt = AddAttribute<ICharTermAttribute>();
                 this.offsetAtt = AddAttribute<IOffsetAttribute>();
                 this.typeAtt = AddAttribute<ITypeAttribute>();
@@ -170,26 +166,12 @@ namespace Lucene.Net.Analysis.Snowball
         {
             foreach (String lang in SNOWBALL_LANGS)
             {
-                Analyzer a = new AnalyzerAnonymousInnerClassHelper(this, lang);
+                Analyzer a = Analyzer.NewAnonymous(createComponents: (fieldName, reader) =>
+                {
+                    Tokenizer tokenizer = new KeywordTokenizer(reader);
+                    return new TokenStreamComponents(tokenizer, new SnowballFilter(tokenizer, lang));
+                });
                 CheckOneTerm(a, "", "");
-            }
-        }
-
-        private class AnalyzerAnonymousInnerClassHelper : Analyzer
-        {
-            private readonly TestSnowball outerInstance;
-            private readonly string lang;
-
-            public AnalyzerAnonymousInnerClassHelper(TestSnowball outerInstance, string lang)
-            {
-                this.outerInstance = outerInstance;
-                this.lang = lang;
-            }
-
-            protected internal override TokenStreamComponents CreateComponents(string fieldName, TextReader reader)
-            {
-                Tokenizer tokenizer = new KeywordTokenizer(reader);
-                return new TokenStreamComponents(tokenizer, new SnowballFilter(tokenizer, lang));
             }
         }
 
@@ -205,27 +187,12 @@ namespace Lucene.Net.Analysis.Snowball
 
         public virtual void CheckRandomStrings(string snowballLanguage)
         {
-            Analyzer a = new AnalyzerAnonymousInnerClassHelper2(this, snowballLanguage);
-            CheckRandomData(Random, a, 1000 * RandomMultiplier);
-        }
-
-        private class AnalyzerAnonymousInnerClassHelper2 : Analyzer
-        {
-            private readonly TestSnowball outerInstance;
-
-            private string snowballLanguage;
-
-            public AnalyzerAnonymousInnerClassHelper2(TestSnowball outerInstance, string snowballLanguage)
-            {
-                this.outerInstance = outerInstance;
-                this.snowballLanguage = snowballLanguage;
-            }
-
-            protected internal override TokenStreamComponents CreateComponents(string fieldName, TextReader reader)
+            Analyzer a = Analyzer.NewAnonymous(createComponents: (fieldName, reader) =>
             {
                 Tokenizer t = new MockTokenizer(reader);
                 return new TokenStreamComponents(t, new SnowballFilter(t, snowballLanguage));
-            }
+            });
+            CheckRandomData(Random, a, 1000 * RandomMultiplier);
         }
     }
 #pragma warning restore 612, 618

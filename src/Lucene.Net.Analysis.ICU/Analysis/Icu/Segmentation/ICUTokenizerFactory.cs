@@ -1,8 +1,9 @@
-﻿// Lucene version compatibility level < 7.1.0
+﻿// Lucene version compatibility level 8.6.1
 using ICU4N;
 using ICU4N.Globalization;
 using ICU4N.Text;
 using Lucene.Net.Analysis.Util;
+using Lucene.Net.Diagnostics;
 using Lucene.Net.Support;
 using Lucene.Net.Util;
 using System;
@@ -68,7 +69,10 @@ namespace Lucene.Net.Analysis.Icu.Segmentation
     [ExceptionToClassNameConvention]
     public class ICUTokenizerFactory : TokenizerFactory, IResourceLoaderAware
     {
-        internal static readonly string RULEFILES = "rulefiles";
+        // SPI Name
+        //public const string NAME = "icu";
+
+        internal const string RULEFILES = "rulefiles";
         private readonly IDictionary<int, string> tailored;
         private ICUTokenizerConfig config;
         private readonly bool cjkAsWords;
@@ -101,7 +105,7 @@ namespace Lucene.Net.Analysis.Icu.Segmentation
 
         public virtual void Inform(IResourceLoader loader)
         {
-            Debug.Assert(tailored != null, "init must be called first!");
+            if (Debugging.AssertsEnabled) Debugging.Assert(tailored != null, "init must be called first!");
             if (tailored.Count == 0)
             {
                 config = new DefaultICUTokenizerConfig(cjkAsWords, myanmarAsWords);
@@ -127,11 +131,11 @@ namespace Lucene.Net.Analysis.Icu.Segmentation
                 }
             }
 
-            public override BreakIterator GetBreakIterator(int script)
+            public override RuleBasedBreakIterator GetBreakIterator(int script)
             {
                 if (breakers[script] != null)
                 {
-                    return (BreakIterator)breakers[script].Clone();
+                    return (RuleBasedBreakIterator)breakers[script].Clone();
                 }
                 else
                 {
@@ -161,7 +165,7 @@ namespace Lucene.Net.Analysis.Icu.Segmentation
 
         public override Tokenizer Create(AttributeSource.AttributeFactory factory, TextReader input)
         {
-            Debug.Assert(config != null, "inform must be called first!");
+            if (Debugging.AssertsEnabled) Debugging.Assert(config != null, "inform must be called first!");
             return new ICUTokenizer(factory, input, config);
         }
     }

@@ -1,18 +1,10 @@
-using System;
-using System.Collections;
-using System.Collections.Generic;
+using Lucene.Net.Diagnostics;
 using Lucene.Net.Support;
-using JCG = J2N.Collections.Generic;
-using Debug = Lucene.Net.Diagnostics.Debug; // LUCENENET NOTE: We cannot use System.Diagnostics.Debug because those calls will be optimized out of the release!
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 using Assert = Lucene.Net.TestFramework.Assert;
-
-#if TESTFRAMEWORK_MSTEST
-using CollectionAssert = Lucene.Net.TestFramework.Assert;
-#elif TESTFRAMEWORK_NUNIT
-using CollectionAssert = NUnit.Framework.CollectionAssert;
-#elif TESTFRAMEWORK_XUNIT
-using CollectionAssert = Lucene.Net.TestFramework.Assert;
-#endif
+using JCG = J2N.Collections.Generic;
 
 namespace Lucene.Net.Util
 {
@@ -268,7 +260,9 @@ namespace Lucene.Net.Util
         [ExceptionToNetNumericConvention] // LUCENENET: This is for making test porting easier, keeping as-is
         internal int randomIntBetween(int min, int max)
         {
-            Debug.Assert(max >= min, "max must be >= min: " + min + ", " + max);
+            // LUCENENET specific - added guard clause instead of assert
+            if (max < min)
+                throw new ArgumentOutOfRangeException(nameof(max), $"max must be >= min: {min}, {max}");
             long range = (long)max - (long)min;
             if (range < int.MaxValue)
             {

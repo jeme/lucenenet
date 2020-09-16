@@ -1,5 +1,6 @@
 ﻿using J2N.Threading;
 using J2N.Threading.Atomic;
+using Lucene.Net.Attributes;
 using Lucene.Net.Index.Extensions;
 using Lucene.Net.Search;
 using NUnit.Framework;
@@ -161,7 +162,7 @@ namespace Lucene.Net.Facet.Taxonomy
 
             var mgr = new SearcherTaxonomyManager(w, true, null, tw);
 
-            var reopener = new ThreadAnonymousInnerClassHelper(this, stop, mgr);
+            var reopener = new ThreadAnonymousInnerClassHelper(stop, mgr);
 
             reopener.Name = "reopener";
             reopener.Start();
@@ -214,14 +215,11 @@ namespace Lucene.Net.Facet.Taxonomy
 
         private class ThreadAnonymousInnerClassHelper : ThreadJob
         {
-            private readonly TestSearcherTaxonomyManager outerInstance;
+            private readonly AtomicBoolean stop;
+            private readonly SearcherTaxonomyManager mgr;
 
-            private AtomicBoolean stop;
-            private Lucene.Net.Facet.Taxonomy.SearcherTaxonomyManager mgr;
-
-            public ThreadAnonymousInnerClassHelper(TestSearcherTaxonomyManager outerInstance, AtomicBoolean stop, Lucene.Net.Facet.Taxonomy.SearcherTaxonomyManager mgr)
+            public ThreadAnonymousInnerClassHelper(AtomicBoolean stop, SearcherTaxonomyManager mgr)
             {
-                this.outerInstance = outerInstance;
                 this.stop = stop;
                 this.mgr = mgr;
             }
@@ -258,6 +256,7 @@ namespace Lucene.Net.Facet.Taxonomy
         
         [Test]
         [Slow]
+        [Deadlock]
         public virtual void Test_Directory() // LUCENENET specific - name collides with property of LuceneTestCase
         {
             Store.Directory indexDir = NewDirectory();

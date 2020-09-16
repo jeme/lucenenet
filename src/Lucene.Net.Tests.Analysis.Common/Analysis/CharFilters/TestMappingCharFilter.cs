@@ -1,8 +1,8 @@
-﻿using Lucene.Net.Util;
+﻿using Lucene.Net.Diagnostics;
+using Lucene.Net.Util;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Text;
 using Console = Lucene.Net.Util.SystemConsole;
@@ -211,35 +211,20 @@ namespace Lucene.Net.Analysis.CharFilters
         [Test]
         public virtual void TestRandom()
         {
-            Analyzer analyzer = new AnalyzerAnonymousInnerClassHelper(this);
+            Analyzer analyzer = Analyzer.NewAnonymous(createComponents: (fieldName, reader) =>
+            {
+                Tokenizer tokenizer = new MockTokenizer(reader, MockTokenizer.WHITESPACE, false);
+                return new TokenStreamComponents(tokenizer, tokenizer);
+            }, initReader: (fieldName, reader) =>
+            { 
+                return new MappingCharFilter(normMap, reader);
+            });
 
             int numRounds = RandomMultiplier * 10000;
             CheckRandomData(Random, analyzer, numRounds);
         }
 
-        private class AnalyzerAnonymousInnerClassHelper : Analyzer
-        {
-            private readonly TestMappingCharFilter outerInstance;
-
-            public AnalyzerAnonymousInnerClassHelper(TestMappingCharFilter outerInstance)
-            {
-                this.outerInstance = outerInstance;
-            }
-
-
-            protected internal override TokenStreamComponents CreateComponents(string fieldName, TextReader reader)
-            {
-                Tokenizer tokenizer = new MockTokenizer(reader, MockTokenizer.WHITESPACE, false);
-                return new TokenStreamComponents(tokenizer, tokenizer);
-            }
-
-            protected internal override TextReader InitReader(string fieldName, TextReader reader)
-            {
-                return new MappingCharFilter(outerInstance.normMap, reader);
-            }
-        }
-
-        [Ignore("wrong finalOffset: https://issues.apache.org/jira/browse/LUCENE-3971")]
+        //[Ignore("wrong finalOffset: https://issues.apache.org/jira/browse/LUCENE-3971")] // LUCENENET: This was commented in Lucene
         [Test]
         public virtual void TestFinalOffsetSpecialCase()
         {
@@ -250,37 +235,17 @@ namespace Lucene.Net.Analysis.CharFilters
 
             NormalizeCharMap map = builder.Build();
 
-            Analyzer analyzer = new AnalyzerAnonymousInnerClassHelper2(this, map);
+            Analyzer analyzer = Analyzer.NewAnonymous(createComponents: (fieldName, reader) =>
+            {
+                Tokenizer tokenizer = new MockTokenizer(reader, MockTokenizer.WHITESPACE, false);
+                return new TokenStreamComponents(tokenizer, tokenizer);
+            }, initReader: (fieldName, reader) => new MappingCharFilter(map, reader));
 
             string text = "gzw f quaxot";
             CheckAnalysisConsistency(Random, analyzer, false, text);
         }
 
-        private class AnalyzerAnonymousInnerClassHelper2 : Analyzer
-        {
-            private readonly TestMappingCharFilter outerInstance;
-
-            private NormalizeCharMap map;
-
-            public AnalyzerAnonymousInnerClassHelper2(TestMappingCharFilter outerInstance, NormalizeCharMap map)
-            {
-                this.outerInstance = outerInstance;
-                this.map = map;
-            }
-
-            protected internal override TokenStreamComponents CreateComponents(string fieldName, TextReader reader)
-            {
-                Tokenizer tokenizer = new MockTokenizer(reader, MockTokenizer.WHITESPACE, false);
-                return new TokenStreamComponents(tokenizer, tokenizer);
-            }
-
-            protected internal override TextReader InitReader(string fieldName, TextReader reader)
-            {
-                return new MappingCharFilter(map, reader);
-            }
-        }
-
-        [Ignore("wrong finalOffset: https://issues.apache.org/jira/browse/LUCENE-3971")]
+        //[Ignore("wrong finalOffset: https://issues.apache.org/jira/browse/LUCENE-3971")] // LUCENENET: This was commented in Lucene
         [Test]
         public virtual void TestRandomMaps()
         {
@@ -288,33 +253,13 @@ namespace Lucene.Net.Analysis.CharFilters
             for (int i = 0; i < numIterations; i++)
             {
                 NormalizeCharMap map = RandomMap();
-                Analyzer analyzer = new AnalyzerAnonymousInnerClassHelper3(this, map);
+                Analyzer analyzer = Analyzer.NewAnonymous(createComponents: (fieldName, reader) =>
+                {
+                    Tokenizer tokenizer = new MockTokenizer(reader, MockTokenizer.WHITESPACE, false);
+                    return new TokenStreamComponents(tokenizer, tokenizer);
+                }, initReader: (fieldName, reader) => new MappingCharFilter(map, reader));
                 int numRounds = 100;
                 CheckRandomData(Random, analyzer, numRounds);
-            }
-        }
-
-        private class AnalyzerAnonymousInnerClassHelper3 : Analyzer
-        {
-            private readonly TestMappingCharFilter outerInstance;
-
-            private NormalizeCharMap map;
-
-            public AnalyzerAnonymousInnerClassHelper3(TestMappingCharFilter outerInstance, NormalizeCharMap map)
-            {
-                this.outerInstance = outerInstance;
-                this.map = map;
-            }
-
-            protected internal override TokenStreamComponents CreateComponents(string fieldName, TextReader reader)
-            {
-                Tokenizer tokenizer = new MockTokenizer(reader, MockTokenizer.WHITESPACE, false);
-                return new TokenStreamComponents(tokenizer, tokenizer);
-            }
-
-            protected internal override TextReader InitReader(string fieldName, TextReader reader)
-            {
-                return new MappingCharFilter(map, reader);
             }
         }
 
@@ -477,7 +422,7 @@ namespace Lucene.Net.Analysis.CharFilters
                                 // Same length: no change to offset
                             }
 
-                            Debug.Assert(inputOffsets.Count == output.Length, "inputOffsets.size()=" + inputOffsets.Count + " vs output.length()=" + output.Length);
+                            if (Debugging.AssertsEnabled) Debugging.Assert(inputOffsets.Count == output.Length, () => "inputOffsets.size()=" + inputOffsets.Count + " vs output.length()=" + output.Length);
                         }
                         else
                         {

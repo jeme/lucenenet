@@ -61,12 +61,8 @@ namespace Lucene.Net.Analysis.Sinks
 
         internal static readonly TeeSinkTokenFilter.SinkFilter theFilter = new SinkFilterAnonymousInnerClassHelper();
 
-        private class SinkFilterAnonymousInnerClassHelper : TeeSinkTokenFilter.SinkFilter
+        private sealed class SinkFilterAnonymousInnerClassHelper : TeeSinkTokenFilter.SinkFilter
         {
-            public SinkFilterAnonymousInnerClassHelper()
-            {
-            }
-
             public override bool Accept(AttributeSource a)
             {
                 ICharTermAttribute termAtt = a.GetAttribute<ICharTermAttribute>();
@@ -76,12 +72,8 @@ namespace Lucene.Net.Analysis.Sinks
 
         internal static readonly TeeSinkTokenFilter.SinkFilter dogFilter = new SinkFilterAnonymousInnerClassHelper2();
 
-        private class SinkFilterAnonymousInnerClassHelper2 : TeeSinkTokenFilter.SinkFilter
+        private sealed class SinkFilterAnonymousInnerClassHelper2 : TeeSinkTokenFilter.SinkFilter
         {
-            public SinkFilterAnonymousInnerClassHelper2()
-            {
-            }
-
             public override bool Accept(AttributeSource a)
             {
                 ICharTermAttribute termAtt = a.GetAttribute<ICharTermAttribute>();
@@ -201,9 +193,9 @@ namespace Lucene.Net.Analysis.Sinks
                 }
                 //make sure we produce the same tokens
                 TeeSinkTokenFilter teeStream = new TeeSinkTokenFilter(new StandardFilter(TEST_VERSION_CURRENT, new StandardTokenizer(TEST_VERSION_CURRENT, new StringReader(buffer.ToString()))));
-                TokenStream sink = teeStream.NewSinkTokenStream(new ModuloSinkFilter(this, 100));
+                TokenStream sink = teeStream.NewSinkTokenStream(new ModuloSinkFilter(100));
                 teeStream.ConsumeAllTokens();
-                TokenStream stream = new ModuloTokenFilter(this, new StandardFilter(TEST_VERSION_CURRENT, new StandardTokenizer(TEST_VERSION_CURRENT, new StringReader(buffer.ToString()))), 100);
+                TokenStream stream = new ModuloTokenFilter(new StandardFilter(TEST_VERSION_CURRENT, new StandardTokenizer(TEST_VERSION_CURRENT, new StringReader(buffer.ToString()))), 100);
                 ICharTermAttribute tfTok = stream.AddAttribute<ICharTermAttribute>();
                 ICharTermAttribute sinkTok = sink.AddAttribute<ICharTermAttribute>();
                 for (int i = 0; stream.IncrementToken(); i++)
@@ -226,7 +218,7 @@ namespace Lucene.Net.Analysis.Sinks
                         {
                             tfPos += posIncrAtt.PositionIncrement;
                         }
-                        stream = new ModuloTokenFilter(this, new StandardFilter(TEST_VERSION_CURRENT, new StandardTokenizer(TEST_VERSION_CURRENT, new StringReader(buffer.ToString()))), modCounts[j]);
+                        stream = new ModuloTokenFilter(new StandardFilter(TEST_VERSION_CURRENT, new StandardTokenizer(TEST_VERSION_CURRENT, new StringReader(buffer.ToString()))), modCounts[j]);
                         posIncrAtt = stream.GetAttribute<IPositionIncrementAttribute>();
                         while (stream.IncrementToken())
                         {
@@ -243,7 +235,7 @@ namespace Lucene.Net.Analysis.Sinks
                     for (int i = 0; i < 20; i++)
                     {
                         teeStream = new TeeSinkTokenFilter(new StandardFilter(TEST_VERSION_CURRENT, new StandardTokenizer(TEST_VERSION_CURRENT, new StringReader(buffer.ToString()))));
-                        sink = teeStream.NewSinkTokenStream(new ModuloSinkFilter(this, modCounts[j]));
+                        sink = teeStream.NewSinkTokenStream(new ModuloSinkFilter(modCounts[j]));
                         IPositionIncrementAttribute posIncrAtt = teeStream.GetAttribute<IPositionIncrementAttribute>();
                         while (teeStream.IncrementToken())
                         {
@@ -268,16 +260,12 @@ namespace Lucene.Net.Analysis.Sinks
         }
 
 
-        internal class ModuloTokenFilter : TokenFilter
+        internal sealed class ModuloTokenFilter : TokenFilter
         {
-            private readonly TestTeeSinkTokenFilter outerInstance;
-
-
             internal int modCount;
 
-            internal ModuloTokenFilter(TestTeeSinkTokenFilter outerInstance, TokenStream input, int mc) : base(input)
+            internal ModuloTokenFilter(TokenStream input, int mc) : base(input)
             {
-                this.outerInstance = outerInstance;
                 modCount = mc;
             }
 
@@ -296,16 +284,13 @@ namespace Lucene.Net.Analysis.Sinks
             }
         }
 
-        internal class ModuloSinkFilter : TeeSinkTokenFilter.SinkFilter
+        internal sealed class ModuloSinkFilter : TeeSinkTokenFilter.SinkFilter
         {
-            private readonly TestTeeSinkTokenFilter outerInstance;
-
             internal int count = 0;
             internal int modCount;
 
-            internal ModuloSinkFilter(TestTeeSinkTokenFilter outerInstance, int mc)
+            internal ModuloSinkFilter(int mc)
             {
-                this.outerInstance = outerInstance;
                 modCount = mc;
             }
 

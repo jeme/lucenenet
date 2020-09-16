@@ -1,4 +1,5 @@
 ﻿using J2N.Text;
+using Lucene.Net.Diagnostics;
 using Lucene.Net.Support;
 using System;
 using System.Diagnostics;
@@ -24,7 +25,7 @@ namespace Lucene.Net.Facet.Taxonomy
      */
 
     using LruTaxonomyWriterCache = Lucene.Net.Facet.Taxonomy.WriterCache.LruTaxonomyWriterCache;
-    using NameHashInt32CacheLRU = Lucene.Net.Facet.Taxonomy.WriterCache.NameHashInt32CacheLRU;
+    using NameHashInt32CacheLru = Lucene.Net.Facet.Taxonomy.WriterCache.NameHashInt32CacheLru;
 
     /// <summary>
     /// Holds a sequence of string components, specifying the hierarchical name of a
@@ -67,7 +68,7 @@ namespace Lucene.Net.Facet.Taxonomy
             // while the code which calls this method is safe, at some point a test
             // tripped on AIOOBE in toString, but we failed to reproduce. adding the
             // assert as a safety check.
-            Debug.Assert(prefixLen >= 0 && prefixLen <= copyFrom.Components.Length, "prefixLen cannot be negative nor larger than the given components' length: prefixLen=" + prefixLen + " components.length=" + copyFrom.Components.Length);
+            if (Debugging.AssertsEnabled) Debugging.Assert(prefixLen >= 0 && prefixLen <= copyFrom.Components.Length, () => "prefixLen cannot be negative nor larger than the given components' length: prefixLen=" + prefixLen + " components.length=" + copyFrom.Components.Length);
             this.Components = copyFrom.Components;
             Length = prefixLen;
         }
@@ -179,7 +180,7 @@ namespace Lucene.Net.Facet.Taxonomy
 
         /// <summary>
         /// Calculate a 64-bit hash function for this path.  This
-        /// is necessary for <see cref="NameHashInt32CacheLRU"/> (the
+        /// is necessary for <see cref="NameHashInt32CacheLru"/> (the
         /// default cache impl for <see cref="LruTaxonomyWriterCache"/>) 
         /// to reduce the chance of "silent but deadly" collisions.
         /// <para/>
@@ -228,5 +229,42 @@ namespace Lucene.Net.Facet.Taxonomy
             Array.Copy(Components, 0, parts, 0, Length);
             return "FacetLabel: " + Arrays.ToString(parts);
         }
+
+        #region Operators for better .NET support
+        public static bool operator ==(FacetLabel left, FacetLabel right)
+        {
+            if (left is null)
+            {
+                return right is null;
+            }
+
+            return left.Equals(right);
+        }
+
+        public static bool operator !=(FacetLabel left, FacetLabel right)
+        {
+            return !(left == right);
+        }
+
+        public static bool operator <(FacetLabel left, FacetLabel right)
+        {
+            return left is null ? !(right is null) : left.CompareTo(right) < 0;
+        }
+
+        public static bool operator <=(FacetLabel left, FacetLabel right)
+        {
+            return left is null || left.CompareTo(right) <= 0;
+        }
+
+        public static bool operator >(FacetLabel left, FacetLabel right)
+        {
+            return !(left is null) && left.CompareTo(right) > 0;
+        }
+
+        public static bool operator >=(FacetLabel left, FacetLabel right)
+        {
+            return left is null ? right is null : left.CompareTo(right) >= 0;
+        }
+        #endregion
     }
 }

@@ -1,4 +1,6 @@
-﻿namespace Lucene.Net.Facet.Taxonomy.WriterCache
+﻿using System;
+
+namespace Lucene.Net.Facet.Taxonomy.WriterCache
 {
     /*
      * Licensed to the Apache Software Foundation (ASF) under one or more
@@ -19,7 +21,7 @@
 
     /// <summary>
     /// LRU <see cref="ITaxonomyWriterCache"/> - good choice for huge taxonomies.
-    /// 
+    /// <para/>
     /// @lucene.experimental
     /// </summary>
     public class LruTaxonomyWriterCache : ITaxonomyWriterCache
@@ -44,7 +46,9 @@
             LRU_STRING
         }
 
-        private NameInt32CacheLRU cache;
+        private IInternalNameInt32CacheLru cache;
+        private readonly object syncLock = new object();
+        private bool isDisposed = false;
 
         /// <summary>
         /// Creates this with <see cref="LRUType.LRU_HASHED"/> method.
@@ -73,11 +77,11 @@
             // mapped to the same ordinal...
             if (lruType == LRUType.LRU_HASHED)
             {
-                this.cache = new NameHashInt32CacheLRU(cacheSize);
+                this.cache = new NameHashInt32CacheLru(cacheSize);
             }
             else
             {
-                this.cache = new NameInt32CacheLRU(cacheSize);
+                this.cache = new NameInt32CacheLru(cacheSize);
             }
         }
 
@@ -85,7 +89,7 @@
         {
             get
             {
-                lock (this)
+                lock (syncLock)
                 {
                     return cache.Count == cache.Limit;
                 }
@@ -94,41 +98,47 @@
 
         public virtual void Clear()
         {
-            lock (this)
+            lock (syncLock)
             {
                 cache.Clear();
             }
         }
 
-        public virtual void Dispose()
+        public void Dispose()
         {
-            lock (this)
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing) // LUCENENET specific - implemented proper dispose pattern.
+        {
+            if (disposing)
             {
-                if (cache != null)
+                if (isDisposed) return;
+                lock (syncLock)
                 {
-                    cache.Clear();
-                    cache = null;
+                    if (isDisposed) return;
+                    if (cache != null)
+                    {
+                        cache.Clear();
+                        cache = null;
+                    }
+                    isDisposed = true;
                 }
             }
         }
 
         public virtual int Get(FacetLabel categoryPath)
         {
-            lock (this)
+            lock (syncLock)
             {
-                int result;
-                if (!cache.TryGetValue(categoryPath, out result))
-                {
-                    return -1;
-                }
-
-                return result;
+                return cache.TryGetValue(categoryPath, out int result) ? result : -1;
             }
         }
 
         public virtual bool Put(FacetLabel categoryPath, int ordinal)
         {
-            lock (this)
+            lock (syncLock)
             {
                 bool ret = cache.Put(categoryPath, ordinal);
                 // If the cache is full, we need to clear one or more old entries

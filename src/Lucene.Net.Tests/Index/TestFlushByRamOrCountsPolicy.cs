@@ -1,5 +1,6 @@
 using J2N.Threading;
 using J2N.Threading.Atomic;
+using Lucene.Net.Diagnostics;
 using Lucene.Net.Index.Extensions;
 using Lucene.Net.Store;
 using NUnit.Framework;
@@ -46,6 +47,7 @@ namespace Lucene.Net.Index
         [OneTimeSetUp]
         public override void BeforeClass()
         {
+            UseTempLineDocsFile = true; // LUCENENET specific - Specify to unzip the line file docs
             base.BeforeClass();
             lineDocFile = new LineFileDocs(Random, DefaultCodecSupportsDocValues);
         }
@@ -61,6 +63,9 @@ namespace Lucene.Net.Index
         [Test]
         public virtual void TestFlushByRam()
         {
+            // LUCENENET specific - disable the test if asserts are not enabled
+            AssumeTrue("This test requires asserts to be enabled.", Debugging.AssertsEnabled);
+
             double ramBuffer = (TestNightly ? 1 : 10) + AtLeast(2) + Random.NextDouble();
             RunFlushByRam(1 + Random.Next(TestNightly ? 5 : 1), ramBuffer, false);
         }
@@ -68,6 +73,9 @@ namespace Lucene.Net.Index
         [Test]
         public virtual void TestFlushByRamLargeBuffer()
         {
+            // LUCENENET specific - disable the test if asserts are not enabled
+            AssumeTrue("This test requires asserts to be enabled.", Debugging.AssertsEnabled);
+
             // with a 256 mb ram buffer we should never stall
             RunFlushByRam(1 + Random.Next(TestNightly ? 5 : 1), 256d, true);
         }
@@ -83,7 +91,7 @@ namespace Lucene.Net.Index
 
             IndexWriterConfig iwc = NewIndexWriterConfig(TEST_VERSION_CURRENT, analyzer).SetFlushPolicy(flushPolicy);
             int numDWPT = 1 + AtLeast(2);
-            DocumentsWriterPerThreadPool threadPool = new ThreadAffinityDocumentsWriterThreadPool(numDWPT);
+            DocumentsWriterPerThreadPool threadPool = new DocumentsWriterPerThreadPool(numDWPT);
             iwc.SetIndexerThreadPool(threadPool);
             iwc.SetRAMBufferSizeMB(maxRamMB);
             iwc.SetMaxBufferedDocs(IndexWriterConfig.DISABLE_AUTO_FLUSH);
@@ -101,7 +109,7 @@ namespace Lucene.Net.Index
             IndexThread[] threads = new IndexThread[numThreads];
             for (int x = 0; x < threads.Length; x++)
             {
-                threads[x] = new IndexThread(this, numDocs, numThreads, writer, lineDocFile, false);
+                threads[x] = new IndexThread(numDocs, writer, lineDocFile, false);
                 threads[x].Start();
             }
 
@@ -131,6 +139,9 @@ namespace Lucene.Net.Index
         [Test]
         public virtual void TestFlushDocCount()
         {
+            // LUCENENET specific - disable the test if asserts are not enabled
+            AssumeTrue("This test requires asserts to be enabled.", Debugging.AssertsEnabled);
+
             int[] numThreads = new int[] { 2 + AtLeast(1), 1 };
             for (int i = 0; i < numThreads.Length; i++)
             {
@@ -142,7 +153,7 @@ namespace Lucene.Net.Index
                 IndexWriterConfig iwc = NewIndexWriterConfig(TEST_VERSION_CURRENT, new MockAnalyzer(Random)).SetFlushPolicy(flushPolicy);
 
                 int numDWPT = 1 + AtLeast(2);
-                DocumentsWriterPerThreadPool threadPool = new ThreadAffinityDocumentsWriterThreadPool(numDWPT);
+                DocumentsWriterPerThreadPool threadPool = new DocumentsWriterPerThreadPool(numDWPT);
                 iwc.SetIndexerThreadPool(threadPool);
                 iwc.SetMaxBufferedDocs(2 + AtLeast(10));
                 iwc.SetRAMBufferSizeMB(IndexWriterConfig.DISABLE_AUTO_FLUSH);
@@ -160,7 +171,7 @@ namespace Lucene.Net.Index
                 IndexThread[] threads = new IndexThread[numThreads[i]];
                 for (int x = 0; x < threads.Length; x++)
                 {
-                    threads[x] = new IndexThread(this, numDocs, numThreads[i], writer, lineDocFile, false);
+                    threads[x] = new IndexThread(numDocs, writer, lineDocFile, false);
                     threads[x].Start();
                 }
 
@@ -183,6 +194,9 @@ namespace Lucene.Net.Index
         [Test]
         public virtual void TestRandom()
         {
+            // LUCENENET specific - disable the test if asserts are not enabled
+            AssumeTrue("This test requires asserts to be enabled.", Debugging.AssertsEnabled);
+
             int numThreads = 1 + Random.Next(8);
             int numDocumentsToIndex = 50 + AtLeast(70);
             AtomicInt32 numDocs = new AtomicInt32(numDocumentsToIndex);
@@ -192,7 +206,7 @@ namespace Lucene.Net.Index
             iwc.SetFlushPolicy(flushPolicy);
 
             int numDWPT = 1 + Random.Next(8);
-            DocumentsWriterPerThreadPool threadPool = new ThreadAffinityDocumentsWriterThreadPool(numDWPT);
+            DocumentsWriterPerThreadPool threadPool = new DocumentsWriterPerThreadPool(numDWPT);
             iwc.SetIndexerThreadPool(threadPool);
 
             IndexWriter writer = new IndexWriter(dir, iwc);
@@ -206,7 +220,7 @@ namespace Lucene.Net.Index
             IndexThread[] threads = new IndexThread[numThreads];
             for (int x = 0; x < threads.Length; x++)
             {
-                threads[x] = new IndexThread(this, numDocs, numThreads, writer, lineDocFile, true);
+                threads[x] = new IndexThread(numDocs, writer, lineDocFile, true);
                 threads[x].Start();
             }
 
@@ -246,6 +260,8 @@ namespace Lucene.Net.Index
         [Slow] // LUCENENET: occasionally
         public virtual void TestStallControl()
         {
+            // LUCENENET specific - disable the test if asserts are not enabled
+            AssumeTrue("This test requires asserts to be enabled.", Debugging.AssertsEnabled);
 
             int[] numThreads = new int[] { 4 + Random.Next(8), 1 };
             int numDocumentsToIndex = 50 + Random.Next(50);
@@ -261,7 +277,7 @@ namespace Lucene.Net.Index
                 FlushPolicy flushPolicy = new FlushByRamOrCountsPolicy();
                 iwc.SetFlushPolicy(flushPolicy);
 
-                DocumentsWriterPerThreadPool threadPool = new ThreadAffinityDocumentsWriterThreadPool(numThreads[i] == 1 ? 1 : 2);
+                DocumentsWriterPerThreadPool threadPool = new DocumentsWriterPerThreadPool(numThreads[i] == 1 ? 1 : 2);
                 iwc.SetIndexerThreadPool(threadPool);
                 // with such a small ram buffer we should be stalled quiet quickly
                 iwc.SetRAMBufferSizeMB(0.25);
@@ -269,7 +285,7 @@ namespace Lucene.Net.Index
                 IndexThread[] threads = new IndexThread[numThreads[i]];
                 for (int x = 0; x < threads.Length; x++)
                 {
-                    threads[x] = new IndexThread(this, numDocs, numThreads[i], writer, lineDocFile, false);
+                    threads[x] = new IndexThread(numDocs, writer, lineDocFile, false);
                     threads[x].Start();
                 }
 
@@ -304,9 +320,9 @@ namespace Lucene.Net.Index
             while (allActiveThreads.MoveNext())
             {
                 ThreadState next = allActiveThreads.Current;
-                if (next.DocumentsWriterPerThread != null)
+                if (next.dwpt != null)
                 {
-                    bytesUsed += next.DocumentsWriterPerThread.BytesUsed;
+                    bytesUsed += next.dwpt.BytesUsed;
                 }
             }
             Assert.AreEqual(bytesUsed, flushControl.ActiveBytes);
@@ -314,17 +330,14 @@ namespace Lucene.Net.Index
 
         public class IndexThread : ThreadJob
         {
-            private readonly TestFlushByRamOrCountsPolicy outerInstance;
-
             internal IndexWriter writer;
             internal LiveIndexWriterConfig iwc;
             internal LineFileDocs docs;
             internal AtomicInt32 pendingDocs;
             internal readonly bool doRandomCommit;
 
-            public IndexThread(TestFlushByRamOrCountsPolicy outerInstance, AtomicInt32 pendingDocs, int numThreads, IndexWriter writer, LineFileDocs docs, bool doRandomCommit)
+            public IndexThread(AtomicInt32 pendingDocs, IndexWriter writer, LineFileDocs docs, bool doRandomCommit)
             {
-                this.outerInstance = outerInstance;
                 this.pendingDocs = pendingDocs;
                 this.writer = writer;
                 iwc = writer.Config;

@@ -1,6 +1,7 @@
 using J2N.Threading;
 using J2N.Threading.Atomic;
 using Lucene.Net.Analysis;
+using Lucene.Net.Diagnostics;
 using Lucene.Net.Documents;
 using Lucene.Net.Index.Extensions;
 using Lucene.Net.Search;
@@ -16,7 +17,6 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Console = Lucene.Net.Util.SystemConsole;
-using Debug = Lucene.Net.Diagnostics.Debug; // LUCENENET NOTE: We cannot use System.Diagnostics.Debug because those calls will be optimized out of the release!
 using Directory = Lucene.Net.Store.Directory;
 
 namespace Lucene.Net.Index
@@ -76,6 +76,13 @@ namespace Lucene.Net.Index
                 this.PackID = packID;
                 this.SubIDs = subIDs;
             }
+        }
+
+        // LUCENENET specific - Specify to unzip the line file docs
+        public override void BeforeClass()
+        {
+            UseTempLineDocsFile = true;
+            base.BeforeClass();
         }
 
         // Called per-search
@@ -220,7 +227,7 @@ namespace Lucene.Net.Index
                                 if (toDeleteSubDocs.Count > 0 && Random.NextBoolean())
                                 {
                                     delSubDocs = toDeleteSubDocs[Random.Next(toDeleteSubDocs.Count)];
-                                    Debug.Assert(!delSubDocs.Deleted);
+                                    if (Debugging.AssertsEnabled) Debugging.Assert(!delSubDocs.Deleted);
                                     toDeleteSubDocs.Remove(delSubDocs);
                                     // Update doc block, replacing prior packID
                                     packID = delSubDocs.PackID;
@@ -357,7 +364,7 @@ namespace Lucene.Net.Index
 
                             foreach (SubDocs subDocs in toDeleteSubDocs)
                             {
-                                Debug.Assert(!subDocs.Deleted);
+                                if (Debugging.AssertsEnabled) Debugging.Assert(!subDocs.Deleted);
                                 delPackIDs.Add(subDocs.PackID);
                                 outerInstance.DeleteDocuments(new Term("packID", subDocs.PackID));
                                 subDocs.Deleted = true;
@@ -425,9 +432,9 @@ namespace Lucene.Net.Index
         {
             private readonly ThreadedIndexingAndSearchingTestCase outerInstance;
 
-            private long stopTimeMS;
-            private AtomicInt32 totHits;
-            private AtomicInt32 totTermCount;
+            private readonly long stopTimeMS;
+            private readonly AtomicInt32 totHits;
+            private readonly AtomicInt32 totTermCount;
 
             public ThreadAnonymousInnerClassHelper2(ThreadedIndexingAndSearchingTestCase outerInstance, long stopTimeMS, AtomicInt32 totHits, AtomicInt32 totTermCount)
             {
@@ -595,7 +602,7 @@ namespace Lucene.Net.Index
 
             if (Verbose)
             {
-                conf.SetInfoStream(new PrintStreamInfoStreamAnonymousInnerClassHelper(this, Console.Out));
+                conf.SetInfoStream(new PrintStreamInfoStreamAnonymousInnerClassHelper(Console.Out));
             }
             m_writer = new IndexWriter(m_dir, conf);
             TestUtil.ReduceOpenFiles(m_writer);
@@ -830,12 +837,9 @@ namespace Lucene.Net.Index
 
         private class PrintStreamInfoStreamAnonymousInnerClassHelper : TextWriterInfoStream
         {
-            private readonly ThreadedIndexingAndSearchingTestCase outerInstance;
-
-            public PrintStreamInfoStreamAnonymousInnerClassHelper(ThreadedIndexingAndSearchingTestCase outerInstance, TextWriter @out)
+            public PrintStreamInfoStreamAnonymousInnerClassHelper(TextWriter @out)
                 : base(@out)
             {
-                this.outerInstance = outerInstance;
             }
 
             public override void Message(string component, string message)
@@ -852,7 +856,7 @@ namespace Lucene.Net.Index
         // Boolean reference type.
         private class BooleanRef : IEquatable<BooleanRef>
         {
-            private bool value;
+            private readonly bool value;
 
             public BooleanRef(bool value)
             {

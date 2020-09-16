@@ -1,4 +1,4 @@
-using System.Diagnostics;
+using Lucene.Net.Diagnostics;
 
 namespace Lucene.Net.Codecs.Lucene41
 {
@@ -392,9 +392,9 @@ namespace Lucene.Net.Codecs.Lucene41
             : base()
         {
             this.minTermBlockSize = minTermBlockSize;
-            Debug.Assert(minTermBlockSize > 1);
+            if (Debugging.AssertsEnabled) Debugging.Assert(minTermBlockSize > 1);
             this.maxTermBlockSize = maxTermBlockSize;
-            Debug.Assert(minTermBlockSize <= maxTermBlockSize);
+            if (Debugging.AssertsEnabled) Debugging.Assert(minTermBlockSize <= maxTermBlockSize);
         }
 
         public override string ToString()

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Lucene.Net.Diagnostics;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 
@@ -57,7 +58,7 @@ namespace Lucene.Net.Facet.Taxonomy
                 if (ft.IsHierarchical && ft.IsMultiValued == false)
                 {
                     int dimRootOrd = m_taxoReader.GetOrdinal(new FacetLabel(dim));
-                    Debug.Assert(dimRootOrd > 0);
+                    if (Debugging.AssertsEnabled) Debugging.Assert(dimRootOrd > 0);
                     m_values[dimRootOrd] += Rollup(m_children[dimRootOrd]);
                 }
             }
@@ -123,7 +124,6 @@ namespace Lucene.Net.Facet.Taxonomy
             float sumValues = 0;
             int childCount = 0;
 
-            TopOrdAndSingleQueue.OrdAndValue reuse = null;
             while (ord != TaxonomyReader.INVALID_ORDINAL)
             {
                 if (m_values[ord] > 0)
@@ -132,13 +132,8 @@ namespace Lucene.Net.Facet.Taxonomy
                     childCount++;
                     if (m_values[ord] > bottomValue)
                     {
-                        if (reuse == null)
-                        {
-                            reuse = new TopOrdAndSingleQueue.OrdAndValue();
-                        }
-                        reuse.Ord = ord;
-                        reuse.Value = m_values[ord];
-                        reuse = q.InsertWithOverflow(reuse);
+                        // LUCENENET specific - use struct instead of reusing class instance for better performance
+                        q.Insert(new OrdAndValue<float>(ord, m_values[ord]));
                         if (q.Count == topN)
                         {
                             bottomValue = q.Top.Value;
@@ -174,7 +169,7 @@ namespace Lucene.Net.Facet.Taxonomy
             LabelAndValue[] labelValues = new LabelAndValue[q.Count];
             for (int i = labelValues.Length - 1; i >= 0; i--)
             {
-                TopOrdAndSingleQueue.OrdAndValue ordAndValue = q.Pop();
+                var ordAndValue = q.Pop();
                 FacetLabel child = m_taxoReader.GetPath(ordAndValue.Ord);
                 labelValues[i] = new LabelAndValue(child.Components[cp.Length], ordAndValue.Value);
             }

@@ -1,9 +1,11 @@
 ﻿using J2N.Threading;
 using J2N.Threading.Atomic;
+using Lucene.Net.Attributes;
 using NUnit.Framework;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using Assert = Lucene.Net.TestFramework.Assert;
 using Console = Lucene.Net.Util.SystemConsole;
@@ -49,7 +51,7 @@ namespace Lucene.Net.Facet.Taxonomy.Directory
 
         // A No-Op ITaxonomyWriterCache which always discards all given categories, and
         // always returns true in put(), to indicate some cache entries were cleared.
-        private static ITaxonomyWriterCache NO_OP_CACHE = new TaxonomyWriterCacheAnonymousInnerClassHelper();
+        private static readonly ITaxonomyWriterCache NO_OP_CACHE = new TaxonomyWriterCacheAnonymousInnerClassHelper();
 
         private class TaxonomyWriterCacheAnonymousInnerClassHelper : ITaxonomyWriterCache
         {
@@ -259,6 +261,7 @@ namespace Lucene.Net.Facet.Taxonomy.Directory
 
         [Test]
         [Slow]
+        [Deadlock]
         public virtual void TestConcurrency()
         {
             int ncats = AtLeast(100000); // add many categories
@@ -292,7 +295,7 @@ namespace Lucene.Net.Facet.Taxonomy.Directory
             ThreadJob[] addThreads = new ThreadJob[AtLeast(4)];
             for (int z = 0; z < addThreads.Length; z++)
             {
-                addThreads[z] = new ThreadAnonymousInnerClassHelper(this, range, numCats, values, tw);
+                addThreads[z] = new ThreadAnonymousInnerClassHelper(range, numCats, values, tw);
             }
 
             foreach (var t in addThreads)
@@ -327,7 +330,7 @@ namespace Lucene.Net.Facet.Taxonomy.Directory
                 Assert.True(dtr.GetOrdinal(cp) > 0, "category not found " + cp);
                 int level = cp.Length;
                 int parentOrd = 0; // for root, parent is always virtual ROOT (ord=0)
-                FacetLabel path = new FacetLabel();
+                FacetLabel path /*= new FacetLabel()*/;
                 for (int i = 0; i < level; i++)
                 {
                     path = cp.Subpath(i + 1);
@@ -342,16 +345,13 @@ namespace Lucene.Net.Facet.Taxonomy.Directory
 
         private class ThreadAnonymousInnerClassHelper : ThreadJob
         {
-            private readonly TestDirectoryTaxonomyWriter outerInstance;
+            private readonly int range;
+            private readonly AtomicInt32 numCats;
+            private readonly ConcurrentDictionary<string, string> values;
+            private readonly DirectoryTaxonomyWriter tw;
 
-            private int range;
-            private AtomicInt32 numCats;
-            private ConcurrentDictionary<string, string> values;
-            private Lucene.Net.Facet.Taxonomy.Directory.DirectoryTaxonomyWriter tw;
-
-            public ThreadAnonymousInnerClassHelper(TestDirectoryTaxonomyWriter outerInstance, int range, AtomicInt32 numCats, ConcurrentDictionary<string, string> values, Lucene.Net.Facet.Taxonomy.Directory.DirectoryTaxonomyWriter tw)
+            public ThreadAnonymousInnerClassHelper(int range, AtomicInt32 numCats, ConcurrentDictionary<string, string> values, DirectoryTaxonomyWriter tw)
             {
-                this.outerInstance = outerInstance;
                 this.range = range;
                 this.numCats = numCats;
                 this.values = values;
@@ -366,7 +366,11 @@ namespace Lucene.Net.Facet.Taxonomy.Directory
                     try
                     {
                         int value = random.Next(range);
-                        FacetLabel cp = new FacetLabel(Convert.ToString(value / 1000), Convert.ToString(value / 10000), Convert.ToString(value / 100000), Convert.ToString(value));
+                        FacetLabel cp = new FacetLabel(
+                            Convert.ToString(value / 1000, CultureInfo.InvariantCulture),
+                            Convert.ToString(value / 10000, CultureInfo.InvariantCulture),
+                            Convert.ToString(value / 100000, CultureInfo.InvariantCulture),
+                            Convert.ToString(value, CultureInfo.InvariantCulture));
                         int ord = tw.AddCategory(cp);
                         Assert.True(tw.GetParent(ord) != -1, "invalid parent for ordinal " + ord + ", category " + cp);
                         string l1 = FacetsConfig.PathToString(cp.Components, 1);

@@ -4,6 +4,7 @@ using Lucene.Net.Support;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Text;
 using System.Threading;
 using Assert = Lucene.Net.TestFramework.Assert;
@@ -135,7 +136,7 @@ namespace Lucene.Net.Facet.Taxonomy
 
         private string Showcat(FacetLabel path)
         {
-            if (path == null)
+            if (path is null)
             {
                 return "<null>";
             }
@@ -427,7 +428,7 @@ namespace Lucene.Net.Facet.Taxonomy
                 FacetLabel me = tr.GetPath(ordinal);
                 int parentOrdinal = parents[ordinal];
                 FacetLabel parent = tr.GetPath(parentOrdinal);
-                if (parent == null)
+                if (parent is null)
                 {
                     fail("Parent of " + ordinal + " is " + parentOrdinal + ", but this is not a valid category.");
                 }
@@ -499,7 +500,7 @@ namespace Lucene.Net.Facet.Taxonomy
                 FacetLabel me = tr.GetPath(ordinal);
                 int parentOrdinal = tw.GetParent(ordinal);
                 FacetLabel parent = tr.GetPath(parentOrdinal);
-                if (parent == null)
+                if (parent is null)
                 {
                     fail("Parent of " + ordinal + " is " + parentOrdinal + ", but this is not a valid category.");
                 }
@@ -775,7 +776,7 @@ namespace Lucene.Net.Facet.Taxonomy
             int numCategories = AtLeast(800);
             for (int i = 0; i < numCategories; i++)
             {
-                twBase.AddCategory(new FacetLabel("a", "b", Convert.ToString(i)));
+                twBase.AddCategory(new FacetLabel("a", "b", Convert.ToString(i, CultureInfo.InvariantCulture)));
             }
             twBase.Dispose();
 
@@ -810,7 +811,7 @@ namespace Lucene.Net.Facet.Taxonomy
             var tr = new DirectoryTaxonomyReader(indexDir);
             for (int i = 0; i < numCategories; i++)
             {
-                var cp = new FacetLabel("a", "b", Convert.ToString(i));
+                var cp = new FacetLabel("a", "b", Convert.ToString(i, CultureInfo.InvariantCulture));
                 tw.AddCategory(cp);
                 Assert.AreEqual(TaxonomyReader.INVALID_ORDINAL, tr.GetOrdinal(cp), "Ordinal of " + cp + " must be invalid until Taxonomy Reader was refreshed");
             }

@@ -1,3 +1,4 @@
+using Lucene.Net.Diagnostics;
 using Lucene.Net.Index;
 using Lucene.Net.Store;
 using Lucene.Net.Util;
@@ -50,7 +51,7 @@ namespace Lucene.Net.Codecs.BlockTerms
 
         private readonly IList<SimpleFieldWriter> fields = new List<SimpleFieldWriter>();
 
-        private readonly FieldInfos fieldInfos; // unread
+        //private readonly FieldInfos fieldInfos; // unread  // LUCENENET: Not used
 
         public FixedGapTermsIndexWriter(SegmentWriteState state)
         {
@@ -60,7 +61,7 @@ namespace Lucene.Net.Codecs.BlockTerms
             bool success = false;
             try
             {
-                fieldInfos = state.FieldInfos;
+                //fieldInfos = state.FieldInfos; // LUCENENET: Not used
                 WriteHeader(m_output);
                 m_output.WriteInt32(termIndexInterval);
                 success = true;
@@ -186,7 +187,7 @@ namespace Lucene.Net.Codecs.BlockTerms
                 lastTermsPointer = termsFilePointer;
 
                 // save term length (in bytes)
-                Debug.Assert(indexedTermLength <= short.MaxValue);
+                if (Debugging.AssertsEnabled) Debugging.Assert(indexedTermLength <= short.MaxValue);
                 termLengths[numIndexTerms] = (short)indexedTermLength;
                 totTermLength += indexedTermLength;
 

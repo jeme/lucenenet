@@ -1,9 +1,9 @@
 ﻿using Lucene.Net.Analysis.Util;
+using Lucene.Net.Diagnostics;
 using Lucene.Net.Util;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Reflection;
 
@@ -126,21 +126,24 @@ namespace Lucene.Net.Analysis.Core
             }
         }
 
+        // LUCENENET specific - remove overhead of converting to a string on each loop
+        private static readonly string TEST_VERSION_CURRENT_STRING = TEST_VERSION_CURRENT.ToString();
+
         /// <summary>
         /// tries to initialize a factory with no arguments </summary>
         private AbstractAnalysisFactory Initialize(Type factoryClazz)
         {
-            IDictionary<string, string> args = new Dictionary<string, string>();
-            args["luceneMatchVersion"] = TEST_VERSION_CURRENT.ToString();
+            IDictionary<string, string> args =
+                new Dictionary<string, string> { ["luceneMatchVersion"] = TEST_VERSION_CURRENT_STRING };
 
             ConstructorInfo ctor;
             try
             {
                 ctor = factoryClazz.GetConstructor(new Type[] { typeof(IDictionary<string, string>) });
             }
-            catch (Exception)
+            catch (Exception e)
             {
-                throw new Exception("factory '" + factoryClazz + "' does not have a proper ctor!");
+                throw new Exception("factory '" + factoryClazz + "' does not have a proper ctor!", e);
             }
 
             AbstractAnalysisFactory factory = null;
@@ -165,12 +168,13 @@ namespace Lucene.Net.Analysis.Core
                 }
             }
 
-            if (factory is IResourceLoaderAware)
+            if (factory is IResourceLoaderAware aware)
             {
                 try
                 {
-                    ((IResourceLoaderAware)factory).Inform(new StringMockResourceLoader(""));
+                    aware.Inform(new StringMockResourceLoader(""));
                 }
+#pragma warning disable CA1031 // Do not catch general exception types
                 catch (IOException)
                 {
                     // its ok if the right files arent available or whatever to throw this
@@ -179,14 +183,15 @@ namespace Lucene.Net.Analysis.Core
                 {
                     // is this ok? I guess so
                 }
+#pragma warning restore CA1031 // Do not catch general exception types
             }
             return factory;
         }
 
         // some silly classes just so we can use checkRandomData
-        private TokenizerFactory assertingTokenizer = new AnonymousInnerClassHelperTokenizerFactory(new Dictionary<string, string>());
+        private readonly TokenizerFactory assertingTokenizer = new AnonymousInnerClassHelperTokenizerFactory(new Dictionary<string, string>());
 
-        private class AnonymousInnerClassHelperTokenizerFactory : TokenizerFactory
+        private sealed class AnonymousInnerClassHelperTokenizerFactory : TokenizerFactory
         {
             public AnonymousInnerClassHelperTokenizerFactory(IDictionary<string, string> java) : base(java)
             {
@@ -198,7 +203,7 @@ namespace Lucene.Net.Analysis.Core
             }
         }
 
-        private class FactoryAnalyzer : Analyzer
+        private sealed class FactoryAnalyzer : Analyzer
         {
             internal readonly TokenizerFactory tokenizer;
             internal readonly CharFilterFactory charFilter;
@@ -206,7 +211,7 @@ namespace Lucene.Net.Analysis.Core
 
             internal FactoryAnalyzer(TokenizerFactory tokenizer, TokenFilterFactory tokenfilter, CharFilterFactory charFilter)
             {
-                Debug.Assert(tokenizer != null);
+                if (Debugging.AssertsEnabled) Debugging.Assert(tokenizer != null);
                 this.tokenizer = tokenizer;
                 this.charFilter = charFilter;
                 this.tokenfilter = tokenfilter;

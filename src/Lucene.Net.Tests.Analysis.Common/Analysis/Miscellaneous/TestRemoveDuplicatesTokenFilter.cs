@@ -6,7 +6,6 @@ using Lucene.Net.Util;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Text.RegularExpressions;
 
 namespace Lucene.Net.Analysis.Miscellaneous
@@ -45,22 +44,18 @@ namespace Lucene.Net.Analysis.Miscellaneous
 
         public virtual void TestDups(string expected, params Token[] tokens)
         {
-
             IEnumerator<Token> toks = ((IEnumerable<Token>)tokens).GetEnumerator();
-            TokenStream ts = new RemoveDuplicatesTokenFilter((new TokenStreamAnonymousInnerClassHelper(this, toks)));
+            TokenStream ts = new RemoveDuplicatesTokenFilter((new TokenStreamAnonymousInnerClassHelper(toks)));
 
             AssertTokenStreamContents(ts, Regex.Split(expected, "\\s").TrimEnd());
         }
 
-        private class TokenStreamAnonymousInnerClassHelper : TokenStream
+        private sealed class TokenStreamAnonymousInnerClassHelper : TokenStream
         {
-            private readonly TestRemoveDuplicatesTokenFilter outerInstance;
+            private readonly IEnumerator<Token> toks;
 
-            private IEnumerator<Token> toks;
-
-            public TokenStreamAnonymousInnerClassHelper(TestRemoveDuplicatesTokenFilter outerInstance, IEnumerator<Token> toks)
+            public TokenStreamAnonymousInnerClassHelper(IEnumerator<Token> toks)
             {
-                this.outerInstance = outerInstance;
                 this.toks = toks;
                 termAtt = AddAttribute<ICharTermAttribute>();
                 offsetAtt = AddAttribute<IOffsetAttribute>();
@@ -150,55 +145,26 @@ namespace Lucene.Net.Analysis.Miscellaneous
                 SynonymMap map = b.Build();
                 bool ignoreCase = Random.nextBoolean();
 
-                Analyzer analyzer = new AnalyzerAnonymousInnerClassHelper(this, map, ignoreCase);
+                Analyzer analyzer = Analyzer.NewAnonymous(createComponents: (fieldName, reader) =>
+                {
+                    Tokenizer tokenizer = new MockTokenizer(reader, MockTokenizer.SIMPLE, true);
+                    TokenStream stream = new SynonymFilter(tokenizer, map, ignoreCase);
+                    return new TokenStreamComponents(tokenizer, new RemoveDuplicatesTokenFilter(stream));
+                });
 
                 CheckRandomData(Random, analyzer, 200);
-            }
-        }
-
-        private class AnalyzerAnonymousInnerClassHelper : Analyzer
-        {
-            private readonly TestRemoveDuplicatesTokenFilter outerInstance;
-
-            private SynonymMap map;
-            private bool ignoreCase;
-
-            public AnalyzerAnonymousInnerClassHelper(TestRemoveDuplicatesTokenFilter outerInstance, SynonymMap map, bool ignoreCase)
-            {
-                this.outerInstance = outerInstance;
-                this.map = map;
-                this.ignoreCase = ignoreCase;
-            }
-
-            protected internal override TokenStreamComponents CreateComponents(string fieldName, TextReader reader)
-            {
-                Tokenizer tokenizer = new MockTokenizer(reader, MockTokenizer.SIMPLE, true);
-                TokenStream stream = new SynonymFilter(tokenizer, map, ignoreCase);
-                return new TokenStreamComponents(tokenizer, new RemoveDuplicatesTokenFilter(stream));
             }
         }
 
         [Test]
         public virtual void TestEmptyTerm()
         {
-            Analyzer a = new AnalyzerAnonymousInnerClassHelper2(this);
-            CheckOneTerm(a, "", "");
-        }
-
-        private class AnalyzerAnonymousInnerClassHelper2 : Analyzer
-        {
-            private readonly TestRemoveDuplicatesTokenFilter outerInstance;
-
-            public AnalyzerAnonymousInnerClassHelper2(TestRemoveDuplicatesTokenFilter outerInstance)
-            {
-                this.outerInstance = outerInstance;
-            }
-
-            protected internal override TokenStreamComponents CreateComponents(string fieldName, TextReader reader)
+            Analyzer a = Analyzer.NewAnonymous(createComponents: (fieldName, reader) =>
             {
                 Tokenizer tokenizer = new KeywordTokenizer(reader);
                 return new TokenStreamComponents(tokenizer, new RemoveDuplicatesTokenFilter(tokenizer));
-            }
+            });
+            CheckOneTerm(a, "", "");
         }
     }
 }

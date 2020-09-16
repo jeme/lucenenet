@@ -31,7 +31,7 @@ namespace Lucene.Net.Analysis.Sinks
             TokenTypeSinkFilter sinkFilter = new TokenTypeSinkFilter("D");
             string test = "The quick red fox jumped over the lazy brown dogs";
 
-            TeeSinkTokenFilter ttf = new TeeSinkTokenFilter(new WordTokenFilter(this, new MockTokenizer(new StringReader(test), MockTokenizer.WHITESPACE, false)));
+            TeeSinkTokenFilter ttf = new TeeSinkTokenFilter(new WordTokenFilter(new MockTokenizer(new StringReader(test), MockTokenizer.WHITESPACE, false)));
             TeeSinkTokenFilter.SinkTokenStream sink = ttf.NewSinkTokenStream(sinkFilter);
 
             bool seenDogs = false;
@@ -63,16 +63,13 @@ namespace Lucene.Net.Analysis.Sinks
             assertTrue("sink Size: " + sinkCount + " is not: " + 1, sinkCount == 1);
         }
 
-        private class WordTokenFilter : TokenFilter
+        private sealed class WordTokenFilter : TokenFilter
         {
-            private readonly TokenTypeSinkTokenizerTest outerInstance;
-
             internal readonly ICharTermAttribute termAtt;
             internal readonly ITypeAttribute typeAtt;
 
-            internal WordTokenFilter(TokenTypeSinkTokenizerTest outerInstance, TokenStream input) : base(input)
+            internal WordTokenFilter(TokenStream input) : base(input)
             {
-                this.outerInstance = outerInstance;
                 termAtt = AddAttribute<ICharTermAttribute>();
                 typeAtt = AddAttribute<ITypeAttribute>();
             }

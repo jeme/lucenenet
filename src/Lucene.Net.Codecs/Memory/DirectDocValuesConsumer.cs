@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Lucene.Net.Diagnostics;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -371,7 +372,7 @@ namespace Lucene.Net.Codecs.Memory
                     }
                     else
                     { 
-                        Debug.Assert(false);
+                        if (Debugging.AssertsEnabled) Debugging.Assert(false);
                         return false;
                     }
                 }
