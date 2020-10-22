@@ -1,23 +1,25 @@
 ---
-uid: download/4.8.0-beta00007
+uid: download/4.8.0-beta00012
+version: 4.8.0-beta00012
 ---
 
-Download Lucene.Net 4.8.0-beta00007
+Download Lucene.Net 4.8.0-beta00012
 ===============
 
 ---------------
 
-## Lucene 4.8.0-beta00007
+## Lucene 4.8.0-beta00012
 
 _Status:_ __`Beta`__
 
-_Released:_ `2019-12-29`
+_Released:_ `2020-09-19`
 
-* Binary release: __[Lucene.Net-4.8.0-beta00007.bin.zip](https://www.apache.org/dyn/closer.lua/lucenenet/4.8.0-beta00007/Apache-Lucene.Net-4.8.0-beta00007.bin.zip)__ [[PGP](https://downloads.apache.org/lucenenet/4.8.0-beta00007/Apache-Lucene.Net-4.8.0-beta00007.bin.zip.asc)] [[SHA512](https://downloads.apache.org/lucenenet/4.8.0-beta00007/Apache-Lucene.Net-4.8.0-beta00007.bin.zip.sha512)]
-* Source release: __[Lucene.Net-4.8.0-beta00007.src.zip](https://www.apache.org/dyn/closer.lua/lucenenet/4.8.0-beta00007/Apache-Lucene.Net-4.8.0-beta00007.src.zip)__ [[PGP](https://downloads.apache.org/lucenenet/4.8.0-beta00007/Apache-Lucene.Net-4.8.0-beta00007.src.zip.asc)] [[SHA512](https://downloads.apache.org/lucenenet/4.8.0-beta00007/Apache-Lucene.Net-4.8.0-beta00007.src.zip.sha512)]
+* Binary release: __[Lucene.Net-4.8.0-beta00012.bin.zip](https://www.apache.org/dyn/closer.lua/lucenenet/4.8.0-beta00012/Apache-Lucene.Net-4.8.0-beta00012.bin.zip)__ [[PGP](https://downloads.apache.org/lucenenet/4.8.0-beta00012/Apache-Lucene.Net-4.8.0-beta00012.bin.zip.asc)] [[SHA512](https://downloads.apache.org/lucenenet/4.8.0-beta00012/Apache-Lucene.Net-4.8.0-beta00012.bin.zip.sha512)]
+* Source release: __[Lucene.Net-4.8.0-beta00012.src.zip](https://www.apache.org/dyn/closer.lua/lucenenet/4.8.0-beta00012/Apache-Lucene.Net-4.8.0-beta00012.src.zip)__ [[PGP](https://downloads.apache.org/lucenenet/4.8.0-beta00012/Apache-Lucene.Net-4.8.0-beta00012.src.zip.asc)] [[SHA512](https://downloads.apache.org/lucenenet/4.8.0-beta00012/Apache-Lucene.Net-4.8.0-beta00012.src.zip.sha512)]
+*  [Change log](https://github.com/apache/lucenenet/releases/tag/Lucene.Net_4_8_0_beta00012)
 
 <div class="nuget-well" style="text-align:left;">
-    PM> Install-Package Lucene.Net -Version 4.8.0-beta00007
+    PM> Install-Package Lucene.Net -Version 4.8.0-beta00012
 </div>
 
 ### Source code
@@ -38,15 +40,11 @@ This version is a direct port of the Java Lucene project at [this release](https
 
 ### All Packages
 
-<!--- TO BE ADDED WHEN RELEASED 
-
-- [Lucene.Net.Analysis.UIMA](https://www.nuget.org/packages/Lucene.Net.Analysis.UIMA/) - Analysis integration with Apache UIMA)
-
--->
-
 - [Lucene.Net](https://www.nuget.org/packages/Lucene.Net/) - Core library
 - [Lucene.Net.Analysis.Common](https://www.nuget.org/packages/Lucene.Net.Analysis.Common/) - Analyzers for indexing content in different languages and domains
 - [Lucene.Net.Analysis.Kuromoji](https://www.nuget.org/packages/Lucene.Net.Analysis.Kuromoji/) - Japanese Morphological Analyzer 
+- [Lucene.Net.Analysis.Morfologik](https://www.nuget.org/packages/Lucene.Net.Analysis.Morfologik/) - Analyzer for dictionary stemming, built-in Polish dictionary
+- [Lucene.Net.Analysis.OpenNLP](https://www.nuget.org/packages/Lucene.Net.Analysis.OpenNLP/) - OpenNLP Library Integration
 - [Lucene.Net.Analysis.Phonetic](https://www.nuget.org/packages/Lucene.Net.Analysis.Phonetic/) - Analyzer for indexing phonetic signatures (for sounds-alike search)
 - [Lucene.Net.Analysis.SmartCn](https://www.nuget.org/packages/Lucene.Net.Analysis.SmartCn/) - Analyzer for indexing Chinese
 - [Lucene.Net.Analysis.Stempel](https://www.nuget.org/packages/Lucene.Net.Analysis.Stempel/) - Analyzer for indexing Polish
@@ -67,3 +65,4 @@ This version is a direct port of the Java Lucene project at [this release](https
 - [Lucene.Net.Sandbox](https://www.nuget.org/packages/Lucene.Net.Sandbox/) - Various third party contributions and new ideas
 - [Lucene.Net.Spatial](https://www.nuget.org/packages/Lucene.Net.Spatial/) - Geospatial search
 - [Lucene.Net.Suggest](https://www.nuget.org/packages/Lucene.Net.Suggest/) - Auto-suggest and Spellchecking support
+- [Lucene.Net.TestFramework](https://www.nuget.org/packages/Lucene.Net.TestFramework/) - Framework for testing Lucene-based applications

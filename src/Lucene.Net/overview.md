@@ -1,4 +1,4 @@
-﻿---
+---
 uid: Lucene.Net
 title: Lucene.Net
 summary: *content
@@ -56,10 +56,10 @@ The Lucene API is divided into several packages:
 defines an abstract [Analyzer](xref:Lucene.Net.Analysis.Analyzer)
 API for converting text from a {@link java.io.Reader}
 into a [TokenStream](xref:Lucene.Net.Analysis.TokenStream),
-an enumeration of token [Attribute](xref:Lucene.Net.Util.Attribute)s. 
+an enumeration of token [Attribute](xref:Lucene.Net.Util.Attribute)s. 
 A TokenStream can be composed by applying [TokenFilter](xref:Lucene.Net.Analysis.TokenFilter)s
-to the output of a [Tokenizer](xref:Lucene.Net.Analysis.Tokenizer). 
-Tokenizers and TokenFilters are strung together and applied with an [Analyzer](xref:Lucene.Net.Analysis.Analyzer). 
+to the output of a [Tokenizer](xref:Lucene.Net.Analysis.Tokenizer). 
+Tokenizers and TokenFilters are strung together and applied with an [Analyzer](xref:Lucene.Net.Analysis.Analyzer). 
 [analyzers-common](../analyzers-common/overview-summary.html) provides a number of Analyzer implementations, including 
 [StopAnalyzer](../analyzers-common/org/apache/lucene/analysis/core/StopAnalyzer.html)
 and the grammar-based [StandardAnalyzer](../analyzers-common/org/apache/lucene/analysis/standard/StandardAnalyzer.html).
@@ -72,7 +72,7 @@ as well as different implementations that can be chosen depending upon applicati
 
 *   __<xref:Lucene.Net.Documents>__
 provides a simple [Document](xref:Lucene.Net.Documents.Document)
-class.  A Document is simply a set of named [Field](xref:Lucene.Net.Documents.Field)s,
+class.  A Document is simply a set of named [Field](xref:Lucene.Net.Documents.Field)s,
 whose values may be strings or instances of {@link java.io.Reader}.
 
 
@@ -95,7 +95,7 @@ query structures from strings or xml.
 *   __<xref:Lucene.Net.Store>__
 defines an abstract class for storing persistent data, the [Directory](xref:Lucene.Net.Store.Directory),
 which is a collection of named files written by an [IndexOutput](xref:Lucene.Net.Store.IndexOutput)
-and read by an [IndexInput](xref:Lucene.Net.Store.IndexInput). 
+and read by an [IndexInput](xref:Lucene.Net.Store.IndexInput). 
 Multiple implementations are provided, including [FSDirectory](xref:Lucene.Net.Store.FSDirectory),
 which uses a file system directory to store files, and [RAMDirectory](xref:Lucene.Net.Store.RAMDirectory)
 which implements files as memory-resident data structures.
@@ -126,10 +126,9 @@ method.
 
 Some simple examples of code which does this are:
 
-*    [IndexFiles.java](../demo/src-html/org/apache/lucene/demo/IndexFiles.html) creates an
+*    [IndexFiles.java](../demo/src-html/org/apache/lucene/demo/IndexFiles.html) creates an
 index for all the files contained in a directory.
 
 
-*    [SearchFiles.java](../demo/src-html/org/apache/lucene/demo/SearchFiles.html) prompts for
+*    [SearchFiles.java](../demo/src-html/org/apache/lucene/demo/SearchFiles.html) prompts for
 queries and searches an index.
-

@@ -51,7 +51,7 @@ namespace Lucene.Net.Index
     using TopDocs = Lucene.Net.Search.TopDocs;
 
     [TestFixture]
-    [Deadlock]
+    [Deadlock][Timeout(600000)]
     public class TestIndexWriterReader : LuceneTestCase
     {
         private readonly int numThreads = TestNightly ? 5 : 3;
@@ -867,6 +867,10 @@ namespace Lucene.Net.Index
         [Slow]
         public virtual void TestDuringAddIndexes()
         {
+            // LUCENENET specific - log the current locking strategy used and HResult values
+            // for assistance troubleshooting problems on Linux/macOS
+            LogNativeFSFactoryDebugInfo();
+
             Directory dir1 = GetAssertNoDeletesDirectory(NewDirectory());
             IndexWriter writer = new IndexWriter(
                 dir1, 

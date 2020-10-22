@@ -1378,7 +1378,10 @@ namespace Lucene.Net.Util
         /// </summary>
         public static int AtLeast(Random random, int i)
         {
-            int min = (TestNightly ? 2 * i : i) * RandomMultiplier;
+            //int min = (TestNightly ? 2 * i : i) * RandomMultiplier;
+            // LUCENENET specific - reduced nightly factor to lower the
+            // total test time in Nightly builds to get under the 1 hour time limit of Azure DevOps
+            int min = (TestNightly ? (int)(1.5 * i) : i) * RandomMultiplier;
             int max = min + (min / 2);
             return TestUtil.NextInt32(random, min, max);
         }
@@ -1396,7 +1399,10 @@ namespace Lucene.Net.Util
         /// </summary>
         public static bool Rarely(Random random)
         {
-            int p = TestNightly ? 10 : 1;
+            //int p = TestNightly ? 10 : 1;
+            // LUCENENET specific - reduced nightly instance by 1/2 to lower the
+            // total test time in Nightly builds to get under the 1 hour time limit of Azure DevOps
+            int p = TestNightly ? 5 : 1;
             p += (int)(p * Math.Log(RandomMultiplier));
             int min = 100 - Math.Min(p, 50); // never more than 50
             return random.Next(100) >= min;
@@ -3576,6 +3582,56 @@ namespace Lucene.Net.Util
 #endif
                     return schedulerFactories;
                 }
+            }
+        }
+
+        internal static void LogNativeFSFactoryDebugInfo()
+        {
+            // LUCENENET specific - log the current locking strategy used and HResult values
+            // for assistance troubleshooting problems on Linux/macOS
+            SystemConsole.WriteLine($"Locking Strategy: {NativeFSLockFactory.LockingStrategy}");
+            SystemConsole.WriteLine($"Share Violation HResult: {(NativeFSLockFactory.HRESULT_FILE_SHARE_VIOLATION.HasValue ? NativeFSLockFactory.HRESULT_FILE_SHARE_VIOLATION.ToString() : "null")}");
+            SystemConsole.WriteLine($"Lock Violation HResult: {(NativeFSLockFactory.HRESULT_FILE_LOCK_VIOLATION.HasValue ? NativeFSLockFactory.HRESULT_FILE_LOCK_VIOLATION.ToString() : "null")}");
+
+            string fileName;
+            try
+            {
+                // This could throw, but we don't care about this HResult value.
+                fileName = Path.GetTempFileName();
+            }
+            catch (Exception e)
+            {
+                SystemConsole.WriteLine($"Error while creating temp file: {e}");
+                return;
+            }
+
+            Stream lockStream;
+            try
+            {
+                lockStream = new FileStream(fileName, FileMode.OpenOrCreate, FileAccess.Write, FileShare.None, 1, FileOptions.None);
+            }
+            catch (Exception e)
+            {
+                SystemConsole.WriteLine($"Error while opening initial share stream: {e}");
+                SystemConsole.WriteLine($"******* HResult: {e.HResult}");
+                return;
+            }
+            try
+            {
+                // Try to get an exclusive lock on the file - this should throw an IOException with the current platform's HResult value for FileShare violation
+                using (var stream = new FileStream(fileName, FileMode.Open, FileAccess.Write, FileShare.None, 1, FileOptions.None))
+                {
+                }
+            }
+            catch (IOException io) when (io.HResult != 0)
+            {
+                SystemConsole.WriteLine($"Successfully retrieved sharing violation.");
+                SystemConsole.WriteLine($"******* HResult: {io.HResult}");
+                SystemConsole.WriteLine($"Exception: {io}");
+            }
+            finally
+            {
+                lockStream.Dispose();
             }
         }
 
