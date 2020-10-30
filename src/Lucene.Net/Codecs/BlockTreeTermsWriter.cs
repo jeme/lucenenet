@@ -480,11 +480,12 @@ namespace Lucene.Net.Codecs
             {
                 // LUCENENET specific - we use a custom wrapper function to display floorBlocks, since
                 // it might contain garbage that cannot be converted into text.
-                if (Debugging.AssertsEnabled) Debugging.Assert(
+                if (Debugging.AssertsEnabled) {
+                    Debugging.Assert(
                     (IsFloor && floorBlocks != null && floorBlocks.Count != 0) || (!IsFloor && floorBlocks == null),
-                    () => "isFloor=" + IsFloor + " floorBlocks=" + ToString(floorBlocks));
-
-                if (Debugging.AssertsEnabled) Debugging.Assert(scratchBytes.GetFilePointer() == 0);
+                    "isFloor={0} floorBlocks={1}", IsFloor, ToString(floorBlocks));
+                    Debugging.Assert(scratchBytes.GetFilePointer() == 0);
+                }
 
                 // TODO: try writing the leading vLong in MSB order
                 // (opposite of what Lucene does today), for better

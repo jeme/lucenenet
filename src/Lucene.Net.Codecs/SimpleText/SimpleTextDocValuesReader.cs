@@ -83,15 +83,14 @@ namespace Lucene.Net.Codecs.SimpleText
                 fields[fieldName] = field;
 
                 ReadLine();
-                if (Debugging.AssertsEnabled) Debugging.Assert(StartsWith(SimpleTextDocValuesWriter.TYPE), () => scratch.Utf8ToString());
+                if (Debugging.AssertsEnabled) Debugging.Assert(StartsWith(SimpleTextDocValuesWriter.TYPE), scratch.Utf8ToString());
 
                 var dvType = (DocValuesType)Enum.Parse(typeof(DocValuesType), StripPrefix(SimpleTextDocValuesWriter.TYPE));
                 // if (Debugging.AssertsEnabled) Debugging.Assert(dvType != null); // LUCENENET: Not possible for an enum to be null in .NET
                 if (dvType == DocValuesType.NUMERIC)
                 {
                     ReadLine();
-                    if (Debugging.AssertsEnabled) Debugging.Assert(StartsWith(SimpleTextDocValuesWriter.MINVALUE),
-                        () => "got " + scratch.Utf8ToString() + " field=" + fieldName + " ext=" + ext);
+                    if (Debugging.AssertsEnabled) Debugging.Assert(StartsWith(SimpleTextDocValuesWriter.MINVALUE), "got {0} field={1} ext={2}", scratch.Utf8ToString(), fieldName, ext);
                     field.MinValue = Convert.ToInt64(StripPrefix(SimpleTextDocValuesWriter.MINVALUE), CultureInfo.InvariantCulture);
                     ReadLine();
                     if (Debugging.AssertsEnabled) Debugging.Assert(StartsWith(SimpleTextDocValuesWriter.PATTERN));
@@ -437,8 +436,7 @@ namespace Lucene.Net.Codecs.SimpleText
                     }
                     _input.Seek(_field.DataStartFilePointer + ord * (9 + _field.Pattern.Length + _field.MaxLength));
                     SimpleTextUtil.ReadLine(_input, _scratch);
-                    if (Debugging.AssertsEnabled) Debugging.Assert(StringHelper.StartsWith(_scratch, SimpleTextDocValuesWriter.LENGTH),
-                        () => "got " + _scratch.Utf8ToString() + " in=" + _input);
+                    if (Debugging.AssertsEnabled) Debugging.Assert(StringHelper.StartsWith(_scratch, SimpleTextDocValuesWriter.LENGTH), "got {0} in={1}", _scratch.Utf8ToString(), _input);
                     int len;
                     try
                     {
@@ -542,8 +540,7 @@ namespace Lucene.Net.Codecs.SimpleText
 
                     _input.Seek(_field.DataStartFilePointer + ord * (9 + _field.Pattern.Length + _field.MaxLength));
                     SimpleTextUtil.ReadLine(_input, _scratch);
-                    if (Debugging.AssertsEnabled) Debugging.Assert(StringHelper.StartsWith(_scratch, SimpleTextDocValuesWriter.LENGTH),
-                        () => "got " + _scratch.Utf8ToString() + " in=" + _input);
+                    if (Debugging.AssertsEnabled) Debugging.Assert(StringHelper.StartsWith(_scratch, SimpleTextDocValuesWriter.LENGTH), "got {0} in={1}", _scratch.Utf8ToString(), _input);
                     int len;
                     try
                     {

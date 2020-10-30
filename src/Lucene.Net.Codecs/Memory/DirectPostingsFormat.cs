@@ -1477,8 +1477,7 @@ namespace Lucene.Net.Codecs.Memory
                                 }
                                 goto nextTermContinue;
                             }
-                            if (Debugging.AssertsEnabled) Debugging.Assert(state.transitionUpto < state.transitions.Length,
-                                () => " state.transitionUpto=" + state.transitionUpto + " vs " + state.transitions.Length);
+                            if (Debugging.AssertsEnabled) Debugging.Assert(state.transitionUpto < state.transitions.Length, " state.transitionUpto={0} vs {1}", state.transitionUpto, state.transitions.Length);
                             state.transitionMin = state.transitions[state.transitionUpto].Min;
                             state.transitionMax = state.transitions[state.transitionUpto].Max;
                             if (Debugging.AssertsEnabled)

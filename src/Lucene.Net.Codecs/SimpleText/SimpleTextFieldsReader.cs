@@ -323,7 +323,7 @@ namespace Lucene.Net.Codecs.SimpleText
                     {
                         if (Debugging.AssertsEnabled) Debugging.Assert(
                             StringHelper.StartsWith(_scratch, SimpleTextFieldsWriter.TERM) || StringHelper.StartsWith(_scratch, SimpleTextFieldsWriter.FIELD) ||
-                            StringHelper.StartsWith(_scratch, SimpleTextFieldsWriter.END), () => "scratch=" + _scratch.Utf8ToString());
+                            StringHelper.StartsWith(_scratch, SimpleTextFieldsWriter.END), "scratch={0}", _scratch.Utf8ToString());
 
                         if (!first && (_liveDocs == null || _liveDocs.Get(_docId)))
                         {
