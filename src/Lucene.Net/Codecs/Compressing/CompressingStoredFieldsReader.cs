@@ -357,7 +357,7 @@ namespace Lucene.Net.Codecs.Compressing
                 FieldInfo fieldInfo = fieldInfos.FieldInfo(fieldNumber);
 
                 int bits = (int)(infoAndBits & CompressingStoredFieldsWriter.TYPE_MASK);
-                if (Debugging.AssertsEnabled) Debugging.Assert(bits <= CompressingStoredFieldsWriter.NUMERIC_DOUBLE, () => "bits=" + bits.ToString("x"));
+                if (Debugging.AssertsEnabled) Debugging.Assert(bits <= CompressingStoredFieldsWriter.NUMERIC_DOUBLE, "bits={0}", bits.ToString("x"));
 
                 switch (visitor.NeedsField(fieldInfo))
                 {
@@ -492,7 +492,7 @@ namespace Lucene.Net.Codecs.Compressing
             /// </summary>
             internal void Next(int doc)
             {
-                if (Debugging.AssertsEnabled) Debugging.Assert(doc >= this.docBase + this.chunkDocs, () => doc + " " + this.docBase + " " + this.chunkDocs);
+                if (Debugging.AssertsEnabled) Debugging.Assert(doc >= this.docBase + this.chunkDocs, "{0} {1} {2}", doc, this.docBase, this.chunkDocs);
                 fieldsStream.Seek(outerInstance.indexReader.GetStartPointer(doc));
 
                 int docBase = fieldsStream.ReadVInt32();

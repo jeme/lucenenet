@@ -1447,7 +1447,7 @@ namespace Lucene.Net.Codecs.Memory
 
                         if (Debugging.AssertsEnabled) Debugging.Assert(termOrd < state.changeOrd);
 
-                        if (Debugging.AssertsEnabled) Debugging.Assert(stateUpto <= termLength, () => "term.length=" + termLength + "; stateUpto=" + stateUpto);
+                        if (Debugging.AssertsEnabled) Debugging.Assert(stateUpto <= termLength, "term.length={0}; stateUpto={1}", termLength, stateUpto);
                         int label = outerInstance.termBytes[termOffset + stateUpto] & 0xFF;
 
                         while (label > state.transitionMax)

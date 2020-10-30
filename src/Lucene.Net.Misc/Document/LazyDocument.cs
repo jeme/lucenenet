@@ -166,8 +166,8 @@ namespace Lucene.Net.Documents
                 }
                 if (Debugging.AssertsEnabled)
                 {
-                    Debugging.Assert(HasBeenLoaded, () => "field value was not lazy loaded");
-                    Debugging.Assert(realValue.Name.Equals(Name, StringComparison.Ordinal), () => "realvalue name != name: " + realValue.Name + " != " + Name);
+                    Debugging.Assert(HasBeenLoaded, "field value was not lazy loaded");
+                    Debugging.Assert(realValue.Name.Equals(Name, StringComparison.Ordinal), "realvalue name != name: {0} != {1}", realValue.Name, Name);
                 }
 
                 return realValue;

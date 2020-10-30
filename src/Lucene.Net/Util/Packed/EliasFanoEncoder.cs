@@ -80,7 +80,7 @@ namespace Lucene.Net.Util.Packed
     ///
     /// <para/>The articles originally describing the Elias-Fano representation are:
     /// <para/>Peter Elias, "Efficient storage and retrieval by content and address of static files",
-    /// J. Assoc. Comput. Mach., 21(2):246â€"260, 1974.
+    /// J. Assoc. Comput. Mach., 21(2):246ï¿½"260, 1974.
     /// <para/>Robert M. Fano, "On the number of bits required to implement an associative memory",
     ///  Memorandum 61, Computer Structures Group, Project MAC, MIT, Cambridge, Mass., 1971.
     /// <para/>
@@ -220,7 +220,7 @@ namespace Lucene.Net.Util.Packed
         /// </summary>
         private static long NumInt64sForBits(long numBits) // Note: int version in FixedBitSet.bits2words()
         {
-            if (Debugging.AssertsEnabled) Debugging.Assert(numBits >= 0, () => numBits.ToString(CultureInfo.InvariantCulture));
+            if (Debugging.AssertsEnabled) Debugging.Assert(numBits >= 0, CultureInfo.InvariantCulture, numBits);
             return (long)((ulong)(numBits + (sizeof(long) * 8 - 1)) >> LOG2_INT64_SIZE);
         }
 

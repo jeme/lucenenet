@@ -74,6 +74,74 @@ namespace Lucene.Net.Diagnostics
                 throw new AssertionException(message);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void Assert<T>(bool condition, T value)
+        {
+            if (AssertsEnabled && !condition)
+                throw new AssertionException(value.ToString());
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void Assert<T>(bool condition, IFormatProvider provider, T value) where T :IConvertible 
+        {
+            if (AssertsEnabled && !condition)
+                throw new AssertionException(value.ToString(provider));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void Assert<T1>(bool condition, string format, T1 arg)
+        {
+            if (AssertsEnabled && !condition)
+                throw new AssertionException(string.Format(format, arg));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void Assert<T1, T2>(bool condition, string format, T1 arg1, T2 arg2)
+        {
+            if (AssertsEnabled && !condition)
+                throw new AssertionException(string.Format(format, arg1, arg2));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void Assert<T1, T2, T3>(bool condition, string format, T1 arg1, T2 arg2, T3 arg3)
+        {
+            if (AssertsEnabled && !condition)
+                throw new AssertionException(string.Format(format, arg1, arg2, arg3));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void Assert<T1, T2, T3, T4>(bool condition, string format, T1 arg1, T2 arg2, T3 arg3, T4 arg4)
+        {
+            if (AssertsEnabled && !condition)
+                throw new AssertionException(string.Format(format, arg1, arg2, arg3, arg4));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void Assert<T1, T2, T3, T4, T5>(bool condition, string format, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5)
+        {
+            if (AssertsEnabled && !condition)
+                throw new AssertionException(string.Format(format, arg1, arg2, arg3, arg4, arg5));
+        }
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void Assert<T1, T2, T3, T4, T5, T6>(bool condition, string format, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, T6 arg6)
+        {
+            if (AssertsEnabled && !condition)
+                throw new AssertionException(string.Format(format, arg1, arg2, arg3, arg4, arg5, arg6));
+        }
+
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void Assert<T1, T2, T3, T4, T5, T6, T7>(bool condition, string format, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, T6 arg6, T7 arg7)
+        {
+            if (AssertsEnabled && !condition)
+                throw new AssertionException(string.Format(format, arg1, arg2, arg3, arg4, arg5, arg6, arg7));
+        }
+
+
+
+
+
         ///// <summary>
         ///// Checks for a condition; if the condition is <c>false</c>, throws an <see cref="AssertionException"/>.
         ///// </summary>

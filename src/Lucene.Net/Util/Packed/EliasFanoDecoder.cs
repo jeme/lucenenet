@@ -356,7 +356,7 @@ namespace Lucene.Net.Util.Packed
 
             // curHighLong has enough clear bits to reach highTarget, has at least 1 set bit, and may not have enough set bits.
             int rank = (int)(highTarget - (setBitForIndex - efIndex)); // the rank of the zero bit for highValue.
-            if (Debugging.AssertsEnabled) Debugging.Assert((rank <= (sizeof(long) * 8)), () => ("rank " + rank));
+            if (Debugging.AssertsEnabled) Debugging.Assert((rank <= (sizeof(long) * 8)), "rank {0}", rank);
             if (rank >= 1)
             {
                 long invCurHighLong = ~curHighLong;
