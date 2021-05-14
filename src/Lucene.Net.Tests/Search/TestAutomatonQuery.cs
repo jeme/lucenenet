@@ -1,4 +1,4 @@
-using J2N.Threading;
+﻿using J2N.Threading;
 using Lucene.Net.Documents;
 using NUnit.Framework;
 using System.Threading;
@@ -239,7 +239,7 @@ namespace Lucene.Net.Search
             ThreadJob[] threads = new ThreadJob[numThreads];
             for (int threadID = 0; threadID < numThreads; threadID++)
             {
-                ThreadJob thread = new ThreadAnonymousInnerClassHelper(this, queries, startingGun);
+                ThreadJob thread = new ThreadAnonymousClass(this, queries, startingGun);
                 threads[threadID] = thread;
                 thread.Start();
             }
@@ -250,14 +250,14 @@ namespace Lucene.Net.Search
             }
         }
 
-        private class ThreadAnonymousInnerClassHelper : ThreadJob
+        private class ThreadAnonymousClass : ThreadJob
         {
             private readonly TestAutomatonQuery outerInstance;
 
             private readonly AutomatonQuery[] queries;
             private readonly CountdownEvent startingGun;
 
-            public ThreadAnonymousInnerClassHelper(TestAutomatonQuery outerInstance, AutomatonQuery[] queries, CountdownEvent startingGun)
+            public ThreadAnonymousClass(TestAutomatonQuery outerInstance, AutomatonQuery[] queries, CountdownEvent startingGun)
             {
                 this.outerInstance = outerInstance;
                 this.queries = queries;
@@ -271,6 +271,8 @@ namespace Lucene.Net.Search
                 {
                     queries[i].GetHashCode();
                 }
+                // LUCENENET: The Rethrow.rethrow() method only is for tricking the Java compiler into letting it throw a "checked" exception.
+                // In .NET, it is better just not to catch than deal with such nonsense.
             }
         }
     }

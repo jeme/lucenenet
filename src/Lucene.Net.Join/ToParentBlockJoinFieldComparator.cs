@@ -1,9 +1,9 @@
-﻿using Lucene.Net.Index;
-using Lucene.Net.Search;
+﻿// Lucene version compatibility level 4.8.1
+using Lucene.Net.Index;
 using Lucene.Net.Util;
 using System;
 
-namespace Lucene.Net.Join
+namespace Lucene.Net.Search.Join
 {
     /*
      * Licensed to the Apache Software Foundation (ASF) under one or more
@@ -68,9 +68,9 @@ namespace Lucene.Net.Join
             {
                 _childDocuments = null;
             }
-            else if (innerDocuments is FixedBitSet)
+            else if (innerDocuments is FixedBitSet fixedBitSet)
             {
-                _childDocuments = (FixedBitSet)innerDocuments;
+                _childDocuments = fixedBitSet;
             }
             else
             {
@@ -82,9 +82,9 @@ namespace Lucene.Net.Join
             {
                 _parentDocuments = null;
             }
-            else if (rootDocuments is FixedBitSet)
+            else if (rootDocuments is FixedBitSet fixedBitSet)
             {
-                _parentDocuments = (FixedBitSet)rootDocuments;
+                _parentDocuments = fixedBitSet;
             }
             else
             {

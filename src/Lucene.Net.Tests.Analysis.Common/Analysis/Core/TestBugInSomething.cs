@@ -1,4 +1,5 @@
-﻿using Lucene.Net.Analysis.CharFilters;
+﻿// Lucene version compatibility level 4.8.1
+using Lucene.Net.Analysis.CharFilters;
 using Lucene.Net.Analysis.CommonGrams;
 using Lucene.Net.Analysis.Miscellaneous;
 using Lucene.Net.Analysis.NGram;
@@ -61,63 +62,63 @@ namespace Lucene.Net.Analysis.Core
             CheckAnalysisConsistency(Random, a, false, "wmgddzunizdomqyj");
         }
 
-        internal CharFilter wrappedStream = new CharFilterAnonymousInnerClassHelper(new StringReader("bogus"));
+        internal CharFilter wrappedStream = new CharFilterAnonymousClass(new StringReader("bogus"));
 
-        private sealed class CharFilterAnonymousInnerClassHelper : CharFilter
+        private sealed class CharFilterAnonymousClass : CharFilter
         {
-            public CharFilterAnonymousInnerClassHelper(StringReader java) : base(java)
+            public CharFilterAnonymousClass(StringReader java) : base(java)
             {
             }
 
 
             public override void Mark(int readAheadLimit)
             {
-                throw new NotSupportedException("Mark(int)");
+                throw UnsupportedOperationException.Create("Mark(int)");
             }
 
-            public override bool IsMarkSupported => throw new NotSupportedException("IsMarkSupported");
+            public override bool IsMarkSupported => throw UnsupportedOperationException.Create("IsMarkSupported");
 
             public override int Read()
             {
-                throw new NotSupportedException("Read()");
+                throw UnsupportedOperationException.Create("Read()");
             }
 
             // LUCENENET: We don't support these overloads in .NET
             // public override int Read(char[] cbuf)
             // {
-            //throw new NotSupportedException("Read(char[])");
+            //throw UnsupportedOperationException.Create("Read(char[])");
             // }
 
             //public override int read(CharBuffer target)
             //{
-            //    throw new NotSupportedException("Read(CharBuffer)");
+            //    throw UnsupportedOperationException.Create("Read(CharBuffer)");
             //}
 
-            public override bool IsReady => throw new NotSupportedException("Ready()");
+            public override bool IsReady => throw UnsupportedOperationException.Create("Ready()");
 
             public override void Reset()
             {
-                throw new NotSupportedException("Reset()");
+                throw UnsupportedOperationException.Create("Reset()");
             }
 
             public override long Skip(int n)
             {
-                throw new NotSupportedException("Skip(long)");
+                throw UnsupportedOperationException.Create("Skip(long)");
             }
 
             protected override int Correct(int currentOff)
             {
-                throw new NotSupportedException("Correct(int)");
+                throw UnsupportedOperationException.Create("Correct(int)");
             }
 
             protected override void Dispose(bool disposing)
             {
-                throw new NotSupportedException("Close()");
+                throw UnsupportedOperationException.Create("Close()");
             }
 
             public override int Read(char[] arg0, int arg1, int arg2)
             {
-                throw new NotSupportedException("Read(char[], int, int)");
+                throw UnsupportedOperationException.Create("Read(char[], int, int)");
             }
         }
 
@@ -130,7 +131,7 @@ namespace Lucene.Net.Analysis.Core
                 cs.Mark(1);
                 fail();
             }
-            catch (Exception e)
+            catch (Exception e) when (e.IsException())
             {
                 assertEquals("Mark(int)", e.Message);
             }
@@ -140,7 +141,7 @@ namespace Lucene.Net.Analysis.Core
                 var supported = cs.IsMarkSupported;
                 fail();
             }
-            catch (Exception e)
+            catch (Exception e) when (e.IsException())
             {
                 assertEquals("IsMarkSupported", e.Message);
             }
@@ -150,7 +151,7 @@ namespace Lucene.Net.Analysis.Core
                 cs.Read();
                 fail();
             }
-            catch (Exception e)
+            catch (Exception e) when (e.IsException())
             {
                 assertEquals("Read()", e.Message);
             }
@@ -160,7 +161,7 @@ namespace Lucene.Net.Analysis.Core
                 cs.read(new char[0]);
                 fail();
             }
-            catch (Exception e)
+            catch (Exception e) when (e.IsException())
             {
                 // LUCENENET NOTE: TextReader doesn't support an overload that doesn't supply
                 // index and count. We have an extension method that does in test environment,
@@ -176,7 +177,7 @@ namespace Lucene.Net.Analysis.Core
             //    cs.read(CharBuffer.wrap(new char[0]));
             //    fail();
             //}
-            //catch (Exception e)
+            //catch (Exception e) when (e.IsException())
             //{
             //    assertEquals("Read(CharBuffer)", e.Message);
             //}
@@ -186,7 +187,7 @@ namespace Lucene.Net.Analysis.Core
                 cs.Reset();
                 fail();
             }
-            catch (Exception e)
+            catch (Exception e) when (e.IsException())
             {
                 assertEquals("Reset()", e.Message);
             }
@@ -196,7 +197,7 @@ namespace Lucene.Net.Analysis.Core
                 cs.Skip(1);
                 fail();
             }
-            catch (Exception e)
+            catch (Exception e) when (e.IsException())
             {
                 assertEquals("Skip(long)", e.Message);
             }
@@ -206,7 +207,7 @@ namespace Lucene.Net.Analysis.Core
                 cs.CorrectOffset(1);
                 fail();
             }
-            catch (Exception e)
+            catch (Exception e) when (e.IsException())
             {
                 assertEquals("Correct(int)", e.Message);
             }
@@ -216,7 +217,7 @@ namespace Lucene.Net.Analysis.Core
                 cs.Dispose();
                 fail();
             }
-            catch (Exception e)
+            catch (Exception e) when (e.IsException())
             {
                 assertEquals("Close()", e.Message);
             }
@@ -226,7 +227,7 @@ namespace Lucene.Net.Analysis.Core
                 cs.Read(new char[0], 0, 0);
                 fail();
             }
-            catch (Exception e)
+            catch (Exception e) when (e.IsException())
             {
                 assertEquals("Read(char[], int, int)", e.Message);
             }

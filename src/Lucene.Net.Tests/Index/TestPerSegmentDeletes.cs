@@ -1,4 +1,4 @@
-using Lucene.Net.Index.Extensions;
+﻿using Lucene.Net.Index.Extensions;
 using Lucene.Net.Support;
 using NUnit.Framework;
 using System;
@@ -249,7 +249,7 @@ namespace Lucene.Net.Index
             Fields fields = MultiFields.GetFields(reader);
             Terms cterms = fields.GetTerms(term.Field);
             TermsEnum ctermsEnum = cterms.GetEnumerator();
-            if (ctermsEnum.SeekExact(new BytesRef(term.Text())))
+            if (ctermsEnum.SeekExact(new BytesRef(term.Text)))
             {
                 DocsEnum docsEnum = TestUtil.Docs(Random, ctermsEnum, bits, null, DocsFlags.NONE);
                 return ToArray(docsEnum);
@@ -259,13 +259,13 @@ namespace Lucene.Net.Index
 
         public static int[] ToArray(DocsEnum docsEnum)
         {
-            IList<int?> docs = new List<int?>();
+            List<int> docs = new List<int>();
             while (docsEnum.NextDoc() != DocIdSetIterator.NO_MORE_DOCS)
             {
                 int docID = docsEnum.DocID;
                 docs.Add(docID);
             }
-            return ArrayUtil.ToInt32Array(docs);
+            return docs.ToArray(); // LUCENENET: ArrayUtil.ToIntArray() call unnecessary because we aren't dealing with reference types
         }
 
         public class RangeMergePolicy : MergePolicy

@@ -48,7 +48,7 @@ namespace Lucene.Net.Analysis.OpenNlp
             posTaggerModelFile = Require(args, POS_TAGGER_MODEL);
             if (args.Count > 0)
             {
-                throw new ArgumentException("Unknown parameters: " + args);
+                throw new ArgumentException(string.Format(J2N.Text.StringFormatter.CurrentCulture, "Unknown parameters: {0}", args));
             }
         }
 
@@ -58,7 +58,7 @@ namespace Lucene.Net.Analysis.OpenNlp
             {
                 return new OpenNLPPOSFilter(input, OpenNLPOpsFactory.GetPOSTagger(posTaggerModelFile));
             }
-            catch (IOException e)
+            catch (Exception e) when (e.IsIOException())
             {
                 throw new ArgumentException(e.ToString(), e);
             }
@@ -70,7 +70,7 @@ namespace Lucene.Net.Analysis.OpenNlp
             { // load and register the read-only model in cache with file/resource name
                 OpenNLPOpsFactory.GetPOSTaggerModel(posTaggerModelFile, loader);
             }
-            catch (IOException e)
+            catch (Exception e) when (e.IsIOException())
             {
                 throw new ArgumentException(e.ToString(), e);
             }

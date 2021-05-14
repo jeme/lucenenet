@@ -66,16 +66,11 @@ namespace Egothor.Stemmer
     /// <summary>
     /// The Compile class is used to compile a stemmer table.
     /// </summary>
-    public class Compile
+    public static class Compile // LUCENENET specific: CA1052 Static holder types should be Static or NotInheritable
     {
-        static bool backward;
-        static bool multi;
-        static Trie trie;
-
-        /// <summary>
-        /// no instantiation
-        /// </summary>
-        private Compile() { }
+        private static bool backward;
+        private static bool multi;
+        private static Trie trie;
 
         /// <summary>
         /// Entry point to the Compile application.
@@ -113,8 +108,8 @@ namespace Egothor.Stemmer
             {
                 qq++;
             }
-            // LUCENENET specific - reformatted with :
-            string charset = SystemProperties.GetProperty("egothor:stemmer:charset", "UTF-8");
+            // LUCENENET specific - reformatted with : and changed "charset" to "encoding"
+            string charset = SystemProperties.GetProperty("egothor:stemmer:encoding", "UTF-8");
             var stemmerTables = new List<string>();
 
             // LUCENENET specific
@@ -154,11 +149,10 @@ namespace Egothor.Stemmer
                     string line;
                     while ((line = input.ReadLine()) != null)
                     {
-                        try
+                        line = line.ToLowerInvariant();
+                        using StringTokenizer st = new StringTokenizer(line);
+                        if (st.MoveNext())
                         {
-                            line = line.ToLowerInvariant();
-                            StringTokenizer st = new StringTokenizer(line);
-                            st.MoveNext();
                             string stem = st.Current;
                             if (storeorig)
                             {
@@ -175,7 +169,7 @@ namespace Egothor.Stemmer
                                 }
                             }
                         }
-                        catch (InvalidOperationException /*x*/)
+                        else // LUCENENET: st.MoveNext() will return false rather than throwing a NoSuchElementException
                         {
                             // no base token (stem) on a line
                         }
@@ -219,12 +213,10 @@ namespace Egothor.Stemmer
                     trie.PrintInfo(Console.Out, prefix + " ");
                 }
 
-                using (DataOutputStream os = new DataOutputStream(
-                    new FileStream(stemmerTable + ".out", FileMode.OpenOrCreate, FileAccess.Write)))
-                {
-                    os.WriteUTF(args[0]);
-                    trie.Store(os);
-                }
+                using DataOutputStream os = new DataOutputStream(
+                    new FileStream(stemmerTable + ".out", FileMode.OpenOrCreate, FileAccess.Write));
+                os.WriteUTF(args[0]);
+                trie.Store(os);
             }
         }
 

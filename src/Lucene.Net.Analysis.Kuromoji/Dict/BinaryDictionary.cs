@@ -1,5 +1,6 @@
 ﻿using J2N;
 using J2N.IO;
+using J2N.Numerics;
 using Lucene.Net.Codecs;
 using Lucene.Net.Store;
 using Lucene.Net.Util;
@@ -53,20 +54,20 @@ namespace Lucene.Net.Analysis.Ja.Dict
         private readonly string[] inflFormDict;
 
         // LUCENENET specific - variable to hold the name of the data directory (or empty string to load embedded resources)
-        private static readonly string DATA_DIR;
+        private static readonly string DATA_DIR = LoadDataDir();
         // LUCENENET specific - name of the subdirectory inside of the directory where the Kuromoji dictionary files reside.
-        private static readonly string DATA_SUBDIR = "kuromoji-data";
+        private const string DATA_SUBDIR = "kuromoji-data";
 
-        static BinaryDictionary()
+        private static string LoadDataDir()
         {
             // LUCENENET specific - reformatted with :, renamed from "analysis.data.dir"
             string currentPath = SystemProperties.GetProperty("kuromoji:data:dir",
 #if FEATURE_APPDOMAIN_BASEDIRECTORY
-                AppDomain.CurrentDomain.BaseDirectory
+            AppDomain.CurrentDomain.BaseDirectory
 #else
-                System.AppContext.BaseDirectory
+            System.AppContext.BaseDirectory
 #endif
-                );
+            );
 
             // If a matching directory path is found, set our DATA_DIR static
             // variable. If it is null or empty after this process, we need to
@@ -74,8 +75,7 @@ namespace Lucene.Net.Analysis.Ja.Dict
             string candidatePath = System.IO.Path.Combine(currentPath, DATA_SUBDIR);
             if (System.IO.Directory.Exists(candidatePath))
             {
-                DATA_DIR = candidatePath;
-                return;
+                return candidatePath;
             }
 
             while (new DirectoryInfo(currentPath).Parent != null)
@@ -85,8 +85,7 @@ namespace Lucene.Net.Analysis.Ja.Dict
                     candidatePath = System.IO.Path.Combine(new DirectoryInfo(currentPath).Parent.FullName, DATA_SUBDIR);
                     if (System.IO.Directory.Exists(candidatePath))
                     {
-                        DATA_DIR = candidatePath;
-                        return;
+                        return candidatePath;
                     }
                     currentPath = new DirectoryInfo(currentPath).Parent.FullName;
                 }
@@ -95,6 +94,8 @@ namespace Lucene.Net.Analysis.Ja.Dict
                     // ignore security errors
                 }
             }
+
+            return null; // This is the signal to load from local resources
         }
 
         protected BinaryDictionary()
@@ -103,7 +104,7 @@ namespace Lucene.Net.Analysis.Ja.Dict
             string[] posDict = null;
             string[] inflFormDict = null;
             string[] inflTypeDict = null;
-            ByteBuffer buffer = null;
+            ByteBuffer buffer; // LUCENENET: IDE0059: Remove unnecessary value assignment
 
             using (Stream mapIS = GetResource(TARGETMAP_FILENAME_SUFFIX))
             {
@@ -120,7 +121,7 @@ namespace Lucene.Net.Analysis.Ja.Dict
                         targetMapOffsets[sourceId] = ofs;
                         sourceId++;
                     }
-                    accum += (int)((uint)val) >> 1;
+                    accum += val.TripleShift(1);
                     targetMap[ofs] = accum;
                 }
                 if (sourceId + 1 != targetMapOffsets.Length)
@@ -165,7 +166,7 @@ namespace Lucene.Net.Analysis.Ja.Dict
                 int read = dictIS.Read(tmpBuffer.Array, 0, size);
                 if (read != size)
                 {
-                    throw new EndOfStreamException("Cannot read whole dictionary");
+                    throw EOFException.Create("Cannot read whole dictionary");
                 }
             }
             buffer = tmpBuffer.AsReadOnlyBuffer();
@@ -222,12 +223,12 @@ namespace Lucene.Net.Analysis.Ja.Dict
 
         public virtual int GetLeftId(int wordId)
         {
-            return (short)((ushort)buffer.GetInt16(wordId)) >> 3;
+            return buffer.GetInt16(wordId).TripleShift(3);
         }
 
         public virtual int GetRightId(int wordId)
         {
-            return (short)((ushort)buffer.GetInt16(wordId)) >> 3;
+            return buffer.GetInt16(wordId).TripleShift(3);
         }
 
         public virtual int GetWordCost(int wordId)
@@ -241,7 +242,7 @@ namespace Lucene.Net.Analysis.Ja.Dict
             {
                 int offset = BaseFormOffset(wordId);
                 int data = buffer.Get(offset++) & 0xff;
-                int prefix = (int)((uint)data) >> 4;
+                int prefix = data.TripleShift(4);
                 int suffix = data & 0xF;
                 char[] text = new char[prefix + suffix];
                 System.Array.Copy(surfaceForm, off, text, 0, prefix);
@@ -263,7 +264,7 @@ namespace Lucene.Net.Analysis.Ja.Dict
             {
                 int offset = ReadingOffset(wordId);
                 int readingData = buffer.Get(offset++) & 0xff;
-                return ReadString(offset, (int)((uint)readingData) >> 1, (readingData & 1) == 1);
+                return ReadString(offset, readingData.TripleShift(1), (readingData & 1) == 1);
             }
             else
             {
@@ -296,7 +297,7 @@ namespace Lucene.Net.Analysis.Ja.Dict
             {
                 int offset = PronunciationOffset(wordId);
                 int pronunciationData = buffer.Get(offset++) & 0xff;
-                return ReadString(offset, (int)((uint)pronunciationData) >> 1, (pronunciationData & 1) == 1);
+                return ReadString(offset, pronunciationData.TripleShift(1), (pronunciationData & 1) == 1);
             }
             else
             {
@@ -346,7 +347,7 @@ namespace Lucene.Net.Analysis.Ja.Dict
                 }
                 else
                 {
-                    readingLength = (int)((uint)readingData) >> 1;
+                    readingLength = readingData.TripleShift(1);
                 }
                 return offset + readingLength;
             }

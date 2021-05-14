@@ -1,4 +1,4 @@
-using J2N.Collections.Generic.Extensions;
+﻿using J2N.Collections.Generic.Extensions;
 using Lucene.Net.Diagnostics;
 using Lucene.Net.Util;
 using System;
@@ -56,7 +56,7 @@ namespace Lucene.Net.Index
         private class RefCountHelper : RefCount<DocValuesProducer>
         {
             private readonly SegmentDocValues outerInstance;
-            private long? gen;
+            private readonly long? gen; // LUCENENET: marked readonly
 
             public RefCountHelper(SegmentDocValues outerInstance, DocValuesProducer fieldsProducer, long? gen)
                 : base(fieldsProducer)
@@ -81,8 +81,7 @@ namespace Lucene.Net.Index
         {
             lock (this)
             {
-                RefCount<DocValuesProducer> dvp;
-                if (!(genDVProducers.TryGetValue(gen, out dvp)))
+                if (!genDVProducers.TryGetValue(gen, out RefCount<DocValuesProducer> dvp))
                 {
                     dvp = NewDocValuesProducer(si, context, dir, dvFormat, gen, infos, termsIndexDivisor);
                     if (Debugging.AssertsEnabled) Debugging.Assert(dvp != null);
@@ -108,12 +107,12 @@ namespace Lucene.Net.Index
                 foreach (long? gen in dvProducersGens)
                 {
                     RefCount<DocValuesProducer> dvp = genDVProducers[gen];
-                    if (Debugging.AssertsEnabled) Debugging.Assert(dvp != null, () => "gen=" + gen);
+                    if (Debugging.AssertsEnabled) Debugging.Assert(dvp != null,"gen={0}", gen);
                     try
                     {
                         dvp.DecRef();
                     }
-                    catch (Exception th)
+                    catch (Exception th) when (th.IsThrowable())
                     {
                         if (t != null)
                         {

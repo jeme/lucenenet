@@ -217,7 +217,7 @@ namespace Lucene.Net.Index
                 BindingFlags.NonPublic | BindingFlags.GetField | BindingFlags.Instance);
             ReentrantLock @lock = (ReentrantLock)field.GetValue(queue);
             @lock.Lock();
-            var t = new ThreadAnonymousInnerClassHelper(this, queue);
+            var t = new ThreadAnonymousClass(this, queue);
             t.Start();
             t.Join();
             @lock.Unlock();
@@ -230,13 +230,13 @@ namespace Lucene.Net.Index
             Assert.IsFalse(queue.AnyChanges(), "all changes applied");
         }
 
-        private class ThreadAnonymousInnerClassHelper : ThreadJob
+        private class ThreadAnonymousClass : ThreadJob
         {
             private readonly TestDocumentsWriterDeleteQueue outerInstance;
 
             private DocumentsWriterDeleteQueue queue;
 
-            public ThreadAnonymousInnerClassHelper(TestDocumentsWriterDeleteQueue outerInstance, DocumentsWriterDeleteQueue queue)
+            public ThreadAnonymousClass(TestDocumentsWriterDeleteQueue outerInstance, DocumentsWriterDeleteQueue queue)
             {
                 this.outerInstance = outerInstance;
                 this.queue = queue;
@@ -318,18 +318,9 @@ namespace Lucene.Net.Index
 
             public override void Run()
             {
-//#if FEATURE_THREAD_INTERRUPT
-//                try
-//                {
-//#endif
-                    latch.Wait();
-//#if FEATURE_THREAD_INTERRUPT
-//                }
-//                catch (ThreadInterruptedException e) // LUCENENET NOTE: Senseless to catch and rethrow the same exception type
-//                {
-//                    throw new ThreadInterruptedException("Thread Interrupted Exception", e);
-//                }
-//#endif
+
+                latch.Wait();
+                // LUCENENET NOTE: No need to catch and rethrow same excepton type ThreadInterruptedException 
 
                 int i = 0;
                 while ((i = index.GetAndIncrement()) < ids.Length)

@@ -1,7 +1,8 @@
+﻿using J2N.Numerics;
 using Lucene.Net.Diagnostics;
 using Lucene.Net.Index;
 using System;
-using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using BytesRef = Lucene.Net.Util.BytesRef;
 
 namespace Lucene.Net.Codecs.Lucene3x
@@ -34,7 +35,7 @@ namespace Lucene.Net.Codecs.Lucene3x
     internal sealed class SegmentTermPositions : SegmentTermDocs
     {
         private IndexInput proxStream;
-        private IndexInput proxStreamOrig;
+        private readonly IndexInput proxStreamOrig; // LUCENENET: marked readonly
         private int proxCount;
         private int position;
 
@@ -80,17 +81,13 @@ namespace Lucene.Net.Codecs.Lucene3x
             needToLoadPayload = false;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         protected override void Dispose(bool disposing)
         {
             base.Dispose(disposing);
 
             if (disposing)
-            {
-                if (proxStream != null)
-                {
-                    proxStream.Dispose();
-                }
-            }
+                proxStream?.Dispose();
         }
 
         public int NextPosition()
@@ -119,7 +116,7 @@ namespace Lucene.Net.Codecs.Lucene3x
                 {
                     payloadLength = proxStream.ReadVInt32();
                 }
-                delta = (int)((uint)delta >> 1);
+                delta = delta.TripleShift(1);
                 needToLoadPayload = true;
             }
             else if (delta == -1)
@@ -129,6 +126,7 @@ namespace Lucene.Net.Codecs.Lucene3x
             return delta;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         protected internal sealed override void SkippingDoc()
         {
             // we remember to skip a document lazily
@@ -152,11 +150,12 @@ namespace Lucene.Net.Codecs.Lucene3x
 
         public sealed override int Read(int[] docs, int[] freqs)
         {
-            throw new NotSupportedException("TermPositions does not support processing multiple documents in one call. Use TermDocs instead.");
+            throw UnsupportedOperationException.Create("TermPositions does not support processing multiple documents in one call. Use TermDocs instead.");
         }
 
         /// <summary>
         /// Called by <c>base.SkipTo()</c>. </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         protected internal override void SkipProx(long proxPointer, int payloadLength)
         {
             // we save the pointer, we might have to skip there lazily
@@ -167,6 +166,7 @@ namespace Lucene.Net.Codecs.Lucene3x
             needToLoadPayload = false;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void SkipPositions(int n)
         {
             if (Debugging.AssertsEnabled) Debugging.Assert(m_indexOptions == IndexOptions.DOCS_AND_FREQS_AND_POSITIONS);
@@ -177,11 +177,12 @@ namespace Lucene.Net.Codecs.Lucene3x
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void SkipPayload()
         {
             if (needToLoadPayload && payloadLength > 0)
             {
-                proxStream.Seek(proxStream.GetFilePointer() + payloadLength);
+                proxStream.Seek(proxStream.Position + payloadLength); // LUCENENET specific: Renamed from getFilePointer() to match FileStream
             }
             needToLoadPayload = false;
         }

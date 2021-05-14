@@ -1,4 +1,4 @@
-using Lucene.Net.Diagnostics;
+﻿using Lucene.Net.Diagnostics;
 using Spatial4n.Core.Context;
 using Spatial4n.Core.Shapes;
 using System;
@@ -50,7 +50,7 @@ namespace Lucene.Net.Spatial.Prefix.Tree
 
             protected internal override SpatialPrefixTree NewSPT()
             {
-                return new QuadPrefixTree(m_ctx, m_maxLevels.HasValue ? m_maxLevels.Value : MAX_LEVELS_POSSIBLE);
+                return new QuadPrefixTree(m_ctx, m_maxLevels ?? MAX_LEVELS_POSSIBLE);
             }
         }
 
@@ -261,12 +261,13 @@ namespace Lucene.Net.Spatial.Prefix.Tree
             protected internal override ICollection<Cell> GetSubCells()
             {
                 QuadPrefixTree outerInstance = (QuadPrefixTree)this.m_outerInstance;
-                IList<Cell> cells = new List<Cell>(4);
-                cells.Add(new QuadCell(outerInstance, TokenString + "A"));
-                cells.Add(new QuadCell(outerInstance, TokenString + "B"));
-                cells.Add(new QuadCell(outerInstance, TokenString + "C"));
-                cells.Add(new QuadCell(outerInstance, TokenString + "D"));
-                return cells;
+                return new List<Cell>(4)
+                {
+                    new QuadCell(outerInstance, TokenString + "A"),
+                    new QuadCell(outerInstance, TokenString + "B"),
+                    new QuadCell(outerInstance, TokenString + "C"),
+                    new QuadCell(outerInstance, TokenString + "D")
+                };
             }
 
             public override int SubCellsSize => 4;
@@ -318,7 +319,7 @@ namespace Lucene.Net.Spatial.Prefix.Tree
                     }
                     else
                     {
-                        throw new Exception("unexpected char: " + c);
+                        throw RuntimeException.Create("unexpected char: " + c);
                     }
                 }
                 int len = token.Length;

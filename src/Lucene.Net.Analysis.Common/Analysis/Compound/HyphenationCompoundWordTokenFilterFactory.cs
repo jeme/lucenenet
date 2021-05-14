@@ -1,4 +1,5 @@
-﻿using Lucene.Net.Analysis.Compound.Hyphenation;
+// Lucene version compatibility level 4.8.1
+using Lucene.Net.Analysis.Compound.Hyphenation;
 using Lucene.Net.Analysis.Util;
 using Lucene.Net.Util;
 using System.Collections.Generic;
@@ -79,7 +80,7 @@ namespace Lucene.Net.Analysis.Compound
             onlyLongestMatch = GetBoolean(args, "onlyLongestMatch", false);
             if (args.Count > 0)
             {
-                throw new ArgumentException("Unknown parameters: " + args);
+                throw new ArgumentException(string.Format(J2N.Text.StringFormatter.CurrentCulture, "Unknown parameters: {0}", args));
             }
         }
 

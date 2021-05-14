@@ -1,4 +1,5 @@
-﻿#if FEATURE_BREAKITERATOR
+// Lucene version compatibility level 4.8.1
+#if FEATURE_BREAKITERATOR
 using ICU4N.Text;
 using Lucene.Net.Analysis.TokenAttributes;
 using Lucene.Net.Diagnostics;
@@ -68,7 +69,7 @@ namespace Lucene.Net.Analysis.Util
         /// be provided to this constructor.
         /// </para>
         /// </summary>
-        public SegmentingTokenizerBase(TextReader reader, BreakIterator iterator)
+        protected SegmentingTokenizerBase(TextReader reader, BreakIterator iterator) // LUCENENET: CA1012: Abstract types should not have constructors (marked protected)
             : this(AttributeFactory.DEFAULT_ATTRIBUTE_FACTORY, reader, iterator)
         {
         }
@@ -76,7 +77,7 @@ namespace Lucene.Net.Analysis.Util
         /// <summary>
         /// Construct a new SegmenterBase, also supplying the <see cref="Lucene.Net.Util.AttributeSource.AttributeFactory"/>
         /// </summary>
-        public SegmentingTokenizerBase(AttributeFactory factory, TextReader reader, BreakIterator iterator)
+        protected SegmentingTokenizerBase(AttributeFactory factory, TextReader reader, BreakIterator iterator) // LUCENENET: CA1012: Abstract types should not have constructors (marked protected)
             : base(factory, reader)
         {
             offsetAtt = AddAttribute<IOffsetAttribute>();
@@ -184,7 +185,7 @@ namespace Lucene.Net.Analysis.Util
         /// commons-io's readFully, but without bugs if offset != 0 </summary>
         private static int Read(TextReader input, char[] buffer, int offset, int length)
         {
-            if (Debugging.AssertsEnabled) Debugging.Assert(length >= 0, () => "length must not be negative: " + length);
+            if (Debugging.AssertsEnabled) Debugging.Assert(length >= 0,"length must not be negative: {0}", length);
 
             int remaining = length;
             while (remaining > 0)

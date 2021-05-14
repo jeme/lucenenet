@@ -1,14 +1,15 @@
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using Lucene.Net.Analysis;
+﻿using Lucene.Net.Analysis;
 using Lucene.Net.Analysis.TokenAttributes;
 using Lucene.Net.Documents;
 using Lucene.Net.Index;
-using Lucene.Net.Spatial.Prefix.Tree;
 using Lucene.Net.Queries.Function;
+using Lucene.Net.Spatial.Prefix.Tree;
 using Lucene.Net.Spatial.Queries;
 using Lucene.Net.Spatial.Util;
 using Spatial4n.Core.Shapes;
+using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
 
 namespace Lucene.Net.Spatial.Prefix
 {
@@ -74,14 +75,15 @@ namespace Lucene.Net.Spatial.Prefix
     {
         protected readonly SpatialPrefixTree m_grid;
 
-        private readonly ConcurrentDictionary<string, PointPrefixTreeFieldCacheProvider> provider =
-            new ConcurrentDictionary<string, PointPrefixTreeFieldCacheProvider>();
+        // LUCENENET specific - use Lazy<T> to make the create operation atomic. See #417.
+        private readonly ConcurrentDictionary<string, Lazy<PointPrefixTreeFieldCacheProvider>> provider =
+            new ConcurrentDictionary<string, Lazy<PointPrefixTreeFieldCacheProvider>>();
 
         protected readonly bool m_simplifyIndexedCells;
         protected int m_defaultFieldValuesArrayLen = 2;
         protected double m_distErrPct = SpatialArgs.DEFAULT_DISTERRPCT;// [ 0 TO 0.5 ]
 
-        public PrefixTreeStrategy(SpatialPrefixTree grid, string fieldName, bool simplifyIndexedCells)
+        protected PrefixTreeStrategy(SpatialPrefixTree grid, string fieldName, bool simplifyIndexedCells) // LUCENENET: CA1012: Abstract types should not have constructors (marked protected)
             : base(grid.SpatialContext, fieldName)
         {
             this.m_grid = grid;
@@ -141,20 +143,14 @@ namespace Lucene.Net.Spatial.Prefix
         /// <summary>
         /// Indexed, tokenized, not stored.
         /// </summary>
-        public static readonly FieldType FIELD_TYPE = LoadFieldType();
-
-        private static FieldType LoadFieldType() // LUCENENET: Avoid static constructors (see https://github.com/apache/lucenenet/pull/224#issuecomment-469284006)
+        // LUCENENET: Avoid static constructors (see https://github.com/apache/lucenenet/pull/224#issuecomment-469284006)
+        public static readonly FieldType FIELD_TYPE = new FieldType
         {
-            var fieldType = new FieldType
-            {
-                IsIndexed = true,
-                IsTokenized = true,
-                OmitNorms = true,
-                IndexOptions = IndexOptions.DOCS_ONLY
-            };
-            fieldType.Freeze();
-            return fieldType;
-        }
+            IsIndexed = true,
+            IsTokenized = true,
+            OmitNorms = true,
+            IndexOptions = IndexOptions.DOCS_ONLY
+        }.Freeze();
 
         /// <summary>Outputs the tokenString of a cell, and if its a leaf, outputs it again with the leaf byte.</summary>
         internal sealed class CellTokenStream : TokenStream
@@ -194,12 +190,39 @@ namespace Lucene.Net.Spatial.Prefix
                 }
                 return false;
             }
+
+            /// <summary>
+            /// Releases resources used by the <see cref="CellTokenStream"/> and
+            /// if overridden in a derived class, optionally releases unmanaged resources.
+            /// </summary>
+            /// <param name="disposing"><c>true</c> to release both managed and unmanaged resources;
+            /// <c>false</c> to release only unmanaged resources.</param>
+
+            // LUCENENET specific
+            protected override void Dispose(bool disposing)
+            {
+                try
+                {
+                    if (disposing)
+                    {
+                        iter?.Dispose(); // LUCENENET specific - dispose iter and set to null
+                        iter = null;
+                    }
+                }
+                finally
+                {
+                    base.Dispose(disposing);
+                }
+            }
         }
 
         public override ValueSource MakeDistanceValueSource(IPoint queryPoint, double multiplier)
         {
-            var p = provider.GetOrAdd(FieldName, f => new PointPrefixTreeFieldCacheProvider(m_grid, FieldName, m_defaultFieldValuesArrayLen));
-            return new ShapeFieldCacheDistanceValueSource(m_ctx, p, queryPoint, multiplier);
+            // LUCENENET specific - use Lazy<T> to make the create operation atomic. See #417.
+            var p = provider.GetOrAdd(FieldName,
+                f => new Lazy<PointPrefixTreeFieldCacheProvider>(
+                    () => new PointPrefixTreeFieldCacheProvider(m_grid, FieldName, m_defaultFieldValuesArrayLen)));
+            return new ShapeFieldCacheDistanceValueSource(m_ctx, p.Value, queryPoint, multiplier);
         }
 
         public virtual SpatialPrefixTree Grid => m_grid;

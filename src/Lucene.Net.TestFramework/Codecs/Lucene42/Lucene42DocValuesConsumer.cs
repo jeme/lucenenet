@@ -1,4 +1,4 @@
-using Lucene.Net.Diagnostics;
+﻿using Lucene.Net.Diagnostics;
 using Lucene.Net.Index;
 using Lucene.Net.Store;
 using Lucene.Net.Util;
@@ -40,7 +40,9 @@ namespace Lucene.Net.Codecs.Lucene42
 #pragma warning disable 612, 618
     internal class Lucene42DocValuesConsumer : DocValuesConsumer
     {
+#pragma warning disable CA2213 // Disposable fields should be disposed
         internal readonly IndexOutput data, meta;
+#pragma warning restore CA2213 // Disposable fields should be disposed
         internal readonly int maxDoc;
         internal readonly float acceptableOverheadRatio;
 
@@ -78,7 +80,7 @@ namespace Lucene.Net.Codecs.Lucene42
         {
             meta.WriteVInt32(field.Number);
             meta.WriteByte((byte)Lucene42DocValuesProducer.NUMBER);
-            meta.WriteInt64(data.GetFilePointer());
+            meta.WriteInt64(data.Position); // LUCENENET specific: Renamed from getFilePointer() to match FileStream
             long minValue = long.MaxValue;
             long maxValue = long.MinValue;
             long gcd = 0;
@@ -231,7 +233,7 @@ namespace Lucene.Net.Codecs.Lucene42
             meta.WriteByte((byte)Lucene42DocValuesProducer.BYTES);
             int minLength = int.MaxValue;
             int maxLength = int.MinValue;
-            long startFP = data.GetFilePointer();
+            long startFP = data.Position; // LUCENENET specific: Renamed from getFilePointer() to match FileStream
             foreach (BytesRef v in values)
             {
                 int length = v == null ? 0 : v.Length;
@@ -247,7 +249,7 @@ namespace Lucene.Net.Codecs.Lucene42
                 }
             }
             meta.WriteInt64(startFP);
-            meta.WriteInt64(data.GetFilePointer() - startFP);
+            meta.WriteInt64(data.Position - startFP); // LUCENENET specific: Renamed from getFilePointer() to match FileStream
             meta.WriteVInt32(minLength);
             meta.WriteVInt32(maxLength);
 
@@ -276,7 +278,7 @@ namespace Lucene.Net.Codecs.Lucene42
         {
             meta.WriteVInt32(field.Number);
             meta.WriteByte((byte)Lucene42DocValuesProducer.FST);
-            meta.WriteInt64(data.GetFilePointer());
+            meta.WriteInt64(data.Position); // LUCENENET specific: Renamed from getFilePointer() to match FileStream
             PositiveInt32Outputs outputs = PositiveInt32Outputs.Singleton;
             Builder<long?> builder = new Builder<long?>(INPUT_TYPE.BYTE1, outputs);
             Int32sRef scratch = new Int32sRef();
@@ -343,22 +345,19 @@ namespace Lucene.Net.Codecs.Lucene42
         public override void AddSortedSetField(FieldInfo field, IEnumerable<BytesRef> values, IEnumerable<long?> docToOrdCount, IEnumerable<long?> ords)
         {
             // write the ordinals as a binary field
-            AddBinaryField(field, new IterableAnonymousInnerClassHelper(this, docToOrdCount, ords));
+            AddBinaryField(field, new IterableAnonymousClass(docToOrdCount, ords));
 
             // write the values as FST
             WriteFST(field, values);
         }
 
-        private class IterableAnonymousInnerClassHelper : IEnumerable<BytesRef>
+        private class IterableAnonymousClass : IEnumerable<BytesRef>
         {
-            private readonly Lucene42DocValuesConsumer outerInstance;
+            private readonly IEnumerable<long?> docToOrdCount;
+            private readonly IEnumerable<long?> ords;
 
-            private IEnumerable<long?> docToOrdCount;
-            private IEnumerable<long?> ords;
-
-            public IterableAnonymousInnerClassHelper(Lucene42DocValuesConsumer outerInstance, IEnumerable<long?> docToOrdCount, IEnumerable<long?> ords)
+            public IterableAnonymousClass(IEnumerable<long?> docToOrdCount, IEnumerable<long?> ords)
             {
-                this.outerInstance = outerInstance;
                 this.docToOrdCount = docToOrdCount;
                 this.ords = ords;
             }
@@ -408,9 +407,9 @@ namespace Lucene.Net.Codecs.Lucene42
                 {
                     EncodeValues(count);
                 }
-                catch (IOException bogus)
+                catch (Exception bogus) when (bogus.IsIOException())
                 {
-                    throw new Exception(bogus.ToString(), bogus);
+                    throw RuntimeException.Create(bogus);
                 }
 
                 @ref.Bytes = buffer;

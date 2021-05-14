@@ -29,19 +29,16 @@ namespace Lucene.Net.Benchmarks.ByTask.Stats
     /// The same task can run more than once, but, if that task records statistics, 
     /// each run would create its own TaskStats.
     /// </summary>
-    public class TaskStats
-#if FEATURE_CLONEABLE
-        : System.ICloneable
-#endif
+    public class TaskStats // LUCENENET specific: Not implementing ICloneable per Microsoft's recommendation
     {
         /// <summary>Task for which data was collected.</summary>
-        private PerfTask task;
+        private readonly PerfTask task; // LUCENENET: marked readonly
 
         /// <summary>Round in which task run started.</summary>
         private int round;
 
-        /// <summary>Task start time.</summary>
-        private long start;
+        ///// <summary>Task start time.</summary>
+        //private long start; // LUCENENET: Never read
 
         /// <summary>Task elapsed time.  elapsed >= 0 indicates run completion!</summary>
         private long elapsed = -1;
@@ -53,7 +50,7 @@ namespace Lucene.Net.Benchmarks.ByTask.Stats
         private long maxUsedMem;
 
         /// <summary>Serial run number of this task run in the perf run.</summary>
-        private int taskRunNum;
+        private readonly int taskRunNum; // LUCENENET: marked readonly
 
         /// <summary>Number of other tasks that started to run while this task was still running.</summary>
         private int numParallelTasks;
@@ -83,7 +80,7 @@ namespace Lucene.Net.Benchmarks.ByTask.Stats
             this.round = round;
             maxTotMem = GC.GetTotalMemory(false); //Runtime.getRuntime().totalMemory();
             maxUsedMem = maxTotMem; // - Runtime.getRuntime().freeMemory(); // LUCENENET TODO: available RAM
-            start = Stopwatch.GetTimestamp();
+            //start = Stopwatch.GetTimestamp(); // LUCENENET: Never read
         }
 
         /// <summary>
@@ -178,11 +175,11 @@ namespace Lucene.Net.Benchmarks.ByTask.Stats
             {
                 if (countsByTimeStepMSec != stat2.countsByTimeStepMSec)
                 {
-                    throw new InvalidOperationException("different by-time msec step");
+                    throw IllegalStateException.Create("different by-time msec step");
                 }
                 if (countsByTime.Length != stat2.countsByTime.Length)
                 {
-                    throw new InvalidOperationException("different by-time msec count");
+                    throw IllegalStateException.Create("different by-time msec count");
                 }
                 for (int i = 0; i < stat2.countsByTime.Length; i++)
                 {

@@ -1,4 +1,5 @@
-﻿using Lucene.Net.Analysis.NGram;
+﻿// Lucene version compatibility level 4.8.1
+using Lucene.Net.Analysis.NGram;
 using Lucene.Net.Analysis.Util;
 using Lucene.Net.Util;
 using NUnit.Framework;
@@ -42,7 +43,7 @@ namespace Lucene.Net.Analysis.Synonym
                 SlowSynonymFilterFactory.ParseRules(rules, synMap, "=>", ",", true, null);
                 fail("IllegalArgumentException must be thrown.");
             }
-            catch (ArgumentException)
+            catch (Exception iae) when (iae.IsIllegalArgumentException())
             {
             }
         }
@@ -280,7 +281,7 @@ namespace Lucene.Net.Analysis.Synonym
             IDictionary<string, string> args = new Dictionary<string, string>();
             args["synonyms"] = "something.txt";
             SlowSynonymFilterFactory ff = new SlowSynonymFilterFactory(args);
-            ff.Inform(new ResourceLoaderAnonymousInnerClassHelper());
+            ff.Inform(new ResourceLoaderAnonymousClass());
 
             SlowSynonymMap synMap = ff.SynonymMap;
             assertEquals(2, synMap.Submap.size());
@@ -290,23 +291,23 @@ namespace Lucene.Net.Analysis.Synonym
             AssertTokIncludes(synMap, "b", "b");
         }
 
-        internal sealed class ResourceLoaderAnonymousInnerClassHelper : IResourceLoader
+        private sealed class ResourceLoaderAnonymousClass : IResourceLoader
         {
             public T NewInstance<T>(string cname)
             {
-                throw new Exception("stub");
+                throw RuntimeException.Create("stub");
             }
 
             public Type FindType(string cname)
             {
-                throw new Exception("stub");
+                throw RuntimeException.Create("stub");
             }
 
             public Stream OpenResource(string resource)
             {
                 if (!"something.txt".Equals(resource, StringComparison.Ordinal))
                 {
-                    throw new Exception("should not get a differnt resource");
+                    throw RuntimeException.Create("should not get a differnt resource");
                 }
                 else
                 {

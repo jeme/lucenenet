@@ -203,9 +203,7 @@ namespace Lucene.Net.QueryParsers.Flexible.Standard
                 q = QueryParserUtil.Parse(queries5, fields, new MockAnalyzer(Random));
                 fail();
             }
-#pragma warning disable 168
-            catch (ArgumentException e)
-#pragma warning restore 168
+            catch (Exception e) when (e.IsIllegalArgumentException())
             {
                 // expected exception, array length differs
             }
@@ -245,9 +243,7 @@ namespace Lucene.Net.QueryParsers.Flexible.Standard
                 q = QueryParserUtil.Parse("blah", fields, flags2, new MockAnalyzer(Random));
                 fail();
             }
-#pragma warning disable 168
-            catch (ArgumentException e)
-#pragma warning restore 168
+            catch (Exception e) when (e.IsIllegalArgumentException())
             {
                 // expected exception, array length differs
             }
@@ -280,9 +276,7 @@ namespace Lucene.Net.QueryParsers.Flexible.Standard
                 q = QueryParserUtil.Parse("blah", fields, flags2, new MockAnalyzer(Random));
                 fail();
             }
-#pragma warning disable 168
-            catch (ArgumentException e)
-#pragma warning restore 168
+            catch (Exception e) when (e.IsIllegalArgumentException())
             {
                 // expected exception, array length differs
             }
@@ -310,9 +304,7 @@ namespace Lucene.Net.QueryParsers.Flexible.Standard
                     .Parse(queries, fields, flags2, new MockAnalyzer(Random));
                 fail();
             }
-#pragma warning disable 168
-            catch (ArgumentException e)
-#pragma warning restore 168
+            catch (Exception e) when (e.IsIllegalArgumentException())
             {
                 // expected exception, array length differs
             }
@@ -340,9 +332,7 @@ namespace Lucene.Net.QueryParsers.Flexible.Standard
                     .Parse(queries, fields, flags2, new MockAnalyzer(Random));
                 fail();
             }
-#pragma warning disable 168
-            catch (ArgumentException e)
-#pragma warning restore 168
+            catch (Exception e) when (e.IsIllegalArgumentException())
             {
                 // expected exception, array length differs
             }
@@ -426,6 +416,23 @@ namespace Lucene.Net.QueryParsers.Flexible.Standard
             protected internal override TokenStreamComponents CreateComponents(String fieldName, TextReader reader)
             {
                 return stdAnalyzer.CreateComponents(fieldName, reader);
+            }
+
+            // LUCENENET specific
+            protected override void Dispose(bool disposing)
+            {
+                try
+                {
+                    if (disposing)
+                    {
+                        stdAnalyzer?.Dispose(); // LUCENENET specific - dispose stdAnalyzer and set to null
+                        stdAnalyzer = null;
+                    }
+                }
+                finally
+                {
+                    base.Dispose(disposing);
+                }
             }
         }
     }

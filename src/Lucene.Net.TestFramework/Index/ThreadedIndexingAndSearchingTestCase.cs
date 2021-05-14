@@ -1,4 +1,4 @@
-using J2N.Threading;
+﻿using J2N.Threading;
 using J2N.Threading.Atomic;
 using Lucene.Net.Analysis;
 using Lucene.Net.Diagnostics;
@@ -8,6 +8,7 @@ using Lucene.Net.Search;
 using Lucene.Net.Store;
 using Lucene.Net.Support;
 using Lucene.Net.Util;
+using RandomizedTesting.Generators;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -141,7 +142,7 @@ namespace Lucene.Net.Index
             ThreadJob[] threads = new ThreadJob[numThreads];
             for (int thread = 0; thread < numThreads; thread++)
             {
-                threads[thread] = new ThreadAnonymousInnerClassHelper(this, docs, stopTime, delIDs, delPackIDs, allSubDocs);
+                threads[thread] = new ThreadAnonymousClass(this, docs, stopTime, delIDs, delPackIDs, allSubDocs);
                 threads[thread].IsBackground = (true);
                 threads[thread].Start();
             }
@@ -149,7 +150,7 @@ namespace Lucene.Net.Index
             return threads;
         }
 
-        private class ThreadAnonymousInnerClassHelper : ThreadJob
+        private class ThreadAnonymousClass : ThreadJob
         {
             private readonly ThreadedIndexingAndSearchingTestCase outerInstance;
 
@@ -159,7 +160,7 @@ namespace Lucene.Net.Index
             private readonly ISet<string> delPackIDs;
             private readonly ConcurrentQueue<SubDocs> allSubDocs;
 
-            public ThreadAnonymousInnerClassHelper(ThreadedIndexingAndSearchingTestCase outerInstance, LineFileDocs docs, long stopTime, ISet<string> delIDs, ISet<string> delPackIDs, ConcurrentQueue<SubDocs> allSubDocs)
+            public ThreadAnonymousClass(ThreadedIndexingAndSearchingTestCase outerInstance, LineFileDocs docs, long stopTime, ISet<string> delIDs, ISet<string> delPackIDs, ConcurrentQueue<SubDocs> allSubDocs)
             {
                 this.outerInstance = outerInstance;
                 this.docs = docs;
@@ -385,13 +386,13 @@ namespace Lucene.Net.Index
                             doc.RemoveField(addedField);
                         }
                     }
-                    catch (Exception t)
+                    catch (Exception t) when (t.IsThrowable())
                     {
                         Console.WriteLine(Thread.CurrentThread.Name + ": hit exc");
                         Console.WriteLine(t.ToString());
                         Console.Write(t.StackTrace);
                         outerInstance.m_failed.Value = (true);
-                        throw new Exception(t.ToString(), t);
+                        throw RuntimeException.Create(t);
                     }
                 }
                 if (Verbose)
@@ -415,7 +416,7 @@ namespace Lucene.Net.Index
             // TODO: we should enrich this to do more interesting searches
             for (int thread = 0; thread < searchThreads.Length; thread++)
             {
-                searchThreads[thread] = new ThreadAnonymousInnerClassHelper2(this, stopTime, totHits, totTermCount);
+                searchThreads[thread] = new ThreadAnonymousClass2(this, stopTime, totHits, totTermCount);
                 searchThreads[thread].IsBackground = (true);
                 searchThreads[thread].Start();
             }
@@ -431,7 +432,7 @@ namespace Lucene.Net.Index
             }
         }
 
-        private class ThreadAnonymousInnerClassHelper2 : ThreadJob
+        private class ThreadAnonymousClass2 : ThreadJob
         {
             private readonly ThreadedIndexingAndSearchingTestCase outerInstance;
 
@@ -439,7 +440,7 @@ namespace Lucene.Net.Index
             private readonly AtomicInt32 totHits;
             private readonly AtomicInt32 totTermCount;
 
-            public ThreadAnonymousInnerClassHelper2(ThreadedIndexingAndSearchingTestCase outerInstance, long stopTimeMS, AtomicInt32 totHits, AtomicInt32 totTermCount)
+            public ThreadAnonymousClass2(ThreadedIndexingAndSearchingTestCase outerInstance, long stopTimeMS, AtomicInt32 totHits, AtomicInt32 totTermCount)
             {
                 this.outerInstance = outerInstance;
                 this.stopTimeMS = stopTimeMS;
@@ -468,8 +469,7 @@ namespace Lucene.Net.Index
                                 SegmentReader segReader = (SegmentReader)sub.Reader;
                                 IDictionary<string, string> diagnostics = segReader.SegmentInfo.Info.Diagnostics;
                                 assertNotNull(diagnostics);
-                                string source;
-                                diagnostics.TryGetValue("source", out source);
+                                diagnostics.TryGetValue("source", out string source);
                                 assertNotNull(source);
                                 if (source.Equals("merge", StringComparison.Ordinal))
                                 {
@@ -532,12 +532,12 @@ namespace Lucene.Net.Index
                             outerInstance.ReleaseSearcher(s);
                         }
                     }
-                    catch (Exception t)
+                    catch (Exception t) when (t.IsThrowable())
                     {
                         Console.WriteLine(Thread.CurrentThread.Name + ": hit exc");
                         outerInstance.m_failed.Value = (true);
                         Console.WriteLine(t.ToString());
-                        throw new Exception(t.ToString(), t);
+                        throw RuntimeException.Create(t);
                     }
                 }
             }
@@ -572,9 +572,9 @@ namespace Lucene.Net.Index
             LineFileDocs docs = new LineFileDocs(random, DefaultCodecSupportsDocValues);
             DirectoryInfo tempDir = CreateTempDir(testName);
             m_dir = GetDirectory(NewMockFSDirectory(tempDir)); // some subclasses rely on this being MDW
-            if (m_dir is BaseDirectoryWrapper)
+            if (m_dir is BaseDirectoryWrapper baseDirectoryWrapper)
             {
-                ((BaseDirectoryWrapper)m_dir).CheckIndexOnDispose = false; // don't double-checkIndex, we do it ourselves.
+                baseDirectoryWrapper.CheckIndexOnDispose = false; // don't double-checkIndex, we do it ourselves.
             }
             MockAnalyzer analyzer = new MockAnalyzer(LuceneTestCase.Random);
             analyzer.MaxTokenLength = TestUtil.NextInt32(LuceneTestCase.Random, 1, IndexWriter.MAX_TERM_LENGTH);
@@ -586,28 +586,28 @@ namespace Lucene.Net.Index
                 // results in tons and tons of segments for this test
                 // when run nightly:
                 MergePolicy mp = conf.MergePolicy;
-                if (mp is TieredMergePolicy)
+                if (mp is TieredMergePolicy tieredMergePolicy)
                 {
-                    //((TieredMergePolicy)mp).MaxMergedSegmentMB = 5000.0;
-                    ((TieredMergePolicy)mp).MaxMergedSegmentMB = 2500.0; // LUCENENET specific - reduced each number by 50% to keep testing time under 1 hour
+                    //tieredMergePolicy.MaxMergedSegmentMB = 5000.0;
+                    tieredMergePolicy.MaxMergedSegmentMB = 2500.0; // LUCENENET specific - reduced each number by 50% to keep testing time under 1 hour
                 }
-                else if (mp is LogByteSizeMergePolicy)
+                else if (mp is LogByteSizeMergePolicy logByteSizeMergePolicy)
                 {
-                    //((LogByteSizeMergePolicy)mp).MaxMergeMB = 1000.0;
-                    ((LogByteSizeMergePolicy)mp).MaxMergeMB = 500.0; // LUCENENET specific - reduced each number by 50% to keep testing time under 1 hour
+                    //logByteSizeMergePolicy.MaxMergeMB = 1000.0;
+                    logByteSizeMergePolicy.MaxMergeMB = 500.0; // LUCENENET specific - reduced each number by 50% to keep testing time under 1 hour
                 }
-                else if (mp is LogMergePolicy)
+                else if (mp is LogMergePolicy logMergePolicy)
                 {
-                    //((LogMergePolicy)mp).MaxMergeDocs = 100000;
-                    ((LogMergePolicy)mp).MaxMergeDocs = 50000; // LUCENENET specific - reduced each number by 50% to keep testing time under 1 hour
+                    //logMergePolicy.MaxMergeDocs = 100000;
+                    logMergePolicy.MaxMergeDocs = 50000; // LUCENENET specific - reduced each number by 50% to keep testing time under 1 hour
                 }
             }
 
-            conf.SetMergedSegmentWarmer(new IndexReaderWarmerAnonymousInnerClassHelper(this));
+            conf.SetMergedSegmentWarmer(new IndexReaderWarmerAnonymousClass(this));
 
             if (Verbose)
             {
-                conf.SetInfoStream(new PrintStreamInfoStreamAnonymousInnerClassHelper(Console.Out));
+                conf.SetInfoStream(new PrintStreamInfoStreamAnonymousClass(Console.Out));
             }
             m_writer = new IndexWriter(m_dir, conf);
             TestUtil.ReduceOpenFiles(m_writer);
@@ -796,11 +796,11 @@ namespace Lucene.Net.Index
             }
         }
 
-        private class IndexReaderWarmerAnonymousInnerClassHelper : IndexWriter.IndexReaderWarmer
+        private class IndexReaderWarmerAnonymousClass : IndexWriter.IndexReaderWarmer
         {
             private readonly ThreadedIndexingAndSearchingTestCase outerInstance;
 
-            public IndexReaderWarmerAnonymousInnerClassHelper(ThreadedIndexingAndSearchingTestCase outerInstance)
+            public IndexReaderWarmerAnonymousClass(ThreadedIndexingAndSearchingTestCase outerInstance)
             {
                 this.outerInstance = outerInstance;
             }
@@ -843,9 +843,9 @@ namespace Lucene.Net.Index
             }
         }
 
-        private class PrintStreamInfoStreamAnonymousInnerClassHelper : TextWriterInfoStream
+        private class PrintStreamInfoStreamAnonymousClass : TextWriterInfoStream
         {
-            public PrintStreamInfoStreamAnonymousInnerClassHelper(TextWriter @out)
+            public PrintStreamInfoStreamAnonymousClass(TextWriter @out)
                 : base(@out)
             {
             }

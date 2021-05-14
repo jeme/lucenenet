@@ -1,5 +1,6 @@
-using J2N.Threading.Atomic;
+﻿using J2N.Threading.Atomic;
 using NUnit.Framework;
+using RandomizedTesting.Generators;
 using System;
 using System.Collections.Generic;
 using Assert = Lucene.Net.TestFramework.Assert;
@@ -44,7 +45,7 @@ namespace Lucene.Net.Index
                 DirectoryReader open = DirectoryReader.Open(dir);
                 bool throwOnClose = !Rarely();
                 AtomicReader wrap = SlowCompositeReaderWrapper.Wrap(open);
-                FilterAtomicReader reader = new FilterAtomicReaderAnonymousInnerClassHelper(this, wrap, throwOnClose);
+                FilterAtomicReader reader = new FilterAtomicReaderAnonymousClass(this, wrap, throwOnClose);
                 IList<IndexReader.IReaderClosedListener> listeners = new List<IndexReader.IReaderClosedListener>();
                 int listenerCount = Random.Next(20);
                 AtomicInt32 count = new AtomicInt32();
@@ -71,7 +72,7 @@ namespace Lucene.Net.Index
                     reader.Dispose();
                     Assert.Fail("expected Exception");
                 }
-                catch (InvalidOperationException ex)
+                catch (Exception ex) when (ex.IsIllegalStateException())
                 {
                     if (throwOnClose)
                     {
@@ -88,9 +89,7 @@ namespace Lucene.Net.Index
                     var aaa = reader.Fields;
                     Assert.Fail("we are closed");
                 }
-#pragma warning disable 168
-                catch (ObjectDisposedException ex)
-#pragma warning restore 168
+                catch (Exception ex) when (ex.IsAlreadyClosedException())
                 {
                 }
 
@@ -104,13 +103,13 @@ namespace Lucene.Net.Index
             }
         }
 
-        private class FilterAtomicReaderAnonymousInnerClassHelper : FilterAtomicReader
+        private class FilterAtomicReaderAnonymousClass : FilterAtomicReader
         {
             private readonly TestIndexReaderClose outerInstance;
 
             private bool throwOnClose;
 
-            public FilterAtomicReaderAnonymousInnerClassHelper(TestIndexReaderClose outerInstance, AtomicReader wrap, bool throwOnClose)
+            public FilterAtomicReaderAnonymousClass(TestIndexReaderClose outerInstance, AtomicReader wrap, bool throwOnClose)
                 : base(wrap)
             {
                 this.outerInstance = outerInstance;
@@ -122,7 +121,7 @@ namespace Lucene.Net.Index
                 base.DoClose();
                 if (throwOnClose)
                 {
-                    throw new InvalidOperationException("BOOM!");
+                    throw IllegalStateException.Create("BOOM!");
                 }
             }
         }
@@ -146,7 +145,7 @@ namespace Lucene.Net.Index
         {
             public void OnClose(IndexReader reader)
             {
-                throw new InvalidOperationException("GRRRRRRRRRRRR!");
+                throw IllegalStateException.Create("GRRRRRRRRRRRR!");
             }
         }
     }

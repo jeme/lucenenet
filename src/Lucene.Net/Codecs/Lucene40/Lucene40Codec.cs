@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.CompilerServices;
 
 namespace Lucene.Net.Codecs.Lucene40
 {
@@ -44,15 +45,16 @@ namespace Lucene.Net.Codecs.Lucene40
 
         private readonly PostingsFormat postingsFormat;
 
-        private class PerFieldPostingsFormatAnonymousInnerClassHelper : PerFieldPostingsFormat
+        private class PerFieldPostingsFormatAnonymousClass : PerFieldPostingsFormat
         {
             private readonly Lucene40Codec outerInstance;
 
-            public PerFieldPostingsFormatAnonymousInnerClassHelper(Lucene40Codec outerInstance)
+            public PerFieldPostingsFormatAnonymousClass(Lucene40Codec outerInstance)
             {
                 this.outerInstance = outerInstance;
             }
 
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public override PostingsFormat GetPostingsFormatForField(string field)
             {
                 return outerInstance.GetPostingsFormatForField(field);
@@ -64,7 +66,7 @@ namespace Lucene.Net.Codecs.Lucene40
         public Lucene40Codec()
             : base()
         {
-            postingsFormat = new PerFieldPostingsFormatAnonymousInnerClassHelper(this);
+            postingsFormat = new PerFieldPostingsFormatAnonymousClass(this);
         }
 
         public override sealed StoredFieldsFormat StoredFieldsFormat => fieldsFormat;
@@ -93,6 +95,7 @@ namespace Lucene.Net.Codecs.Lucene40
         /// <para/>
         /// The default implementation always returns "Lucene40".
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public virtual PostingsFormat GetPostingsFormatForField(string field)
         {
             // LUCENENET specific - lazy initialize the codec to ensure we get the correct type if overridden.

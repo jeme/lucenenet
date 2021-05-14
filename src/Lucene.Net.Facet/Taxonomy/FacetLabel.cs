@@ -1,4 +1,5 @@
-﻿using J2N.Text;
+﻿// Lucene version compatibility level 4.8.1
+using J2N.Text;
 using Lucene.Net.Diagnostics;
 using Lucene.Net.Support;
 using System;
@@ -68,7 +69,8 @@ namespace Lucene.Net.Facet.Taxonomy
             // while the code which calls this method is safe, at some point a test
             // tripped on AIOOBE in toString, but we failed to reproduce. adding the
             // assert as a safety check.
-            if (Debugging.AssertsEnabled) Debugging.Assert(prefixLen >= 0 && prefixLen <= copyFrom.Components.Length, () => "prefixLen cannot be negative nor larger than the given components' length: prefixLen=" + prefixLen + " components.length=" + copyFrom.Components.Length);
+            if (Debugging.AssertsEnabled) Debugging.Assert(prefixLen >= 0 && prefixLen <= copyFrom.Components.Length,
+                "prefixLen cannot be negative nor larger than the given components' length: prefixLen={0} components.length={1}", prefixLen, copyFrom.Components.Length);
             this.Components = copyFrom.Components;
             Length = prefixLen;
         }

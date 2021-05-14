@@ -15,6 +15,7 @@
 // The TagSoup parser
 
 using J2N.Text;
+using Lucene;
 using Lucene.Net.Support;
 using Sax;
 using Sax.Ext;
@@ -366,8 +367,7 @@ namespace TagSoup
                 }
                 else
                 {
-                    var handler = value as ILexicalHandler;
-                    if (handler != null)
+                    if (value is ILexicalHandler handler)
                     {
                         theLexicalHandler = handler;
                     }
@@ -379,8 +379,7 @@ namespace TagSoup
             }
             else if (name.Equals(SCANNER_PROPERTY, StringComparison.Ordinal))
             {
-                var scanner = value as IScanner;
-                if (scanner != null)
+                if (value is IScanner scanner)
                 {
                     theScanner = scanner;
                 }
@@ -391,8 +390,7 @@ namespace TagSoup
             }
             else if (name.Equals(SCHEMA_PROPERTY, StringComparison.Ordinal))
             {
-                var schema = value as Schema;
-                if (schema != null)
+                if (value is Schema schema)
                 {
                     theSchema = schema;
                 }
@@ -403,8 +401,7 @@ namespace TagSoup
             }
             else if (name.Equals(AUTO_DETECTOR_PROPERTY, StringComparison.Ordinal))
             {
-                var detector = value as IAutoDetector;
-                if (detector != null)
+                if (value is IAutoDetector detector)
                 {
                     theAutoDetector = detector;
                 }
@@ -449,12 +446,11 @@ namespace TagSoup
             TextReader r = GetReader(input);
             theContentHandler.StartDocument();
             theScanner.ResetDocumentLocator(input.PublicId, input.SystemId);
-            var locator = theScanner as ILocator;
-            if (locator != null)
+            if (theScanner is ILocator locator)
             {
                 theContentHandler.SetDocumentLocator(locator);
             }
-            if (!(theSchema.Uri.Equals("", StringComparison.Ordinal)))
+            if (theSchema.Uri.Length > 0)
             {
                 theContentHandler.StartPrefixMapping(theSchema.Prefix, theSchema.Uri);
             }
@@ -525,7 +521,7 @@ namespace TagSoup
                     //TODO: Safe?
                     r = new StreamReader(i, encoding);
                     //  }
-                    //catch (UnsupportedEncodingException e) {
+                    //catch (Exception e) when (e.IsUnsupportedEncodingException()) {
                     //  r = new StreamReader(i);
                     //  }
                 }
@@ -541,7 +537,9 @@ namespace TagSoup
         /// <param name="publicid"></param>
         /// <param name="systemid"></param>
         /// <returns></returns>
-        private Stream GetInputStream(string publicid, string systemid)
+#pragma warning disable IDE0060 // Remove unused parameter
+        private static Stream GetInputStream(string publicid, string systemid) // LUCENENET: CA1822: Mark members as static
+#pragma warning restore IDE0060 // Remove unused parameter
         {
             var basis = new Uri("file://" + Directory.GetCurrentDirectory() + Path.DirectorySeparatorChar);
             var url = new Uri(basis, systemid);
@@ -720,7 +718,7 @@ namespace TagSoup
             {
                 Pop();
             }
-            if (!(theSchema.Uri.Equals("", StringComparison.Ordinal)))
+            if (theSchema.Uri.Length > 0) // LUCENENET: CA1820: Test for empty strings using string length
             {
                 theContentHandler.EndPrefixMapping(theSchema.Prefix);
             }
@@ -925,7 +923,7 @@ namespace TagSoup
                 {
                     theEntityResolver.ResolveEntity(theDoctypePublicId, theDoctypeSystemId);
                 }
-                catch (IOException)
+                catch (Exception ioe) when (ioe.IsIOException())
                 {
                 } // Can't be thrown for root I believe.
             }
@@ -982,7 +980,7 @@ namespace TagSoup
         private bool Foreign(string prefix, string ns)
         {
             //		System.err.print("%% Testing " + prefix + " and " + namespace + " for foreignness -- ");
-            bool foreign = !(prefix.Equals("", StringComparison.Ordinal) || ns.Equals("", StringComparison.Ordinal) || ns.Equals(theSchema.Uri, StringComparison.Ordinal));
+            bool foreign = !(prefix.Length == 0 || ns.Length == 0 || ns.Equals(theSchema.Uri, StringComparison.Ordinal)); // LUCENENET: CA1820: Test for empty strings using string length
             //		System.err.println(foreign);
             return foreign;
         }
@@ -1043,8 +1041,7 @@ namespace TagSoup
                 theLexicalHandler.EndDTD();
                 theDoctypeName = name;
                 theDoctypePublicId = publicid;
-                var locator = theScanner as ILocator;
-                if (locator != null)
+                if (theScanner is ILocator locator)
                 {
                     // Must resolve systemid
                     theDoctypeSystemId = locator.SystemId;
@@ -1098,7 +1095,7 @@ namespace TagSoup
             }
             var l = new List<string>();
             int s = 0;
-            int e = 0;
+            int e; // LUCENENET: IDE0059: Remove unnecessary value assignment
             bool sq = false; // single quote
             bool dq = false; // double quote
             var lastc = (char)0;
@@ -1305,7 +1302,7 @@ namespace TagSoup
             ETagBasic(buff, offset, length);
         }
 
-        private char[] theCommentBuffer = new char[2000];
+        //private char[] theCommentBuffer = new char[2000]; // LUCENENET: Never read
         public virtual void Cmnt(char[] buff, int offset, int length)
         {
             theLexicalHandler.Comment(buff, offset, length);

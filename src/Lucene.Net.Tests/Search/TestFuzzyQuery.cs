@@ -1,4 +1,4 @@
-using Lucene.Net.Documents;
+﻿using Lucene.Net.Documents;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
@@ -248,6 +248,9 @@ namespace Lucene.Net.Search
         /// is not implemented correctly, there will be problems!
         /// </summary>
         [Test]
+#if NETFRAMEWORK
+        [AwaitsFix(BugUrl = "https://github.com/apache/lucenenet/issues/269")] // LUCENENET TODO: this test fails on x86 on .NET Framework in Release mode only
+#endif
         public virtual void TestTieBreaker()
         {
             Directory directory = NewDirectory();
@@ -395,9 +398,7 @@ namespace Lucene.Net.Search
                 q = new FuzzyQuery(new Term("field", "t"), 3);
                 Assert.Fail();
             }
-#pragma warning disable 168
-            catch (ArgumentException expected)
-#pragma warning restore 168
+            catch (ArgumentOutOfRangeException) // LUCENENET specific - changed from IllegalArgumentException to ArgumentOutOfRangeException (.NET convention)
             {
                 // expected
             }

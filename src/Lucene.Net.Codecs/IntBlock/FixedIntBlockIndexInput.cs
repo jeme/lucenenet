@@ -1,4 +1,5 @@
-﻿using Lucene.Net.Codecs.Sep;
+﻿using J2N.Numerics;
+using Lucene.Net.Codecs.Sep;
 using Lucene.Net.Diagnostics;
 using Lucene.Net.Store;
 using System.Diagnostics;
@@ -45,7 +46,7 @@ namespace Lucene.Net.Codecs.IntBlock
         private readonly IndexInput input;
         protected readonly int m_blockSize;
 
-        public FixedInt32BlockIndexInput(IndexInput @in)
+        protected FixedInt32BlockIndexInput(IndexInput @in) // LUCENENET: CA1012: Abstract types should not have constructors (marked protected)
         {
             input = @in;
             m_blockSize = @in.ReadVInt32();
@@ -131,7 +132,7 @@ namespace Lucene.Net.Codecs.IntBlock
                 else if (upto == blockSize)
                 {
                     // Load new block
-                    lastBlockFP = input.GetFilePointer();
+                    lastBlockFP = input.Position; // LUCENENET specific: Renamed from getFilePointer() to match FileStream
                     blockReader.ReadBlock();
                     upto = 0;
                 }
@@ -164,12 +165,12 @@ namespace Lucene.Net.Codecs.IntBlock
                     if ((uptoDelta & 1) == 1)
                     {
                         // same block
-                        upto += (int)((uint)uptoDelta >> 1);
+                        upto += uptoDelta.TripleShift(1);
                     }
                     else
                     {
                         // new block
-                        upto = (int)((uint)uptoDelta >> 1);
+                        upto = uptoDelta.TripleShift(1);
                         fp += indexIn.ReadVInt64();
                     }
                 }

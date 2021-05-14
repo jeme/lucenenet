@@ -1,4 +1,4 @@
-#if TESTFRAMEWORK
+﻿#if TESTFRAMEWORK
 // LUCENENET NOTE: This is incomplete
 using System;
 
@@ -41,17 +41,17 @@ namespace Lucene.Net.Util
           throw new ArgumentException("this is a @ClassRule (applies to suites only).");
         }
 
-        return new StatementAnonymousInnerClassHelper(this, s, d);
+        return new StatementAnonymousClass(this, s, d);
       }
 
-      private class StatementAnonymousInnerClassHelper : Statement
+      private class StatementAnonymousClass : Statement
       {
           private readonly TestRuleStoreClassName OuterInstance;
 
           private Statement s;
           private Description d;
 
-          public StatementAnonymousInnerClassHelper(TestRuleStoreClassName outerInstance, Statement s, Description d)
+          public StatementAnonymousClass(TestRuleStoreClassName outerInstance, Statement s, Description d)
           {
               this.OuterInstance = outerInstance;
               this.s = s;
@@ -82,7 +82,7 @@ namespace Lucene.Net.Util
             Description localDescription = Description;
             if (localDescription == null)
             {
-              throw new Exception("The rule is not currently executing.");
+              throw RuntimeException.Create("The rule is not currently executing.");
             }
             return localDescription.TestClass;
           }

@@ -1,4 +1,5 @@
-﻿
+﻿// Lucene version compatibility level 4.8.1
+
 using J2N.Runtime.CompilerServices;
 using J2N.Text;
 using Lucene.Net.Analysis.CharFilters;
@@ -68,11 +69,11 @@ namespace Lucene.Net.Analysis.Core
             bool Apply(T o);
         }
 
-        private static readonly IPredicate<object[]> ALWAYS = new PredicateAnonymousInnerClassHelper();
+        private static readonly IPredicate<object[]> ALWAYS = new PredicateAnonymousClass();
 
-        private class PredicateAnonymousInnerClassHelper : IPredicate<object[]>
+        private class PredicateAnonymousClass : IPredicate<object[]>
         {
-            public PredicateAnonymousInnerClassHelper()
+            public PredicateAnonymousClass()
             {
             }
 
@@ -88,14 +89,16 @@ namespace Lucene.Net.Analysis.Core
         private static readonly IDictionary<ConstructorInfo, IPredicate<object[]>> brokenOffsetsConstructors = new Dictionary<ConstructorInfo, IPredicate<object[]>>();
 
         internal static readonly ISet<Type> allowedTokenizerArgs, allowedTokenFilterArgs, allowedCharFilterArgs;
+
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1810:Initialize reference type static fields inline", Justification = "Complexity")]
         static TestRandomChains()
         {
             try
             {
                 brokenConstructors[typeof(LimitTokenCountFilter).GetConstructor(new Type[] { typeof(TokenStream), typeof(int) })] = ALWAYS;
-                brokenConstructors[typeof(LimitTokenCountFilter).GetConstructor(new Type[] { typeof(TokenStream), typeof(int), typeof(bool) })] = new PredicateAnonymousInnerClassHelper2();
+                brokenConstructors[typeof(LimitTokenCountFilter).GetConstructor(new Type[] { typeof(TokenStream), typeof(int), typeof(bool) })] = new PredicateAnonymousClass2();
                 brokenConstructors[typeof(LimitTokenPositionFilter).GetConstructor(new Type[] { typeof(TokenStream), typeof(int) })] = ALWAYS;
-                brokenConstructors[typeof(LimitTokenPositionFilter).GetConstructor(new Type[] { typeof(TokenStream), typeof(int), typeof(bool) })] = new PredicateAnonymousInnerClassHelper3();
+                brokenConstructors[typeof(LimitTokenPositionFilter).GetConstructor(new Type[] { typeof(TokenStream), typeof(int), typeof(bool) })] = new PredicateAnonymousClass3();
                 foreach (Type c in new Type[] {
                     // TODO: can we promote some of these to be only
                     // offsets offenders?
@@ -114,9 +117,9 @@ namespace Lucene.Net.Analysis.Core
                     }
                 }
             }
-            catch (Exception e)
+            catch (Exception e) when (e.IsException())
             {
-                throw new Exception(e.Message, e);
+                throw Error.Create(e);
             }
             try
             {
@@ -142,9 +145,9 @@ namespace Lucene.Net.Analysis.Core
                     }
                 }
             }
-            catch (Exception e)
+            catch (Exception e) when (e.IsException())
             {
-                throw new Exception(e.Message, e);
+                throw Error.Create(e);
             }
 
             allowedTokenizerArgs = new JCG.HashSet<Type>(IdentityEqualityComparer<Type>.Default);
@@ -164,9 +167,9 @@ namespace Lucene.Net.Analysis.Core
             allowedCharFilterArgs.Add(typeof(TextReader));
         }
 
-        private class PredicateAnonymousInnerClassHelper2 : IPredicate<object[]>
+        private class PredicateAnonymousClass2 : IPredicate<object[]>
         {
-            public PredicateAnonymousInnerClassHelper2()
+            public PredicateAnonymousClass2()
             {
             }
 
@@ -177,9 +180,9 @@ namespace Lucene.Net.Analysis.Core
             }
         }
 
-        private class PredicateAnonymousInnerClassHelper3 : IPredicate<object[]>
+        private class PredicateAnonymousClass3 : IPredicate<object[]>
         {
-            public PredicateAnonymousInnerClassHelper3()
+            public PredicateAnonymousClass3()
             {
             }
 
@@ -336,9 +339,7 @@ namespace Lucene.Net.Analysis.Core
 
             public AnonymousProducer(Func<Random, object> create)
             {
-                if (create == null)
-                    throw new ArgumentNullException("create");
-                this.create = create;
+                this.create = create ?? throw new ArgumentNullException(nameof(create));
             }
 
             public object Create(Random random)
@@ -502,22 +503,18 @@ namespace Lucene.Net.Analysis.Core
             public object Create(Random random)
             {
                 // TODO: make nastier
-                using (Stream affixStream = typeof(TestHunspellStemFilter).getResourceAsStream("simple.aff"))
+                using Stream affixStream = typeof(TestHunspellStemFilter).getResourceAsStream("simple.aff");
+                using Stream dictStream = typeof(TestHunspellStemFilter).getResourceAsStream("simple.dic");
+                try
                 {
-                    using (Stream dictStream = typeof(TestHunspellStemFilter).getResourceAsStream("simple.dic"))
-                    {
-                        try
-                        {
-                            return new Dictionary(affixStream, dictStream);
-                        }
-                        catch (Exception /*ex*/)
-                        {
-                            throw; // LUCENENET: CA2200: Rethrow to preserve stack details (https://docs.microsoft.com/en-us/visualstudio/code-quality/ca2200-rethrow-to-preserve-stack-details)
+                    return new Dictionary(affixStream, dictStream);
+                }
+                catch (Exception ex) when (ex.IsException())
+                {
+                    throw; // LUCENENET: CA2200: Rethrow to preserve stack details (https://docs.microsoft.com/en-us/visualstudio/code-quality/ca2200-rethrow-to-preserve-stack-details)
 #pragma warning disable 162
-                            return null; // unreachable code
+                    return null; // unreachable code
 #pragma warning restore 162
-                        }
-                    }
                 }
             }
         }
@@ -553,13 +550,11 @@ namespace Lucene.Net.Analysis.Core
                 // TODO: make nastier
                 try
                 {
-                    using (Stream @is = typeof(TestCompoundWordTokenFilter).getResourceAsStream("da_UTF8.xml"))
-                    {
-                        HyphenationTree hyphenator = HyphenationCompoundWordTokenFilter.GetHyphenationTree(@is);
-                        return hyphenator;
-                    }
+                    using Stream @is = typeof(TestCompoundWordTokenFilter).getResourceAsStream("da_UTF8.xml");
+                    HyphenationTree hyphenator = HyphenationCompoundWordTokenFilter.GetHyphenationTree(@is);
+                    return hyphenator;
                 }
-                catch (Exception /*ex*/)
+                catch (Exception ex) when (ex.IsException())
                 {
                     throw; // LUCENENET: CA2200: Rethrow to preserve stack details (https://docs.microsoft.com/en-us/visualstudio/code-quality/ca2200-rethrow-to-preserve-stack-details)
 #pragma warning disable 162
@@ -579,7 +574,7 @@ namespace Lucene.Net.Analysis.Core
                     Type clazz = Type.GetType("Lucene.Net.Tartarus.Snowball.Ext." + lang + "Stemmer, Lucene.Net.Analysis.Common");
                     return clazz.GetConstructor(new Type[0]).Invoke(new object[0]);
                 }
-                catch (Exception /*ex*/)
+                catch (Exception ex) when (ex.IsException())
                 {
                     throw; // LUCENENET: CA2200: Rethrow to preserve stack details (https://docs.microsoft.com/en-us/visualstudio/code-quality/ca2200-rethrow-to-preserve-stack-details)
 #pragma warning disable 162
@@ -673,19 +668,19 @@ namespace Lucene.Net.Analysis.Core
                     do
                     {
                         input = TestUtil.RandomRealisticUnicodeString(random);
-                    } while (input == string.Empty);
+                    } while (input.Length == 0); // LUCENENET: CA1820: Test for empty strings using string length
                     string @out = ""; TestUtil.RandomSimpleString(random);
                     do
                     {
                         @out = TestUtil.RandomRealisticUnicodeString(random);
-                    } while (@out == string.Empty);
+                    } while (@out.Length == 0); // LUCENENET: CA1820: Test for empty strings using string length
                     builder.Add(input, @out);
                 }
                 try
                 {
                     return builder.Build();
                 }
-                catch (Exception /*ex*/)
+                catch (Exception ex) when (ex.IsException())
                 {
                     throw; // LUCENENET: CA2200: Rethrow to preserve stack details (https://docs.microsoft.com/en-us/visualstudio/code-quality/ca2200-rethrow-to-preserve-stack-details)
 #pragma warning disable 162
@@ -709,7 +704,7 @@ namespace Lucene.Net.Analysis.Core
                 {
                     return b.Build();
                 }
-                catch (Exception /*ex*/)
+                catch (Exception ex) when (ex.IsException())
                 {
                     throw; // LUCENENET: CA2200: Rethrow to preserve stack details (https://docs.microsoft.com/en-us/visualstudio/code-quality/ca2200-rethrow-to-preserve-stack-details)
 #pragma warning disable 162
@@ -896,7 +891,7 @@ namespace Lucene.Net.Analysis.Core
                     descr.append("(").append(@params).append(")");
                     return instance;
                 }
-                catch (TargetInvocationException ite)
+                catch (Exception ite) when (ite.IsInvocationTargetException())
                 {
                     if (ite.InnerException != null && (ite.InnerException.GetType().Equals(typeof(ArgumentException))
                         || ite.InnerException.GetType().Equals(typeof(ArgumentOutOfRangeException))
@@ -915,23 +910,25 @@ namespace Lucene.Net.Analysis.Core
                         throw; // LUCENENET: CA2200: Rethrow to preserve stack details (https://docs.microsoft.com/en-us/visualstudio/code-quality/ca2200-rethrow-to-preserve-stack-details)
                     }
                 }
-                //catch (IllegalAccessException iae)
+                // LUCENENET: These are not necessary because all they do is catch and re-throw as an "unchecked"
+                // exception type, which .NET doesn't care about. Just let them propagate instead of catching.
+                //catch (Exception iae) when (iae.IsIllegalAccessException())
                 //{
-                //    Rethrow.rethrow(iae);
+                //    throw;
                 //}
-                //catch (InstantiationException ie)
+                //catch (Exception ie) when (ie.IsInstantiationException())
                 //{
-                //    Rethrow.rethrow(ie);
+                //    throw;
                 //}
-                return default(T); // no success
+                return default; // no success
             }
 
-            private bool Broken(ConstructorInfo ctor, object[] args)
+            private static bool Broken(ConstructorInfo ctor, object[] args) // LUCENENET: CA1822: Mark members as static
             {
                 return brokenConstructors.TryGetValue(ctor, out IPredicate<object[]> pred) && pred != null && pred.Apply(args);
             }
 
-            private bool BrokenOffsets(ConstructorInfo ctor, object[] args)
+            private static bool BrokenOffsets(ConstructorInfo ctor, object[] args) // LUCENENET: CA1822: Mark members as static
             {
                 return brokenOffsetsConstructors.TryGetValue(ctor, out IPredicate<object[]> pred) && pred != null && pred.Apply(args);
             }
@@ -1123,6 +1120,7 @@ namespace Lucene.Net.Analysis.Core
 
         [Test]
         [Slow]
+        [AwaitsFix(BugUrl = "https://github.com/apache/lucenenet/issues/269")] // LUCENENET TODO: this test occasionally fails
         public void TestRandomChains_()
         {
             int numIterations = AtLeast(20);
@@ -1139,7 +1137,7 @@ namespace Lucene.Net.Analysis.Core
                     CheckRandomData(random, a, 500 * RandomMultiplier, 20, false,
                                     false /* We already validate our own offsets... */);
                 }
-                catch (Exception /*e*/)
+                catch (Exception e) when (e.IsThrowable())
                 {
                     Console.WriteLine("Exception from random analyzer: " + a);
                     throw; // LUCENENET: CA2200: Rethrow to preserve stack details (https://docs.microsoft.com/en-us/visualstudio/code-quality/ca2200-rethrow-to-preserve-stack-details)
@@ -1150,6 +1148,7 @@ namespace Lucene.Net.Analysis.Core
         // we might regret this decision...
         [Test]
         [Slow]
+        [AwaitsFix(BugUrl = "https://github.com/apache/lucenenet/issues/269")] // LUCENENET TODO: this test occasionally fails
         public void TestRandomChainsWithLargeStrings()
         {
             int numIterations = AtLeast(20);
@@ -1166,7 +1165,7 @@ namespace Lucene.Net.Analysis.Core
                     CheckRandomData(random, a, 50 * RandomMultiplier, 128, false,
                                     false /* We already validate our own offsets... */);
                 }
-                catch (Exception /*e*/)
+                catch (Exception e) when (e.IsThrowable())
                 {
                     Console.WriteLine("Exception from random analyzer: " + a);
                     throw; // LUCENENET: CA2200: Rethrow to preserve stack details (https://docs.microsoft.com/en-us/visualstudio/code-quality/ca2200-rethrow-to-preserve-stack-details)

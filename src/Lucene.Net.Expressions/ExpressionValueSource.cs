@@ -1,4 +1,4 @@
-using Lucene.Net.Index;
+﻿using Lucene.Net.Index;
 using Lucene.Net.Queries.Function;
 using Lucene.Net.Search;
 using Lucene.Net.Support;
@@ -37,15 +37,12 @@ namespace Lucene.Net.Expressions
 
         internal ExpressionValueSource(Bindings bindings, Expression expression)
         {
-            if (bindings == null)
+            if (bindings is null)
             {
-                throw new ArgumentNullException();
+                throw new ArgumentNullException(nameof(bindings)); // LUCENENET specific - changed from IllegalArgumentException to ArgumentNullException (.NET convention)
             }
-            if (expression == null)
-            {
-                throw new ArgumentNullException();
-            }
-            this.expression = expression;
+
+            this.expression = expression ?? throw new ArgumentNullException(nameof(expression)); // LUCENENET specific - changed from IllegalArgumentException to ArgumentNullException (.NET convention)
             variables = new ValueSource[expression.Variables.Length];
             bool needsScores = false;
             for (int i = 0; i < variables.Length; i++)
@@ -57,8 +54,7 @@ namespace Lucene.Net.Expressions
                 }
                 else
                 {
-                    var valueSource = source as ExpressionValueSource;
-                    if (valueSource != null)
+                    if (source is ExpressionValueSource valueSource)
                     {
                         if (valueSource.NeedsScores)
                         {
@@ -69,7 +65,8 @@ namespace Lucene.Net.Expressions
                     {
                         if (source == null)
                         {
-                            throw new InvalidOperationException("Internal error. Variable (" + expression.Variables[i]
+                            // LUCENENET specific: Changed from RuntimeException to InvalidOperationException to match .NET conventions
+                            throw IllegalStateException.Create("Internal error. Variable (" + expression.Variables[i]
                                  + ") does not exist.");
                         }
                     }
@@ -85,20 +82,24 @@ namespace Lucene.Net.Expressions
             if (valuesCache == null)
             {
                 valuesCache = new Dictionary<string, FunctionValues>();
-                context = new Hashtable(context);
-                context["valuesCache"] = valuesCache;
+                context = new Hashtable(context)
+                {
+                    ["valuesCache"] = valuesCache
+                };
             }
             FunctionValues[] externalValues = new FunctionValues[expression.Variables.Length];
             for (int i = 0; i < variables.Length; ++i)
             {
                 string externalName = expression.Variables[i];
-                FunctionValues values;
-                if (!valuesCache.TryGetValue(externalName,out values))
+                if (!valuesCache.TryGetValue(externalName, out FunctionValues values))
                 {
                     values = variables[i].GetValues(context, readerContext);
                     if (values == null)
                     {
-                        throw new InvalidOperationException("Internal error. External (" + externalName + ") does not exist.");
+                        // LUCENENET specific: Changed from RuntimeException to InvalidOperationException to match .NET conventions
+#pragma warning disable IDE0016 // Use 'throw' expression
+                        throw IllegalStateException.Create($"Internal error. External ({externalName}) does not exist.");
+#pragma warning restore IDE0016 // Use 'throw' expression
                     }
                     valuesCache[externalName] = values;
                 }

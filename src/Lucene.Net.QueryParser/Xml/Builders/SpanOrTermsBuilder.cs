@@ -3,6 +3,7 @@ using Lucene.Net.Analysis.TokenAttributes;
 using Lucene.Net.Index;
 using Lucene.Net.Search.Spans;
 using Lucene.Net.Util;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Xml;
@@ -63,11 +64,9 @@ namespace Lucene.Net.QueryParsers.Xml.Builders
                 soq.Boost = DOMUtils.GetAttribute(e, "boost", 1.0f);
                 return soq;
             }
-#pragma warning disable 168
-            catch (IOException ioe)
-#pragma warning restore 168
+            catch (Exception ioe) when (ioe.IsIOException())
             {
-                throw new ParserException("IOException parsing value:" + value);
+                throw new ParserException("IOException parsing value:" + value, ioe);
             }
             finally
             {

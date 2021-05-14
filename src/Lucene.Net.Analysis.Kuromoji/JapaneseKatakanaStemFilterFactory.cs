@@ -35,7 +35,7 @@ namespace Lucene.Net.Analysis.Ja
     /// </summary>
     public class JapaneseKatakanaStemFilterFactory : TokenFilterFactory
     {
-        private static readonly string MINIMUM_LENGTH_PARAM = "minimumLength";
+        private const string MINIMUM_LENGTH_PARAM = "minimumLength";
         private readonly int minimumLength;
 
         /// <summary>Creates a new <see cref="JapaneseKatakanaStemFilterFactory"/></summary>
@@ -45,11 +45,11 @@ namespace Lucene.Net.Analysis.Ja
             minimumLength = GetInt32(args, MINIMUM_LENGTH_PARAM, JapaneseKatakanaStemFilter.DEFAULT_MINIMUM_LENGTH);
             if (minimumLength < 2)
             {
-                throw new ArgumentException("Illegal " + MINIMUM_LENGTH_PARAM + " " + minimumLength + " (must be 2 or greater)");
+                throw new ArgumentOutOfRangeException(nameof(minimumLength), "Illegal " + MINIMUM_LENGTH_PARAM + " " + minimumLength + " (must be 2 or greater)"); // LUCENENET specific - changed from IllegalArgumentException to ArgumentOutOfRangeException (.NET convention)
             }
             if (args.Count > 0)
             {
-                throw new ArgumentException("Unknown parameters: " + args);
+                throw new ArgumentException(string.Format(J2N.Text.StringFormatter.CurrentCulture, "Unknown parameters: {0}", args));
             }
         }
 

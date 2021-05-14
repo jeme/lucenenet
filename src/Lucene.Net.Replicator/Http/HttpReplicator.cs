@@ -71,10 +71,8 @@ namespace Lucene.Net.Replicator.Http
             HttpResponseMessage response = base.ExecuteGet(ReplicationService.ReplicationAction.UPDATE.ToString(), parameters);
             return DoAction(response, () =>
             {
-                using (DataInputStream inputStream = new DataInputStream(ResponseInputStream(response)))
-                {
-                    return inputStream.ReadByte() == 0 ? null : new SessionToken(inputStream);
-                }
+                using DataInputStream inputStream = new DataInputStream(ResponseInputStream(response));
+                return inputStream.ReadByte() == 0 ? null : new SessionToken(inputStream);
             });
         }
 
@@ -96,7 +94,7 @@ namespace Lucene.Net.Replicator.Http
         /// <exception cref="NotSupportedException">this replicator implementation does not support remote publishing of revisions</exception>
         public virtual void Publish(IRevision revision)
         {
-            throw new NotSupportedException("this replicator implementation does not support remote publishing of revisions");
+            throw UnsupportedOperationException.Create("this replicator implementation does not support remote publishing of revisions");
         }
 
         /// <summary>

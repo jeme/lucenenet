@@ -1,4 +1,5 @@
-﻿using Lucene.Net.Analysis.Standard;
+// Lucene version compatibility level 4.8.1
+using Lucene.Net.Analysis.Standard;
 using Lucene.Net.Analysis.TokenAttributes;
 using Lucene.Net.Util;
 using NUnit.Framework;
@@ -244,15 +245,10 @@ namespace Lucene.Net.Analysis.Core
 
     internal sealed class PayloadSetter : TokenFilter
     {
-        private void InitializeInstanceFields()
-        {
-            p = new BytesRef(data, 0, 1);
-        }
-
         internal IPayloadAttribute payloadAtt;
         public PayloadSetter(TokenStream input) : base(input)
         {
-            InitializeInstanceFields();
+            p = new BytesRef(data, 0, 1);
             payloadAtt = AddAttribute<IPayloadAttribute>();
         }
 

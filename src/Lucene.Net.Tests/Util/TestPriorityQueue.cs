@@ -1,4 +1,4 @@
-using Lucene.Net.Attributes;
+﻿using Lucene.Net.Attributes;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
@@ -228,7 +228,7 @@ namespace Lucene.Net.Util
                 // Should had thrown an exception
                 Assert.Fail();
             }
-            catch (ArgumentException)
+            catch (Exception e) when (e.IsIllegalArgumentException())
             {
             }
 
@@ -237,7 +237,7 @@ namespace Lucene.Net.Util
             {
                 pq = new IntegerQueue(maxSize);
             }
-            catch (ArgumentException)
+            catch (Exception e) when (e.IsIllegalArgumentException())
             {
             }
         }
@@ -253,7 +253,7 @@ namespace Lucene.Net.Util
 
             // Does not populate it
             pq = new IntegerQueue(maxSize, false);
-            Assert.AreEqual(pq.Top, default(int?));
+            Assert.AreEqual(pq.Top, default);
             Assert.AreEqual(pq.Count, 0);
         }
 
@@ -417,7 +417,7 @@ namespace Lucene.Net.Util
                 pq.Add(3);
                 Assert.Fail();
             }
-            catch (IndexOutOfRangeException)
+            catch (Exception e) when (e.IsIndexOutOfBoundsException())
             {
             }
 
@@ -434,7 +434,7 @@ namespace Lucene.Net.Util
             {
                 pq.Add(666);
             }
-            catch (IndexOutOfRangeException)
+            catch (Exception e) when (e.IsIndexOutOfBoundsException())
             {
             }
         }

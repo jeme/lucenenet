@@ -1,4 +1,5 @@
-﻿using Lucene.Net.Index;
+﻿// Lucene version compatibility level 4.8.1
+using Lucene.Net.Index;
 using Lucene.Net.Queries.Function.DocValues;
 using Lucene.Net.Search;
 using System.Collections;
@@ -33,7 +34,7 @@ namespace Lucene.Net.Queries.Function.ValueSources
     {
         protected readonly ValueSource m_source;
 
-        public SimpleBoolFunction(ValueSource source)
+        protected SimpleBoolFunction(ValueSource source) // LUCENENET: CA1012: Abstract types should not have constructors (marked protected)
         {
             this.m_source = source;
         }
@@ -45,16 +46,16 @@ namespace Lucene.Net.Queries.Function.ValueSources
         public override FunctionValues GetValues(IDictionary context, AtomicReaderContext readerContext)
         {
             FunctionValues vals = m_source.GetValues(context, readerContext);
-            return new BoolDocValuesAnonymousInnerClassHelper(this, this, vals);
+            return new BoolDocValuesAnonymousClass(this, this, vals);
         }
 
-        private class BoolDocValuesAnonymousInnerClassHelper : BoolDocValues
+        private class BoolDocValuesAnonymousClass : BoolDocValues
         {
             private readonly SimpleBoolFunction outerInstance;
 
             private readonly FunctionValues vals;
 
-            public BoolDocValuesAnonymousInnerClassHelper(SimpleBoolFunction outerInstance, SimpleBoolFunction @this, FunctionValues vals)
+            public BoolDocValuesAnonymousClass(SimpleBoolFunction outerInstance, SimpleBoolFunction @this, FunctionValues vals)
                 : base(@this)
             {
                 this.outerInstance = outerInstance;

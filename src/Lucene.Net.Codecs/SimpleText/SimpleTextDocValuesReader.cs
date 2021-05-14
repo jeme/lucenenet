@@ -1,11 +1,10 @@
 ﻿using J2N.Text;
 using Lucene.Net.Diagnostics;
 using Lucene.Net.Support;
+using Lucene.Net.Util;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Globalization;
-using System.IO;
 using System.Text;
 
 namespace Lucene.Net.Codecs.SimpleText
@@ -76,28 +75,30 @@ namespace Lucene.Net.Codecs.SimpleText
                 {
                     break;
                 }
-                if (Debugging.AssertsEnabled) Debugging.Assert(StartsWith(SimpleTextDocValuesWriter.FIELD), () => scratch.Utf8ToString());
+                // LUCENENET specific - use wrapper BytesRefFormatter struct to defer building the string unless string.Format() is called
+                if (Debugging.AssertsEnabled) Debugging.Assert(StartsWith(SimpleTextDocValuesWriter.FIELD), "{0}", new BytesRefFormatter(scratch, BytesRefFormat.UTF8));
                 var fieldName = StripPrefix(SimpleTextDocValuesWriter.FIELD);
                 var field = new OneField();
                 
                 fields[fieldName] = field;
 
                 ReadLine();
-                if (Debugging.AssertsEnabled) Debugging.Assert(StartsWith(SimpleTextDocValuesWriter.TYPE), () => scratch.Utf8ToString());
+                // LUCENENET specific - use wrapper BytesRefFormatter struct to defer building the string unless string.Format() is called
+                if (Debugging.AssertsEnabled) Debugging.Assert(StartsWith(SimpleTextDocValuesWriter.TYPE), "{0}", new BytesRefFormatter(scratch, BytesRefFormat.UTF8));
 
                 var dvType = (DocValuesType)Enum.Parse(typeof(DocValuesType), StripPrefix(SimpleTextDocValuesWriter.TYPE));
                 // if (Debugging.AssertsEnabled) Debugging.Assert(dvType != null); // LUCENENET: Not possible for an enum to be null in .NET
                 if (dvType == DocValuesType.NUMERIC)
                 {
                     ReadLine();
-                    if (Debugging.AssertsEnabled) Debugging.Assert(StartsWith(SimpleTextDocValuesWriter.MINVALUE),
-                        () => "got " + scratch.Utf8ToString() + " field=" + fieldName + " ext=" + ext);
+                    // LUCENENET specific - use wrapper BytesRefFormatter struct to defer building the string unless string.Format() is called
+                    if (Debugging.AssertsEnabled) Debugging.Assert(StartsWith(SimpleTextDocValuesWriter.MINVALUE), "got {0} field={1} ext={2}", new BytesRefFormatter(scratch, BytesRefFormat.UTF8), fieldName, ext);
                     field.MinValue = Convert.ToInt64(StripPrefix(SimpleTextDocValuesWriter.MINVALUE), CultureInfo.InvariantCulture);
                     ReadLine();
                     if (Debugging.AssertsEnabled) Debugging.Assert(StartsWith(SimpleTextDocValuesWriter.PATTERN));
                     field.Pattern = StripPrefix(SimpleTextDocValuesWriter.PATTERN);
-                    field.DataStartFilePointer = data.GetFilePointer();
-                    data.Seek(data.GetFilePointer() + (1 + field.Pattern.Length + 2)*maxDoc);
+                    field.DataStartFilePointer = data.Position; // LUCENENET specific: Renamed from getFilePointer() to match FileStream
+                    data.Seek(data.Position + (1 + field.Pattern.Length + 2)*maxDoc); // LUCENENET specific: Renamed from getFilePointer() to match FileStream
                 }
                 else if (dvType == DocValuesType.BINARY)
                 {
@@ -107,8 +108,8 @@ namespace Lucene.Net.Codecs.SimpleText
                     ReadLine();
                     if (Debugging.AssertsEnabled) Debugging.Assert(StartsWith(SimpleTextDocValuesWriter.PATTERN));
                     field.Pattern = StripPrefix(SimpleTextDocValuesWriter.PATTERN);
-                    field.DataStartFilePointer = data.GetFilePointer();
-                    data.Seek(data.GetFilePointer() + (9 + field.Pattern.Length + field.MaxLength + 2)*maxDoc);
+                    field.DataStartFilePointer = data.Position;
+                    data.Seek(data.Position + (9 + field.Pattern.Length + field.MaxLength + 2)*maxDoc);
                 }
                 else if (dvType == DocValuesType.SORTED || dvType == DocValuesType.SORTED_SET)
                 {
@@ -124,13 +125,13 @@ namespace Lucene.Net.Codecs.SimpleText
                     ReadLine();
                     if (Debugging.AssertsEnabled) Debugging.Assert(StartsWith(SimpleTextDocValuesWriter.ORDPATTERN));
                     field.OrdPattern = StripPrefix(SimpleTextDocValuesWriter.ORDPATTERN);
-                    field.DataStartFilePointer = data.GetFilePointer();
-                    data.Seek(data.GetFilePointer() + (9 + field.Pattern.Length + field.MaxLength)*field.NumValues +
-                              (1 + field.OrdPattern.Length)*maxDoc);
+                    field.DataStartFilePointer = data.Position; // LUCENENET specific: Renamed from getFilePointer() to match FileStream
+                    data.Seek(data.Position + (9 + field.Pattern.Length + field.MaxLength)*field.NumValues +
+                              (1 + field.OrdPattern.Length)*maxDoc); // LUCENENET specific: Renamed from getFilePointer() to match FileStream
                 }
                 else
                 {
-                    throw new ArgumentOutOfRangeException();
+                    throw AssertionError.Create();
                 }
             }
 
@@ -147,16 +148,16 @@ namespace Lucene.Net.Codecs.SimpleText
                 Debugging.Assert(field != null);
 
                 // SegmentCoreReaders already verifies this field is valid:
-                Debugging.Assert(field != null, () => "field=" + fieldInfo.Name + " fields=" + fields);
+                Debugging.Assert(field != null, "field={0} fields={1}", fieldInfo.Name, fields);
             }
 
             var @in = (IndexInput)data.Clone();
             var scratch = new BytesRef();
             
-            return new NumericDocValuesAnonymousInnerClassHelper(this, field, @in, scratch);
+            return new NumericDocValuesAnonymousClass(this, field, @in, scratch);
         }
 
-        private class NumericDocValuesAnonymousInnerClassHelper : NumericDocValues
+        private class NumericDocValuesAnonymousClass : NumericDocValues
         {
             private readonly SimpleTextDocValuesReader _outerInstance;
 
@@ -164,7 +165,7 @@ namespace Lucene.Net.Codecs.SimpleText
             private readonly IndexInput _input;
             private readonly BytesRef _scratch;
 
-            public NumericDocValuesAnonymousInnerClassHelper(SimpleTextDocValuesReader outerInstance,
+            public NumericDocValuesAnonymousClass(SimpleTextDocValuesReader outerInstance,
                 OneField field, IndexInput input, BytesRef scratch)
             {
                 _outerInstance = outerInstance;
@@ -191,9 +192,9 @@ namespace Lucene.Net.Codecs.SimpleText
                     SimpleTextUtil.ReadLine(_input, _scratch); // read the line telling us if its real or not
                     return (long)((decimal)_field.MinValue + bd); // LUCENENET specific - use decimal rather than BigInteger
                 }
-                catch (IOException ioe)
+                catch (Exception ioe) when (ioe.IsIOException())
                 {
-                    throw new Exception(ioe.ToString(), ioe);
+                    throw RuntimeException.Create(ioe);
                 }
             }
         }
@@ -203,10 +204,10 @@ namespace Lucene.Net.Codecs.SimpleText
             var field = fields[fieldInfo.Name];
             var input = (IndexInput)data.Clone();
             var scratch = new BytesRef();
-            return new BitsAnonymousInnerClassHelper(this, field, input, scratch);
+            return new BitsAnonymousClass(this, field, input, scratch);
         }
 
-        private class BitsAnonymousInnerClassHelper : IBits
+        private class BitsAnonymousClass : IBits
         {
             private readonly SimpleTextDocValuesReader _outerInstance;
 
@@ -214,7 +215,7 @@ namespace Lucene.Net.Codecs.SimpleText
             private readonly IndexInput _input;
             private readonly BytesRef _scratch;
 
-            public BitsAnonymousInnerClassHelper(SimpleTextDocValuesReader outerInstance,
+            public BitsAnonymousClass(SimpleTextDocValuesReader outerInstance,
                 OneField field, IndexInput @in, BytesRef scratch)
             {
                 _outerInstance = outerInstance;
@@ -232,9 +233,9 @@ namespace Lucene.Net.Codecs.SimpleText
                     SimpleTextUtil.ReadLine(_input, _scratch); // 'T' or 'F'
                     return _scratch.Bytes[_scratch.Offset] == (byte)'T';
                 }
-                catch (IOException e)
+                catch (Exception e) when (e.IsIOException())
                 {
-                    throw new Exception(e.ToString(), e);
+                    throw RuntimeException.Create(e);
                 }
             }
 
@@ -248,10 +249,10 @@ namespace Lucene.Net.Codecs.SimpleText
             var input = (IndexInput)data.Clone();
             var scratch = new BytesRef();
 
-            return new BinaryDocValuesAnonymousInnerClassHelper(this, field, input, scratch);
+            return new BinaryDocValuesAnonymousClass(this, field, input, scratch);
         }
 
-        private class BinaryDocValuesAnonymousInnerClassHelper : BinaryDocValues
+        private class BinaryDocValuesAnonymousClass : BinaryDocValues
         {
             private readonly SimpleTextDocValuesReader _outerInstance;
 
@@ -259,7 +260,7 @@ namespace Lucene.Net.Codecs.SimpleText
             private readonly IndexInput _input;
             private readonly BytesRef _scratch;
 
-            public BinaryDocValuesAnonymousInnerClassHelper(SimpleTextDocValuesReader outerInstance, OneField field,
+            public BinaryDocValuesAnonymousClass(SimpleTextDocValuesReader outerInstance, OneField field,
                 IndexInput input, BytesRef scratch)
             {
                 _outerInstance = outerInstance;
@@ -286,9 +287,9 @@ namespace Lucene.Net.Codecs.SimpleText
                         len = int.Parse(Encoding.UTF8.GetString(_scratch.Bytes, _scratch.Offset + SimpleTextDocValuesWriter.LENGTH.Length,
                             _scratch.Length - SimpleTextDocValuesWriter.LENGTH.Length), NumberStyles.Integer, CultureInfo.InvariantCulture);
                     }
-                    catch (FormatException ex)
+                    catch (Exception pe) when (pe.IsParseException())
                     {
-                        throw new CorruptIndexException("failed to parse int value (resource=" + _input + ")", ex);
+                        throw new CorruptIndexException("failed to parse int value (resource=" + _input + ")", pe);
                     }
 
                     result.Bytes = new byte[len];
@@ -296,9 +297,9 @@ namespace Lucene.Net.Codecs.SimpleText
                     result.Length = len;
                     _input.ReadBytes(result.Bytes, 0, len);
                 }
-                catch (IOException ioe)
+                catch (Exception ioe) when (ioe.IsIOException())
                 {
-                    throw new Exception(ioe.ToString(), ioe);
+                    throw RuntimeException.Create(ioe);
                 }
             }
         }
@@ -309,10 +310,10 @@ namespace Lucene.Net.Codecs.SimpleText
             var input = (IndexInput)data.Clone();
             var scratch = new BytesRef();
 
-            return new BitsAnonymousInnerClassHelper2(this, field, input, scratch);
+            return new BitsAnonymousClass2(this, field, input, scratch);
         }
 
-        private class BitsAnonymousInnerClassHelper2 : IBits
+        private class BitsAnonymousClass2 : IBits
         {
             private readonly SimpleTextDocValuesReader _outerInstance;
 
@@ -320,7 +321,7 @@ namespace Lucene.Net.Codecs.SimpleText
             private readonly IndexInput _input;
             private readonly BytesRef _scratch;
 
-            public BitsAnonymousInnerClassHelper2(SimpleTextDocValuesReader outerInstance, OneField field,
+            public BitsAnonymousClass2(SimpleTextDocValuesReader outerInstance, OneField field,
                 IndexInput input, BytesRef scratch)
             {
                 _outerInstance = outerInstance;
@@ -342,9 +343,9 @@ namespace Lucene.Net.Codecs.SimpleText
                         len = int.Parse(Encoding.UTF8.GetString(_scratch.Bytes, _scratch.Offset + SimpleTextDocValuesWriter.LENGTH.Length,
                             _scratch.Length - SimpleTextDocValuesWriter.LENGTH.Length), NumberStyles.Number, CultureInfo.InvariantCulture);
                     }
-                    catch (FormatException ex)
+                    catch (Exception pe) when (pe.IsParseException())
                     {
-                        throw new CorruptIndexException("failed to parse int value (resource=" + _input + ")", ex);
+                        throw new CorruptIndexException("failed to parse int value (resource=" + _input + ")", pe);
                     }
 
                     // skip past bytes
@@ -354,9 +355,9 @@ namespace Lucene.Net.Codecs.SimpleText
                     SimpleTextUtil.ReadLine(_input, _scratch); // 'T' or 'F'
                     return _scratch.Bytes[_scratch.Offset] == (byte)'T';
                 }
-                catch (IOException ioe)
+                catch (Exception ioe) when (ioe.IsIOException())
                 {
-                    throw new Exception(ioe.ToString(), ioe);
+                    throw RuntimeException.Create(ioe);
                 }
             }
 
@@ -372,28 +373,24 @@ namespace Lucene.Net.Codecs.SimpleText
             var input = (IndexInput)data.Clone();
             var scratch = new BytesRef();
 
-            return new SortedDocValuesAnonymousInnerClassHelper(this, field, input, scratch);
+            return new SortedDocValuesAnonymousClass(this, field, input, scratch);
         }
 
-        private class SortedDocValuesAnonymousInnerClassHelper : SortedDocValues
+        private class SortedDocValuesAnonymousClass : SortedDocValues
         {
             private readonly SimpleTextDocValuesReader _outerInstance;
 
             private readonly OneField _field;
             private readonly IndexInput _input;
             private readonly BytesRef _scratch;
-            private readonly string _decoderFormat;
-            private readonly string _ordDecoderFormat;
 
-            public SortedDocValuesAnonymousInnerClassHelper(SimpleTextDocValuesReader outerInstance,
+            public SortedDocValuesAnonymousClass(SimpleTextDocValuesReader outerInstance,
                 OneField field, IndexInput input, BytesRef scratch)
             {
                 _outerInstance = outerInstance;
                 _field = field;
                 _input = input;
                 _scratch = scratch;
-                _decoderFormat = field.Pattern;
-                _ordDecoderFormat = field.OrdPattern;
             }
 
             public override int GetOrd(int docId)
@@ -414,15 +411,15 @@ namespace Lucene.Net.Codecs.SimpleText
                         // LUCNENENET: .NET doesn't have a way to specify a pattern with integer, but all of the standard ones are built in.
                         return int.Parse(_scratch.Utf8ToString(), NumberStyles.Integer, CultureInfo.InvariantCulture) - 1;
                     }
-                    catch (Exception pe)
+                    catch (Exception pe) when (pe.IsParseException())
                     {
-                        var e = new CorruptIndexException("failed to parse ord (resource=" + _input + ")", pe);
+                        var e = new CorruptIndexException($"failed to parse ord (resource={_input})", pe);
                         throw e;
                     }
                 }
-                catch (IOException ioe)
+                catch (Exception ioe) when (ioe.IsIOException())
                 {
-                    throw new Exception(ioe.ToString(), ioe);
+                    throw RuntimeException.Create(ioe);
                 }
             }
 
@@ -432,24 +429,22 @@ namespace Lucene.Net.Codecs.SimpleText
                 {
                     if (ord < 0 || ord >= _field.NumValues)
                     {
-                        throw new IndexOutOfRangeException("ord must be 0 .. " + (_field.NumValues - 1) + "; got " +
-                                                                  ord);
+                        throw new IndexOutOfRangeException($"ord must be 0 .. {(_field.NumValues - 1)}; got {ord}");
                     }
                     _input.Seek(_field.DataStartFilePointer + ord * (9 + _field.Pattern.Length + _field.MaxLength));
                     SimpleTextUtil.ReadLine(_input, _scratch);
-                    if (Debugging.AssertsEnabled) Debugging.Assert(StringHelper.StartsWith(_scratch, SimpleTextDocValuesWriter.LENGTH),
-                        () => "got " + _scratch.Utf8ToString() + " in=" + _input);
+                    // LUCENENET specific - use wrapper BytesRefFormatter struct to defer building the string unless string.Format() is called
+                    if (Debugging.AssertsEnabled) Debugging.Assert(StringHelper.StartsWith(_scratch, SimpleTextDocValuesWriter.LENGTH), "got {0} in={1}", new BytesRefFormatter(_scratch, BytesRefFormat.UTF8), _input);
                     int len;
                     try
                     {
                         // LUCNENENET: .NET doesn't have a way to specify a pattern with integer, but all of the standard ones are built in.
                         len = int.Parse(Encoding.UTF8.GetString(_scratch.Bytes, _scratch.Offset + SimpleTextDocValuesWriter.LENGTH.Length,
                             _scratch.Length - SimpleTextDocValuesWriter.LENGTH.Length), NumberStyles.Integer, CultureInfo.InvariantCulture);
-
                     }
-                    catch (Exception pe)
+                    catch (Exception pe) when (pe.IsParseException())
                     {
-                        var e = new CorruptIndexException("failed to parse int length (resource=" + _input + ")", pe);
+                        var e = new CorruptIndexException($"failed to parse int length (resource={_input})", pe);
                         throw e;
                     }
 
@@ -458,9 +453,9 @@ namespace Lucene.Net.Codecs.SimpleText
                     result.Length = len;
                     _input.ReadBytes(result.Bytes, 0, len);
                 }
-                catch (IOException ioe)
+                catch (Exception ioe) when (ioe.IsIOException())
                 {
-                    throw new Exception(ioe.ToString(), ioe);
+                    throw RuntimeException.Create(ioe);
                 }
             }
 
@@ -478,26 +473,24 @@ namespace Lucene.Net.Codecs.SimpleText
             var input = (IndexInput) data.Clone();
             var scratch = new BytesRef();
             
-            return new SortedSetDocValuesAnonymousInnerClassHelper(this, field, input, scratch);
+            return new SortedSetDocValuesAnonymousClass(this, field, input, scratch);
         }
 
-        private class SortedSetDocValuesAnonymousInnerClassHelper : SortedSetDocValues
+        private class SortedSetDocValuesAnonymousClass : SortedSetDocValues
         {
             private readonly SimpleTextDocValuesReader _outerInstance;
 
             private readonly OneField _field;
             private readonly IndexInput _input;
             private readonly BytesRef _scratch;
-            private readonly string _decoderFormat;
 
-            public SortedSetDocValuesAnonymousInnerClassHelper(SimpleTextDocValuesReader outerInstance,
+            public SortedSetDocValuesAnonymousClass(SimpleTextDocValuesReader outerInstance,
                 OneField field, IndexInput input, BytesRef scratch)
             {
                 _outerInstance = outerInstance;
                 _field = field;
                 _input = input;
                 _scratch = scratch;
-                _decoderFormat = field.Pattern;
                 _currentOrds = Arrays.Empty<string>();
                 _currentIndex = 0;
             }
@@ -525,9 +518,9 @@ namespace Lucene.Net.Codecs.SimpleText
                     _currentOrds = ordList.Length == 0 ? Arrays.Empty<string>() : ordList.Split(',').TrimEnd();
                     _currentIndex = 0;
                 }
-                catch (IOException ioe)
+                catch (Exception ioe) when (ioe.IsIOException())
                 {
-                    throw new Exception(ioe.ToString(), ioe);
+                    throw RuntimeException.Create(ioe);
                 }
             }
 
@@ -542,8 +535,8 @@ namespace Lucene.Net.Codecs.SimpleText
 
                     _input.Seek(_field.DataStartFilePointer + ord * (9 + _field.Pattern.Length + _field.MaxLength));
                     SimpleTextUtil.ReadLine(_input, _scratch);
-                    if (Debugging.AssertsEnabled) Debugging.Assert(StringHelper.StartsWith(_scratch, SimpleTextDocValuesWriter.LENGTH),
-                        () => "got " + _scratch.Utf8ToString() + " in=" + _input);
+                    // LUCENENET specific - use wrapper BytesRefFormatter struct to defer building the string unless string.Format() is called
+                    if (Debugging.AssertsEnabled) Debugging.Assert(StringHelper.StartsWith(_scratch, SimpleTextDocValuesWriter.LENGTH), "got {0} in={1}", new BytesRefFormatter(_scratch, BytesRefFormat.UTF8), _input);
                     int len;
                     try
                     {
@@ -551,7 +544,7 @@ namespace Lucene.Net.Codecs.SimpleText
                         len = int.Parse(Encoding.UTF8.GetString(_scratch.Bytes, _scratch.Offset + SimpleTextDocValuesWriter.LENGTH.Length,
                             _scratch.Length - SimpleTextDocValuesWriter.LENGTH.Length), NumberStyles.Integer, CultureInfo.InvariantCulture);
                     }
-                    catch (Exception pe)
+                    catch (Exception pe) when (pe.IsParseException())
                     {
                         var e = new CorruptIndexException("failed to parse int length (resource=" + _input + ")", pe);
                         throw e;
@@ -562,9 +555,9 @@ namespace Lucene.Net.Codecs.SimpleText
                     result.Length = len;
                     _input.ReadBytes(result.Bytes, 0, len);
                 }
-                catch (IOException ioe)
+                catch (Exception ioe) when (ioe.IsIOException())
                 {
-                    throw new Exception(ioe.ToString(), ioe);
+                    throw RuntimeException.Create(ioe);
                 }
             }
 
@@ -584,7 +577,7 @@ namespace Lucene.Net.Codecs.SimpleText
                 case DocValuesType.NUMERIC:
                     return GetNumericDocsWithField(field);
                 default:
-                    throw new ArgumentOutOfRangeException();
+                    throw AssertionError.Create();
             }
         }
 

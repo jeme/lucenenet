@@ -1,4 +1,4 @@
-using J2N.Threading.Atomic;
+﻿using J2N.Threading.Atomic;
 using Lucene.Net.Diagnostics;
 using System;
 using System.Collections.Concurrent;
@@ -229,7 +229,7 @@ namespace Lucene.Net.Index
         {
             if (closed)
             {
-                throw new ObjectDisposedException(this.GetType().FullName, "this IndexWriter is closed");
+                throw AlreadyClosedException.Create(this.GetType().FullName, "this IndexWriter is disposed.");
             }
         }
 
@@ -588,7 +588,9 @@ namespace Lucene.Net.Index
                 SegmentFlushTicket ticket = null;
                 try
                 {
-                    if (Debugging.AssertsEnabled) Debugging.Assert(currentFullFlushDelQueue == null || flushingDWPT.deleteQueue == currentFullFlushDelQueue, () => "expected: " + currentFullFlushDelQueue + "but was: " + flushingDWPT.deleteQueue + " " + flushControl.IsFullFlush);
+                    if (Debugging.AssertsEnabled) Debugging.Assert(currentFullFlushDelQueue == null
+                        || flushingDWPT.deleteQueue == currentFullFlushDelQueue,
+                        "expected: {0} but was: {1} {2}", currentFullFlushDelQueue, flushingDWPT.deleteQueue, flushControl.IsFullFlush);
                     /*
                      * Since with DWPT the flush process is concurrent and several DWPT
                      * could flush at the same time we must maintain the order of the

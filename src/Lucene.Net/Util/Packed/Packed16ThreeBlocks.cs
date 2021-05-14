@@ -1,6 +1,8 @@
+﻿using J2N.Numerics;
 using Lucene.Net.Diagnostics;
 using Lucene.Net.Support;
 using System;
+using System.Runtime.CompilerServices;
 
 // this file has been automatically generated, DO NOT EDIT
 
@@ -61,6 +63,7 @@ namespace Lucene.Net.Util.Packed
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override long Get(int index)
         {
             int o = index * 3;
@@ -71,7 +74,7 @@ namespace Lucene.Net.Util.Packed
         {
             if (Debugging.AssertsEnabled)
             {
-                Debugging.Assert(len > 0, () => "len must be > 0 (got " + len + ")");
+                Debugging.Assert(len > 0, "len must be > 0 (got {0})", len);
                 Debugging.Assert(index >= 0 && index < m_valueCount);
                 Debugging.Assert(off + len <= arr.Length);
             }
@@ -87,8 +90,8 @@ namespace Lucene.Net.Util.Packed
         public override void Set(int index, long value)
         {
             int o = index * 3;
-            blocks[o] = (short)((long)((ulong)value >> 32));
-            blocks[o + 1] = (short)((long)((ulong)value >> 16));
+            blocks[o] = (short)(value.TripleShift(32));
+            blocks[o + 1] = (short)(value.TripleShift(16));
             blocks[o + 2] = (short)value;
         }
 
@@ -96,7 +99,7 @@ namespace Lucene.Net.Util.Packed
         {
             if (Debugging.AssertsEnabled)
             {
-                Debugging.Assert(len > 0, () => "len must be > 0 (got " + len + ")");
+                Debugging.Assert(len > 0, "len must be > 0 (got {0})", len);
                 Debugging.Assert(index >= 0 && index < m_valueCount);
                 Debugging.Assert(off + len <= arr.Length);
             }
@@ -105,8 +108,8 @@ namespace Lucene.Net.Util.Packed
             for (int i = off, o = index * 3, end = off + sets; i < end; ++i)
             {
                 long value = arr[i];
-                blocks[o++] = (short)((long)((ulong)value >> 32));
-                blocks[o++] = (short)((long)((ulong)value >> 16));
+                blocks[o++] = (short)(value.TripleShift(32));
+                blocks[o++] = (short)(value.TripleShift(16));
                 blocks[o++] = (short)value;
             }
             return sets;
@@ -114,8 +117,8 @@ namespace Lucene.Net.Util.Packed
 
         public override void Fill(int fromIndex, int toIndex, long val)
         {
-            short block1 = (short)((long)((ulong)val >> 32));
-            short block2 = (short)((long)((ulong)val >> 16));
+            short block1 = (short)(val.TripleShift(32));
+            short block2 = (short)(val.TripleShift(16));
             short block3 = (short)val;
             for (int i = fromIndex * 3, end = toIndex * 3; i < end; i += 3)
             {
@@ -125,6 +128,7 @@ namespace Lucene.Net.Util.Packed
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override void Clear()
         {
             Arrays.Fill(blocks, (short)0);

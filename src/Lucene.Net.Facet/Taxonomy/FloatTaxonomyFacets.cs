@@ -1,4 +1,5 @@
-﻿using Lucene.Net.Diagnostics;
+﻿// Lucene version compatibility level 4.8.1
+using Lucene.Net.Diagnostics;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -107,7 +108,7 @@ namespace Lucene.Net.Facet.Taxonomy
         {
             if (topN <= 0)
             {
-                throw new ArgumentException("topN must be > 0 (got: " + topN + ")");
+                throw new ArgumentOutOfRangeException(nameof(topN), "topN must be > 0 (got: " + topN + ")"); // LUCENENET specific - changed from IllegalArgumentException to ArgumentOutOfRangeException (.NET convention)
             }
             FacetsConfig.DimConfig dimConfig = VerifyDim(dim);
             FacetLabel cp = new FacetLabel(dim, path);

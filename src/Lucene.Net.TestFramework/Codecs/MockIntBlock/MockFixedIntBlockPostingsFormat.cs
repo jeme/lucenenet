@@ -69,39 +69,34 @@ namespace Lucene.Net.Codecs.MockIntBlock
 
             public override Int32IndexInput OpenInput(Directory dir, string fileName, IOContext context)
             {
-                return new FixedInt32BlockIndexInputAnonymousHelper(this, dir.OpenInput(fileName, context));
+                return new FixedInt32BlockIndexInputAnonymousClass(dir.OpenInput(fileName, context));
             }
 
-            private class FixedInt32BlockIndexInputAnonymousHelper : FixedInt32BlockIndexInput
+            private class FixedInt32BlockIndexInputAnonymousClass : FixedInt32BlockIndexInput
             {
-                private readonly MockInt32Factory outerInstance;
-
-                public FixedInt32BlockIndexInputAnonymousHelper(MockInt32Factory outerInstance, IndexInput input)
+                public FixedInt32BlockIndexInputAnonymousClass(IndexInput input)
                     : base(input)
                 {
-                    this.outerInstance = outerInstance;
                 }
 
                 protected override IBlockReader GetBlockReader(IndexInput @in, int[] buffer)
                 {
-                    return new BlockReaderAnonymousHelper(outerInstance, @in, buffer);
+                    return new BlockReaderAnonymousClass(@in, buffer);
                 }
 
-                private class BlockReaderAnonymousHelper : FixedInt32BlockIndexInput.IBlockReader
+                private class BlockReaderAnonymousClass : FixedInt32BlockIndexInput.IBlockReader
                 {
-                    private readonly MockInt32Factory outerInstance;
                     private readonly IndexInput @in;
                     private readonly int[] buffer;
 
-                    public BlockReaderAnonymousHelper(MockInt32Factory outerInstance, IndexInput @in, int[] buffer)
+                    public BlockReaderAnonymousClass(IndexInput @in, int[] buffer)
                     {
-                        this.outerInstance = outerInstance;
                         this.@in = @in;
                         this.buffer = buffer;
                     }
-                    public void Seek(long pos)
-                    {
-                    }
+                    //public void Seek(long pos) // LUCENENET: Not referenced;
+                    //{
+                    //}
 
                     public void ReadBlock()
                     {
@@ -120,7 +115,7 @@ namespace Lucene.Net.Codecs.MockIntBlock
                 bool success = false;
                 try
                 {
-                    FixedInt32BlockIndexOutputAnonymousHelper ret = new FixedInt32BlockIndexOutputAnonymousHelper(output, blockSize);
+                    FixedInt32BlockIndexOutputAnonymousClass ret = new FixedInt32BlockIndexOutputAnonymousClass(output, blockSize);
 
                     success = true;
                     return ret;
@@ -134,9 +129,9 @@ namespace Lucene.Net.Codecs.MockIntBlock
                 }
             }
 
-            private class FixedInt32BlockIndexOutputAnonymousHelper : FixedInt32BlockIndexOutput
+            private class FixedInt32BlockIndexOutputAnonymousClass : FixedInt32BlockIndexOutput
             {
-                public FixedInt32BlockIndexOutputAnonymousHelper(IndexOutput output, int blockSize)
+                public FixedInt32BlockIndexOutputAnonymousClass(IndexOutput output, int blockSize)
                     : base(output, blockSize)
                 {
                 }

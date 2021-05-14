@@ -1,4 +1,4 @@
-using J2N.Collections.Generic.Extensions;
+﻿using J2N.Collections.Generic.Extensions;
 using Lucene.Net.Analysis;
 using Lucene.Net.Analysis.TokenAttributes;
 using Lucene.Net.Documents;
@@ -133,7 +133,7 @@ namespace Lucene.Net.Index
 
                 public override object Clone()
                 {
-                    throw new NotSupportedException();
+                    throw UnsupportedOperationException.Create();
                 }
             }
 
@@ -164,11 +164,11 @@ namespace Lucene.Net.Index
 
         [Ignore("Very slow. Enable manually by removing Ignore.")]
         [Test]
-        public virtual void Test2BTerms_Mem([ValueSource(typeof(ConcurrentMergeSchedulerFactories), "Values")]Func<IConcurrentMergeScheduler> newScheduler)
+        public virtual void Test2BTerms_Mem()
         {
             if ("Lucene3x".Equals(Codec.Default.Name, StringComparison.Ordinal))
             {
-                throw new Exception("this test cannot run with PreFlex codec");
+                throw RuntimeException.Create("this test cannot run with PreFlex codec");
             }
             Console.WriteLine("Starting Test2B");
             long TERM_COUNT = ((long)int.MaxValue) + 100000000;
@@ -190,7 +190,7 @@ namespace Lucene.Net.Index
                 IndexWriter w = new IndexWriter(dir, new IndexWriterConfig(TEST_VERSION_CURRENT, new MockAnalyzer(Random))
                                            .SetMaxBufferedDocs(IndexWriterConfig.DISABLE_AUTO_FLUSH)
                                            .SetRAMBufferSizeMB(256.0)
-                                           .SetMergeScheduler(newScheduler())
+                                           .SetMergeScheduler(new ConcurrentMergeScheduler())
                                            .SetMergePolicy(NewLogMergePolicy(false, 10))
                                            .SetOpenMode(OpenMode.CREATE));
 

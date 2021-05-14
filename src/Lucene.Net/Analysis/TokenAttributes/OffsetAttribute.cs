@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 
 namespace Lucene.Net.Analysis.TokenAttributes
 {
@@ -24,10 +24,7 @@ namespace Lucene.Net.Analysis.TokenAttributes
 
     /// <summary>
     /// Default implementation of <see cref="IOffsetAttribute"/>. </summary>
-    public class OffsetAttribute : Attribute, IOffsetAttribute
-#if FEATURE_CLONEABLE
-        , System.ICloneable
-#endif
+    public class OffsetAttribute : Attribute, IOffsetAttribute // LUCENENET specific: Not implementing ICloneable per Microsoft's recommendation
     {
         private int startOffset;
         private int endOffset;
@@ -74,9 +71,8 @@ namespace Lucene.Net.Analysis.TokenAttributes
                 return true;
             }
 
-            if (other is OffsetAttribute)
+            if (other is OffsetAttribute o)
             {
-                OffsetAttribute o = (OffsetAttribute)other;
                 return o.startOffset == startOffset && o.endOffset == endOffset;
             }
 

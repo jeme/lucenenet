@@ -1,10 +1,10 @@
-﻿using Lucene.Net.Index;
-using Lucene.Net.Search;
+﻿// Lucene version compatibility level 4.8.1
+using Lucene.Net.Index;
 using Lucene.Net.Util;
 using System;
 using System.Collections.Generic;
 
-namespace Lucene.Net.Join
+namespace Lucene.Net.Search.Join
 {
     /*
      * Licensed to the Apache Software Foundation (ASF) under one or more
@@ -22,7 +22,7 @@ namespace Lucene.Net.Join
      * See the License for the specific language governing permissions and
      * limitations under the License.
      */
-     
+
     internal class TermsIncludingScoreQuery : Query
     {
         private readonly string _field;
@@ -84,7 +84,7 @@ namespace Lucene.Net.Join
 
         public override bool Equals(object obj)
         {
-            if (ReferenceEquals(null, obj)) return false;
+            if (obj is null) return false;
             if (ReferenceEquals(this, obj)) return true;
             if (!base.Equals(obj)) return false;
             if (obj.GetType() != GetType()) return false;
@@ -116,16 +116,16 @@ namespace Lucene.Net.Join
         public override Weight CreateWeight(IndexSearcher searcher)
         {
             Weight originalWeight = _originalQuery.CreateWeight(searcher);
-            return new WeightAnonymousInnerClassHelper(this, originalWeight);
+            return new WeightAnonymousClass(this, originalWeight);
         }
 
-        private class WeightAnonymousInnerClassHelper : Weight
+        private class WeightAnonymousClass : Weight
         {
             private readonly TermsIncludingScoreQuery outerInstance;
 
-            private Weight originalWeight;
+            private readonly Weight originalWeight;
 
-            public WeightAnonymousInnerClassHelper(TermsIncludingScoreQuery outerInstance, Weight originalWeight)
+            public WeightAnonymousClass(TermsIncludingScoreQuery outerInstance, Weight originalWeight)
             {
                 this.outerInstance = outerInstance;
                 this.originalWeight = originalWeight;
@@ -194,17 +194,19 @@ namespace Lucene.Net.Join
                     return null;
                 }
                 // what is the runtime...seems ok?
-                long cost = context.AtomicReader.MaxDoc * terms.Count;
+                //long cost = context.AtomicReader.MaxDoc * terms.Count; // LUCENENET: IDE0059: Remove unnecessary value assignment
 
                 segmentTermsEnum = terms.GetEnumerator(segmentTermsEnum);
                 // Optimized impls that take advantage of docs
                 // being allowed to be out of order:
                 if (outerInstance._multipleValuesPerDocument)
                 {
-                    return new MVInnerScorer(outerInstance, this, acceptDocs, segmentTermsEnum, context.AtomicReader.MaxDoc, cost);
+                    return new MVInnerScorer(outerInstance, /*this, // LUCENENET: Never read */
+                        acceptDocs, segmentTermsEnum, context.AtomicReader.MaxDoc /*, cost // LUCENENET: Never read */);
                 }
 
-                return new SVInnerScorer(outerInstance, this, acceptDocs, segmentTermsEnum, cost);
+                return new SVInnerScorer(outerInstance, /*this, // LUCENENET: Never read */
+                    acceptDocs, segmentTermsEnum /*, cost // LUCENENET: Never read */);
             }
         }
 
@@ -216,7 +218,7 @@ namespace Lucene.Net.Join
             private readonly BytesRef _spare = new BytesRef();
             private readonly IBits _acceptDocs;
             private readonly TermsEnum _termsEnum;
-            private readonly long _cost;
+            //private readonly long _cost; // LUCENENET: Never read
 
             private int _upto;
             internal DocsEnum docsEnum;
@@ -224,12 +226,13 @@ namespace Lucene.Net.Join
             private int _scoreUpto;
             private int _doc;
 
-            internal SVInnerScorer(TermsIncludingScoreQuery outerInstance, Weight weight, IBits acceptDocs, TermsEnum termsEnum, long cost)
+            internal SVInnerScorer(TermsIncludingScoreQuery outerInstance, /* Weight weight, // LUCENENET: Never read */
+                IBits acceptDocs, TermsEnum termsEnum /*, long cost // LUCENENET: Never read */)
             {
                 this.outerInstance = outerInstance;
                 _acceptDocs = acceptDocs;
                 _termsEnum = termsEnum;
-                _cost = cost;
+                //_cost = cost; // LUCENENET: Never read
                 _doc = -1;
             }
             
@@ -298,7 +301,7 @@ namespace Lucene.Net.Join
                         int tempDocId = docsEnum.Advance(target);
                         if (tempDocId == target)
                         {
-                            docId = tempDocId;
+                            //docId = tempDocId; // LUCENENET: IDE0059: Remove unnecessary value assignment
                             break;
                         }
                     }
@@ -319,16 +322,13 @@ namespace Lucene.Net.Join
         // even if other join values yield a higher score.
         internal class MVInnerScorer : SVInnerScorer
         {
-            private readonly TermsIncludingScoreQuery outerInstance;
-
-
             internal readonly FixedBitSet alreadyEmittedDocs;
 
-            internal MVInnerScorer(TermsIncludingScoreQuery outerInstance, Weight weight, IBits acceptDocs,
-                TermsEnum termsEnum, int maxDoc, long cost) 
-                : base(outerInstance, weight, acceptDocs, termsEnum, cost)
+            internal MVInnerScorer(TermsIncludingScoreQuery outerInstance, /* Weight weight, // LUCENENET: Never read */
+                IBits acceptDocs, TermsEnum termsEnum, int maxDoc /*, long cost // LUCENENET: Never read */) 
+                : base(outerInstance, /*weight, // LUCENENET: Never read */
+                      acceptDocs, termsEnum /*, cost // LUCENENET: Never read */)
             {
-                this.outerInstance = outerInstance;
                 alreadyEmittedDocs = new FixedBitSet(maxDoc);
             }
             

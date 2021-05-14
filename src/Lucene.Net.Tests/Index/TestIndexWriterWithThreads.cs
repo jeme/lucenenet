@@ -1,4 +1,4 @@
-using J2N.Threading;
+﻿using J2N.Threading;
 using J2N.Threading.Atomic;
 using Lucene.Net.Attributes;
 using Lucene.Net.Documents;
@@ -7,6 +7,7 @@ using Lucene.Net.Store;
 using Lucene.Net.Support.Threading;
 using Lucene.Net.Util;
 using NUnit.Framework;
+using RandomizedTesting.Generators;
 using System;
 using System.IO;
 using System.Threading;
@@ -105,7 +106,7 @@ namespace Lucene.Net.Index
                         writer.UpdateDocument(new Term("id", "" + (idUpto++)), doc);
                         addCount++;
                     }
-                    catch (IOException ioe)
+                    catch (Exception ioe) when (ioe.IsIOException())
                     {
                         if (Verbose)
                         {
@@ -117,18 +118,10 @@ namespace Lucene.Net.Index
                         if (ioe.Message.StartsWith("fake disk full at", StringComparison.Ordinal) || ioe.Message.Equals("now failing on purpose", StringComparison.Ordinal))
                         {
                             diskFull = true;
-//#if FEATURE_THREAD_INTERRUPT
-//                            try
-//                            {
-//#endif
-                                Thread.Sleep(1);
-//#if FEATURE_THREAD_INTERRUPT
-//                            }
-//                            catch (ThreadInterruptedException ie) // LUCENENET NOTE: Senseless to catch and rethrow the same exception type
-//                            {
-//                                throw new ThreadInterruptedException(ie.toString(), ie);
-//                            }
-//#endif
+
+                            Thread.Sleep(1);
+                            // LUCENENET NOTE: No need to catch and rethrow same excepton type ThreadInterruptedException
+
                             if (fullCount++ >= 5)
                             {
                                 break;
@@ -145,7 +138,7 @@ namespace Lucene.Net.Index
                             break;
                         }
                     }
-                    catch (Exception t)
+                    catch (Exception t) when (t.IsThrowable())
                     {
                         //Console.WriteLine(t.StackTrace);
                         if (noErrors)
@@ -164,7 +157,7 @@ namespace Lucene.Net.Index
         // an IndexWriter (hit during DW.ThreadState.Init()), with
         // multiple threads, is OK:
         [Test]
-        public virtual void TestImmediateDiskFullWithThreads([ValueSource(typeof(ConcurrentMergeSchedulerFactories), "Values")]Func<IConcurrentMergeScheduler> newScheduler)
+        public virtual void TestImmediateDiskFullWithThreads()
         {
             int NUM_THREADS = 3;
             int numIterations = TestNightly ? 10 : 3;
@@ -175,16 +168,14 @@ namespace Lucene.Net.Index
                     Console.WriteLine("\nTEST: iter=" + iter);
                 }
                 MockDirectoryWrapper dir = NewMockDirectory();
-                var config = NewIndexWriterConfig(TEST_VERSION_CURRENT, new MockAnalyzer(Random))
-                                .SetMaxBufferedDocs(2)
-                                .SetMergeScheduler(newScheduler())
-                                .SetMergePolicy(NewLogMergePolicy(4));
-                IndexWriter writer = new IndexWriter(dir, config);
-                var scheduler = config.mergeScheduler as IConcurrentMergeScheduler;
-                if (scheduler != null)
-                {
-                    scheduler.SetSuppressExceptions();
-                }
+                IndexWriter writer = new IndexWriter(
+                    dir,
+                    NewIndexWriterConfig(TEST_VERSION_CURRENT, new MockAnalyzer(Random))
+                        .SetMaxBufferedDocs(2)
+                        .SetMergeScheduler(new ConcurrentMergeScheduler())
+                        .SetMergePolicy(NewLogMergePolicy(4)));
+                ((IConcurrentMergeScheduler)writer.Config.MergeScheduler).SetSuppressExceptions();
+
                 dir.MaxSizeInBytes = 4 * 1024 + 20 * iter;
 
                 IndexerThread[] threads = new IndexerThread[NUM_THREADS];
@@ -220,7 +211,7 @@ namespace Lucene.Net.Index
         // speaking, this isn't valid us of Lucene's APIs, but we
         // still want to be robust to this case:
         [Test]
-        public virtual void TestCloseWithThreads([ValueSource(typeof(ConcurrentMergeSchedulerFactories), "Values")]Func<IConcurrentMergeScheduler> newScheduler)
+        public virtual void TestCloseWithThreads()
         {
             int NUM_THREADS = 3;
             int numIterations = TestNightly ? 7 : 3;
@@ -231,16 +222,13 @@ namespace Lucene.Net.Index
                     Console.WriteLine("\nTEST: iter=" + iter);
                 }
                 Directory dir = NewDirectory();
-                var config = NewIndexWriterConfig(TEST_VERSION_CURRENT, new MockAnalyzer(Random))
-                                .SetMaxBufferedDocs(10)
-                                .SetMergeScheduler(newScheduler())
-                                .SetMergePolicy(NewLogMergePolicy(4));
-                IndexWriter writer = new IndexWriter(dir, config);
-                var scheduler = config.mergeScheduler as IConcurrentMergeScheduler;
-                if (scheduler != null)
-                {
-                    scheduler.SetSuppressExceptions();
-                }
+                IndexWriter writer = new IndexWriter(
+                    dir,
+                    NewIndexWriterConfig(TEST_VERSION_CURRENT, new MockAnalyzer(Random))
+                        .SetMaxBufferedDocs(10)
+                        .SetMergeScheduler(new ConcurrentMergeScheduler())
+                        .SetMergePolicy(NewLogMergePolicy(4)));
+                ((IConcurrentMergeScheduler)writer.Config.MergeScheduler).SetSuppressExceptions();
 
                 IndexerThread[] threads = new IndexerThread[NUM_THREADS];
 
@@ -314,7 +302,7 @@ namespace Lucene.Net.Index
 
         // Runs test, with multiple threads, using the specific
         // failure to trigger an IOException
-        public virtual void TestMultipleThreadsFailure(Func<IConcurrentMergeScheduler> newScheduler, Failure failure)
+        public virtual void TestMultipleThreadsFailure(Failure failure)
         {
             int NUM_THREADS = 3;
 
@@ -325,16 +313,13 @@ namespace Lucene.Net.Index
                     Console.WriteLine("TEST: iter=" + iter);
                 }
                 MockDirectoryWrapper dir = NewMockDirectory();
-                var config = NewIndexWriterConfig(TEST_VERSION_CURRENT, new MockAnalyzer(Random))
-                                .SetMaxBufferedDocs(2)
-                                .SetMergeScheduler(newScheduler())
-                                .SetMergePolicy(NewLogMergePolicy(4));
-                IndexWriter writer = new IndexWriter(dir, config);
-                var scheduler = config.mergeScheduler as IConcurrentMergeScheduler;
-                if (scheduler != null)
-                {
-                    scheduler.SetSuppressExceptions();
-                }
+                IndexWriter writer = new IndexWriter(
+                    dir,
+                    NewIndexWriterConfig(TEST_VERSION_CURRENT, new MockAnalyzer(Random))
+                        .SetMaxBufferedDocs(2)
+                        .SetMergeScheduler(new ConcurrentMergeScheduler())
+                        .SetMergePolicy(NewLogMergePolicy(4)));
+                ((IConcurrentMergeScheduler)writer.Config.MergeScheduler).SetSuppressExceptions();
 
                 IndexerThread[] threads = new IndexerThread[NUM_THREADS];
 
@@ -365,7 +350,7 @@ namespace Lucene.Net.Index
                     writer.Dispose(false);
                     success = true;
                 }
-                catch (IOException)
+                catch (Exception ioe) when (ioe.IsIOException())
                 {
                     failure.ClearDoFail();
                     writer.Dispose(false);
@@ -396,11 +381,11 @@ namespace Lucene.Net.Index
 
         // Runs test, with one thread, using the specific failure
         // to trigger an IOException
-        public virtual void TestSingleThreadFailure(Func<IConcurrentMergeScheduler> newScheduler, Failure failure)
+        public virtual void TestSingleThreadFailure(Failure failure)
         {
             MockDirectoryWrapper dir = NewMockDirectory();
 
-            IndexWriter writer = new IndexWriter(dir, NewIndexWriterConfig(TEST_VERSION_CURRENT, new MockAnalyzer(Random)).SetMaxBufferedDocs(2).SetMergeScheduler(newScheduler()));
+            IndexWriter writer = new IndexWriter(dir, NewIndexWriterConfig(TEST_VERSION_CURRENT, new MockAnalyzer(Random)).SetMaxBufferedDocs(2).SetMergeScheduler(new ConcurrentMergeScheduler()));
             Document doc = new Document();
             FieldType customType = new FieldType(TextField.TYPE_STORED);
             customType.StoreTermVectors = true;
@@ -422,7 +407,7 @@ namespace Lucene.Net.Index
                 writer.Commit();
                 Assert.Fail("did not hit exception");
             }
-            catch (IOException)
+            catch (Exception ioe) when (ioe.IsIOException())
             {
             }
             failure.ClearDoFail();
@@ -475,33 +460,33 @@ namespace Lucene.Net.Index
         // LUCENE-1130: make sure initial IOException, and then 2nd
         // IOException during rollback(), is OK:
         [Test]
-        public virtual void TestIOExceptionDuringAbort([ValueSource(typeof(ConcurrentMergeSchedulerFactories), "Values")]Func<IConcurrentMergeScheduler> newScheduler)
+        public virtual void TestIOExceptionDuringAbort()
         {
-            TestSingleThreadFailure(newScheduler, new FailOnlyOnAbortOrFlush(false));
+            TestSingleThreadFailure(new FailOnlyOnAbortOrFlush(false));
         }
 
         // LUCENE-1130: make sure initial IOException, and then 2nd
         // IOException during rollback(), is OK:
         [Test]
-        public virtual void TestIOExceptionDuringAbortOnlyOnce([ValueSource(typeof(ConcurrentMergeSchedulerFactories), "Values")]Func<IConcurrentMergeScheduler> newScheduler)
+        public virtual void TestIOExceptionDuringAbortOnlyOnce()
         {
-            TestSingleThreadFailure(newScheduler, new FailOnlyOnAbortOrFlush(true));
+            TestSingleThreadFailure(new FailOnlyOnAbortOrFlush(true));
         }
 
         // LUCENE-1130: make sure initial IOException, and then 2nd
         // IOException during rollback(), with multiple threads, is OK:
         [Test]
-        public virtual void TestIOExceptionDuringAbortWithThreads([ValueSource(typeof(ConcurrentMergeSchedulerFactories), "Values")]Func<IConcurrentMergeScheduler> newScheduler)
+        public virtual void TestIOExceptionDuringAbortWithThreads()
         {
-            TestMultipleThreadsFailure(newScheduler, new FailOnlyOnAbortOrFlush(false));
+            TestMultipleThreadsFailure(new FailOnlyOnAbortOrFlush(false));
         }
 
         // LUCENE-1130: make sure initial IOException, and then 2nd
         // IOException during rollback(), with multiple threads, is OK:
         [Test]
-        public virtual void TestIOExceptionDuringAbortWithThreadsOnlyOnce([ValueSource(typeof(ConcurrentMergeSchedulerFactories), "Values")]Func<IConcurrentMergeScheduler> newScheduler)
+        public virtual void TestIOExceptionDuringAbortWithThreadsOnlyOnce()
         {
-            TestMultipleThreadsFailure(newScheduler, new FailOnlyOnAbortOrFlush(true));
+            TestMultipleThreadsFailure( new FailOnlyOnAbortOrFlush(true));
         }
 
         // Throws IOException during DocumentsWriter.writeSegment
@@ -536,30 +521,30 @@ namespace Lucene.Net.Index
 
         // LUCENE-1130: test IOException in writeSegment
         [Test]
-        public virtual void TestIOExceptionDuringWriteSegment([ValueSource(typeof(ConcurrentMergeSchedulerFactories), "Values")]Func<IConcurrentMergeScheduler> newScheduler)
+        public virtual void TestIOExceptionDuringWriteSegment()
         {
-            TestSingleThreadFailure(newScheduler, new FailOnlyInWriteSegment(false));
+            TestSingleThreadFailure(new FailOnlyInWriteSegment(false));
         }
 
         // LUCENE-1130: test IOException in writeSegment
         [Test]
-        public virtual void TestIOExceptionDuringWriteSegmentOnlyOnce([ValueSource(typeof(ConcurrentMergeSchedulerFactories), "Values")]Func<IConcurrentMergeScheduler> newScheduler)
+        public virtual void TestIOExceptionDuringWriteSegmentOnlyOnce()
         {
-            TestSingleThreadFailure(newScheduler, new FailOnlyInWriteSegment(true));
+            TestSingleThreadFailure(new FailOnlyInWriteSegment(true));
         }
 
         // LUCENE-1130: test IOException in writeSegment, with threads
         [Test]
-        public virtual void TestIOExceptionDuringWriteSegmentWithThreads([ValueSource(typeof(ConcurrentMergeSchedulerFactories), "Values")]Func<IConcurrentMergeScheduler> newScheduler)
+        public virtual void TestIOExceptionDuringWriteSegmentWithThreads()
         {
-            TestMultipleThreadsFailure(newScheduler, new FailOnlyInWriteSegment(false));
+            TestMultipleThreadsFailure(new FailOnlyInWriteSegment(false));
         }
 
         // LUCENE-1130: test IOException in writeSegment, with threads
         [Test]
-        public virtual void TestIOExceptionDuringWriteSegmentWithThreadsOnlyOnce([ValueSource(typeof(ConcurrentMergeSchedulerFactories), "Values")]Func<IConcurrentMergeScheduler> newScheduler)
+        public virtual void TestIOExceptionDuringWriteSegmentWithThreadsOnlyOnce()
         {
-            TestMultipleThreadsFailure(newScheduler, new FailOnlyInWriteSegment(true));
+            TestMultipleThreadsFailure(new FailOnlyInWriteSegment(true));
         }
 
         //  LUCENE-3365: Test adding two documents with the same field from two different IndexWriters
@@ -644,21 +629,19 @@ namespace Lucene.Net.Index
                     Document doc = new Document();
                     Field field = NewTextField("field", "testData", Field.Store.YES);
                     doc.Add(field);
-                    using (IndexWriter writer = new IndexWriter(dir, NewIndexWriterConfig(
+                    using IndexWriter writer = new IndexWriter(dir, NewIndexWriterConfig(
 #if FEATURE_INSTANCE_TESTDATA_INITIALIZATION
                         outerInstance,
 #endif
-                        TEST_VERSION_CURRENT, new MockAnalyzer(Random))))
+                        TEST_VERSION_CURRENT, new MockAnalyzer(Random)));
+                    if (iwConstructed.CurrentCount > 0)
                     {
-                        if (iwConstructed.CurrentCount > 0)
-                        {
-                            iwConstructed.Signal();
-                        }
-                        startIndexing.Wait();
-                        writer.AddDocument(doc);
+                        iwConstructed.Signal();
                     }
+                    startIndexing.Wait();
+                    writer.AddDocument(doc);
                 }
-                catch (Exception e)
+                catch (Exception e) when (e.IsThrowable())
                 {
                     failed = true;
                     failure = e;
@@ -693,7 +676,7 @@ namespace Lucene.Net.Index
             ReentrantLock commitLock = new ReentrantLock();
             for (int threadID = 0; threadID < threadCount; threadID++)
             {
-                threads[threadID] = new ThreadAnonymousInnerClassHelper(this, d, writerRef, docs, iters, failed, rollbackLock, commitLock);
+                threads[threadID] = new ThreadAnonymousClass(this, d, writerRef, docs, iters, failed, rollbackLock, commitLock);
                 threads[threadID].Start();
             }
 
@@ -705,7 +688,7 @@ namespace Lucene.Net.Index
                 } 
                 catch (Exception e)
                 {
-                    Console.WriteLine("EXCEPTION in ThreadAnonymousInnerClassHelper: " + Environment.NewLine + e);
+                    Console.WriteLine("EXCEPTION in ThreadAnonymousClass: " + Environment.NewLine + e);
                 }
             }
 
@@ -714,7 +697,7 @@ namespace Lucene.Net.Index
             d.Dispose();
         }
 
-        private class ThreadAnonymousInnerClassHelper : ThreadJob
+        private class ThreadAnonymousClass : ThreadJob
         {
 #if FEATURE_INSTANCE_TESTDATA_INITIALIZATION
             private readonly TestIndexWriterWithThreads outerInstance;
@@ -728,7 +711,7 @@ namespace Lucene.Net.Index
             private readonly ReentrantLock rollbackLock;
             private readonly ReentrantLock commitLock;
 
-            public ThreadAnonymousInnerClassHelper(TestIndexWriterWithThreads outerInstance, BaseDirectoryWrapper d, AtomicReference<IndexWriter> writerRef, LineFileDocs docs, int iters, AtomicBoolean failed, ReentrantLock rollbackLock, ReentrantLock commitLock)
+            public ThreadAnonymousClass(TestIndexWriterWithThreads outerInstance, BaseDirectoryWrapper d, AtomicReference<IndexWriter> writerRef, LineFileDocs docs, int iters, AtomicBoolean failed, ReentrantLock rollbackLock, ReentrantLock commitLock)
             {
 #if FEATURE_INSTANCE_TESTDATA_INITIALIZATION
                 this.outerInstance = outerInstance;
@@ -792,14 +775,14 @@ namespace Lucene.Net.Index
                                     }
                                     writerRef.Value.Commit();
                                 }
-                                catch (ObjectDisposedException)
+                                catch (Exception ace) when (ace.IsAlreadyClosedException())
                                 {
                                     // ok
                                 }
-                                catch (NullReferenceException)
-                                {
-                                    // ok
-                                }
+                                //catch (NullReferenceException) // LUCENENET specific - NullReferenceException must be allowed to propagate so we can defensively avoid it in .NET
+                                //{
+                                //    // ok
+                                //}
                                 finally
                                 {
                                     commitLock.Unlock();
@@ -815,29 +798,25 @@ namespace Lucene.Net.Index
                                 {
                                     writerRef.Value.AddDocument(docs.NextDoc());
                                 }
-                                catch (ObjectDisposedException)
+                                catch (Exception ace) when (ace.IsAlreadyClosedException())
                                 {
                                     // ok
                                 }
-                                catch (NullReferenceException)
-                                {
-                                    // ok
-                                }
-                                catch (InvalidOperationException)
-                                {
-                                    // ok
-                                }
-                                catch (AssertionException)
+                                //catch (NullReferenceException) // LUCENENET specific - NullReferenceException must be allowed to propagate so we can defensively avoid it in .NET
+                                //{
+                                //    // ok
+                                //}
+                                catch (Exception ae) when (ae.IsAssertionError())
                                 {
                                     // ok
                                 }
                                 break;
                         }
                     }
-                    catch (Exception t)
+                    catch (Exception t) when (t.IsThrowable())
                     {
                         failed.Value = (true);
-                        throw new Exception(t.Message, t);
+                        throw RuntimeException.Create(t);
                     }
                 }
             }

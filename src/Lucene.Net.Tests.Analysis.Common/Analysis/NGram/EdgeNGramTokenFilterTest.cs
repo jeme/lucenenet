@@ -1,4 +1,5 @@
-﻿using J2N;
+﻿// Lucene version compatibility level 4.8.1
+using J2N;
 using Lucene.Net.Analysis.Core;
 using Lucene.Net.Analysis.Miscellaneous;
 using Lucene.Net.Analysis.Shingle;
@@ -50,7 +51,7 @@ namespace Lucene.Net.Analysis.NGram
                 new EdgeNGramTokenFilter(TEST_VERSION_CURRENT, input, EdgeNGramTokenFilter.Side.FRONT, 0, 0);
 #pragma warning restore 612, 618
             }
-            catch (ArgumentException)
+            catch (ArgumentOutOfRangeException) // LUCENENET specific - changed from IllegalArgumentException to ArgumentOutOfRangeException (.NET convention)
             {
                 gotException = true;
             }
@@ -67,7 +68,7 @@ namespace Lucene.Net.Analysis.NGram
                 new EdgeNGramTokenFilter(TEST_VERSION_CURRENT, input, EdgeNGramTokenFilter.Side.FRONT, 2, 1);
 #pragma warning restore 612, 618
             }
-            catch (ArgumentException)
+            catch (Exception e) when (e.IsIllegalArgumentException())
             {
                 gotException = true;
             }
@@ -84,7 +85,7 @@ namespace Lucene.Net.Analysis.NGram
                 new EdgeNGramTokenFilter(TEST_VERSION_CURRENT, input, EdgeNGramTokenFilter.Side.FRONT, -1, 2);
 #pragma warning restore 612, 618
             }
-            catch (ArgumentException)
+            catch (ArgumentOutOfRangeException) // LUCENENET specific - changed from IllegalArgumentException to ArgumentOutOfRangeException (.NET convention)
             {
                 gotException = true;
             }

@@ -1,4 +1,4 @@
-using Lucene.Net.Codecs;
+﻿using Lucene.Net.Codecs;
 using Lucene.Net.Codecs.Asserting;
 using Lucene.Net.Codecs.CheapBastard;
 using Lucene.Net.Codecs.Compressing;
@@ -22,6 +22,7 @@ using System.Reflection;
 using System.Threading;
 using JCG = J2N.Collections.Generic;
 using Console = Lucene.Net.Util.SystemConsole;
+using RandomizedTesting.Generators;
 
 // LUCENENET NOTE: These are primarily here because they are referred to
 // in the XML documentation. Be sure to add a new option if a new test framework
@@ -61,10 +62,10 @@ namespace Lucene.Net.Util
     // we didn't port over the entire test suite from Java.
     internal sealed class TestRuleSetupAndRestoreClassEnv : AbstractBeforeAfterRule
     {
-        /// <summary>
-        /// Restore these system property values.
-        /// </summary>
-        private Dictionary<string, string> restoreProperties = new Dictionary<string, string>();
+        ///// <summary>
+        ///// Restore these system property values.
+        ///// </summary>
+        //private Dictionary<string, string> restoreProperties = new Dictionary<string, string>(); // LUCENENET: Never read
 
         private Codec savedCodec;
         private CultureInfo savedLocale;
@@ -242,7 +243,7 @@ namespace Lucene.Net.Util
                     dvFormat = DocValuesFormat.ForName(LuceneTestCase.TestDocValuesFormat);
                 }
 
-                codec = new Lucene46CodecAnonymousInnerClassHelper(this, format, dvFormat);
+                codec = new Lucene46CodecAnonymousClass(format, dvFormat);
             }
             else if ("SimpleText".Equals(LuceneTestCase.TestCodec, StringComparison.Ordinal) 
                 || ("random".Equals(LuceneTestCase.TestCodec, StringComparison.Ordinal) && randomVal == 9 && LuceneTestCase.Rarely(random) && !ShouldAvoidCodec("SimpleText")))
@@ -315,16 +316,13 @@ namespace Lucene.Net.Util
             }
         }
 
-        private class Lucene46CodecAnonymousInnerClassHelper : Lucene46Codec
+        private class Lucene46CodecAnonymousClass : Lucene46Codec
         {
-            private readonly TestRuleSetupAndRestoreClassEnv outerInstance;
+            private readonly PostingsFormat format;
+            private readonly DocValuesFormat dvFormat;
 
-            private PostingsFormat format;
-            private DocValuesFormat dvFormat;
-
-            public Lucene46CodecAnonymousInnerClassHelper(TestRuleSetupAndRestoreClassEnv outerInstance, PostingsFormat format, DocValuesFormat dvFormat)
+            public Lucene46CodecAnonymousClass(PostingsFormat format, DocValuesFormat dvFormat)
             {
-                this.outerInstance = outerInstance;
                 this.format = format;
                 this.dvFormat = dvFormat;
             }
@@ -353,9 +351,9 @@ namespace Lucene.Net.Util
         {
             LuceneTestCase.AssumeFalse("Class not allowed to use codec: " + codec.Name + ".", ShouldAvoidCodec(codec.Name));
 
-            if (codec is RandomCodec && avoidCodecs.Count > 0)
+            if (codec is RandomCodec randomCodec && avoidCodecs.Count > 0)
             {
-                foreach (string name in ((RandomCodec)codec).FormatNames)
+                foreach (string name in randomCodec.FormatNames)
                 {
                     LuceneTestCase.AssumeFalse("Class not allowed to use postings format: " + name + ".", ShouldAvoidCodec(name));
                 }

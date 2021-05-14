@@ -1,4 +1,5 @@
-﻿using Lucene.Net.Support;
+﻿// Lucene version compatibility level 4.8.1
+using Lucene.Net.Support;
 using System;
 
 namespace Lucene.Net.Facet
@@ -103,17 +104,17 @@ namespace Lucene.Net.Facet
                 }
             }
 
-            return new WeightAnonymousInnerClassHelper(this, baseWeight, drillDowns);
+            return new WeightAnonymousClass(this, baseWeight, drillDowns);
         }
 
-        private class WeightAnonymousInnerClassHelper : Weight
+        private class WeightAnonymousClass : Weight
         {
             private readonly DrillSidewaysQuery outerInstance;
 
             private readonly Weight baseWeight;
             private readonly object[] drillDowns;
 
-            public WeightAnonymousInnerClassHelper(DrillSidewaysQuery outerInstance, Weight baseWeight, object[] drillDowns)
+            public WeightAnonymousClass(DrillSidewaysQuery outerInstance, Weight baseWeight, object[] drillDowns)
             {
                 this.outerInstance = outerInstance;
                 this.baseWeight = baseWeight;
@@ -145,7 +146,7 @@ namespace Lucene.Net.Facet
             public override Scorer GetScorer(AtomicReaderContext context, IBits acceptDocs)
             {
                 // We can only run as a top scorer:
-                throw new NotSupportedException();
+                throw UnsupportedOperationException.Create();
             }
 
             public override BulkScorer GetBulkScorer(AtomicReaderContext context, bool scoreDocsInOrder, IBits acceptDocs)
@@ -160,12 +161,12 @@ namespace Lucene.Net.Facet
                 {
                     dims[dim] = new DrillSidewaysScorer.DocsAndCost();
                     dims[dim].sidewaysCollector = outerInstance.drillSidewaysCollectors[dim];
-                    if (drillDowns[dim] is Filter)
+                    if (drillDowns[dim] is Filter filter)
                     {
                         // Pass null for acceptDocs because we already
                         // passed it to baseScorer and baseScorer is
                         // MUST'd here
-                        DocIdSet dis = ((Filter)drillDowns[dim]).GetDocIdSet(context, null);
+                        DocIdSet dis = filter.GetDocIdSet(context, null);
 
                         if (dis == null)
                         {

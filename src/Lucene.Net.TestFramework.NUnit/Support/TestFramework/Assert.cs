@@ -3,7 +3,9 @@ using Lucene.Net.Support;
 using Lucene.Net.Support.IO;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using _NUnit = NUnit.Framework;
 using JCG = J2N.Collections.Generic;
 
@@ -54,6 +56,8 @@ namespace Lucene.Net.TestFramework
         //
         //   actual:
         //     The actual value
+        [DebuggerStepThrough]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void AreEqual<T>(T expected, T actual)
         {
             if (!JCG.EqualityComparer<T>.Default.Equals(expected, actual))
@@ -78,6 +82,8 @@ namespace Lucene.Net.TestFramework
         //
         //   args:
         //     Array of objects to be used in formatting the message
+        [DebuggerStepThrough]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void AreEqual<T>(T expected, T actual, string message, params object[] args)
         {
             if (!JCG.EqualityComparer<T>.Default.Equals(expected, actual))
@@ -97,6 +103,8 @@ namespace Lucene.Net.TestFramework
         //
         //   actual:
         //     The actual value
+        [DebuggerStepThrough]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void AreEqual(string expected, string actual)
         {
             if (!StringComparer.Ordinal.Equals(expected, actual))
@@ -119,6 +127,8 @@ namespace Lucene.Net.TestFramework
         //
         //   actual:
         //     The actual value
+        [DebuggerStepThrough]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void AreEqual(string expected, string actual, string message, params object[] args)
         {
             if (!StringComparer.Ordinal.Equals(expected, actual))
@@ -138,6 +148,8 @@ namespace Lucene.Net.TestFramework
         //
         //   actual:
         //     The actual value
+        [DebuggerStepThrough]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void AreEqual(bool expected, bool actual)
         {
             if (!expected.Equals(actual))
@@ -162,6 +174,8 @@ namespace Lucene.Net.TestFramework
         //
         //   args:
         //     Array of objects to be used in formatting the message
+        [DebuggerStepThrough]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void AreEqual(bool expected, bool actual, string message, params object[] args)
         {
             if (!expected.Equals(actual))
@@ -189,6 +203,8 @@ namespace Lucene.Net.TestFramework
         //
         //   args:
         //     Array of objects to be used in formatting the message
+        [DebuggerStepThrough]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void AreEqual(double expected, double actual, double delta, string message, params object[] args)
         {
             if (Math.Abs(expected - actual) > delta)
@@ -209,6 +225,8 @@ namespace Lucene.Net.TestFramework
         //
         //   delta:
         //     The maximum acceptable difference between the the expected and the actual
+        [DebuggerStepThrough]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void AreEqual(double expected, double actual, double delta)
         {
             if (Math.Abs(expected - actual) > delta)
@@ -235,6 +253,8 @@ namespace Lucene.Net.TestFramework
         //
         //   args:
         //     Array of objects to be used in formatting the message
+        [DebuggerStepThrough]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void AreEqual(float expected, float actual, float delta, string message, params object[] args)
         {
             if (Math.Abs(expected - actual) > delta)
@@ -255,6 +275,8 @@ namespace Lucene.Net.TestFramework
         //
         //   delta:
         //     The maximum acceptable difference between the the expected and the actual
+        [DebuggerStepThrough]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void AreEqual(float expected, float actual, float delta)
         {
             if (Math.Abs(expected - actual) > delta)
@@ -273,6 +295,8 @@ namespace Lucene.Net.TestFramework
         //
         //   actual:
         //     The actual value
+        [DebuggerStepThrough]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void AreEqual(int expected, int actual)
         {
             if (!expected.Equals(actual))
@@ -295,6 +319,8 @@ namespace Lucene.Net.TestFramework
         //
         //   actual:
         //     The actual value
+        [DebuggerStepThrough]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void AreEqual(int expected, int actual, string message, params object[] args)
         {
             if (!expected.Equals(actual))
@@ -314,6 +340,8 @@ namespace Lucene.Net.TestFramework
         //
         //   actual:
         //     The actual value
+        [DebuggerStepThrough]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void AreEqual(long expected, long actual)
         {
             if (!expected.Equals(actual))
@@ -336,6 +364,8 @@ namespace Lucene.Net.TestFramework
         //
         //   actual:
         //     The actual value
+        [DebuggerStepThrough]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void AreEqual(long expected, long actual, string message, params object[] args)
         {
             if (!expected.Equals(actual))
@@ -355,6 +385,8 @@ namespace Lucene.Net.TestFramework
         //
         //   actual:
         //     The actual value
+        [DebuggerStepThrough]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void AreEqual(byte expected, byte actual)
         {
             if (!expected.Equals(actual))
@@ -377,6 +409,8 @@ namespace Lucene.Net.TestFramework
         //
         //   actual:
         //     The actual value
+        [DebuggerStepThrough]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void AreEqual(byte expected, byte actual, string message, params object[] args)
         {
             if (!expected.Equals(actual))
@@ -384,6 +418,8 @@ namespace Lucene.Net.TestFramework
         }
 
 
+        [DebuggerStepThrough]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static JCG.SetEqualityComparer<T> GetSetComparer<T>(bool aggressive)
         {
             return aggressive
@@ -391,6 +427,8 @@ namespace Lucene.Net.TestFramework
                 : JCG.SetEqualityComparer<T>.Default;
         }
 
+        [DebuggerStepThrough]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static JCG.ListEqualityComparer<T> GetListComparer<T>(bool aggressive)
         {
             return aggressive
@@ -398,6 +436,8 @@ namespace Lucene.Net.TestFramework
                 : JCG.ListEqualityComparer<T>.Default;
         }
 
+        [DebuggerStepThrough]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static JCG.DictionaryEqualityComparer<TKey, TValue> GetDictionaryComparer<TKey, TValue>(bool aggressive)
         {
             return aggressive
@@ -412,17 +452,22 @@ namespace Lucene.Net.TestFramework
             return string.Concat(failureHeader, Environment.NewLine, Environment.NewLine, msg);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static string FormatCollection(object collection)
         {
             return string.Format(StringFormatter.CurrentCulture, "{0}", collection);
         }
 
+        [DebuggerStepThrough]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void AreEqual<T>(ISet<T> expected, ISet<T> actual, bool aggressive = true)
         {
             if (!GetSetComparer<T>(aggressive).Equals(expected, actual))
                 Fail(FailureFormat, FormatCollection(expected), FormatCollection(actual));
         }
 
+        [DebuggerStepThrough]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void AreEqual<T>(ISet<T> expected, ISet<T> actual, bool aggressive, string message, params object[] args)
         {
             //Fail(FormatErrorMessage(expected, actual, message, args));
@@ -430,42 +475,56 @@ namespace Lucene.Net.TestFramework
                 Fail(FormatErrorMessage(FormatCollection(expected), FormatCollection(actual), message, args));
         }
 
+        [DebuggerStepThrough]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void AreEqual<T>(ISet<T> expected, ISet<T> actual, bool aggressive, Func<string> getMessage)
         {
             if (!GetSetComparer<T>(aggressive).Equals(expected, actual))
                 Fail(FormatErrorMessage(FormatCollection(expected), FormatCollection(actual), getMessage()));
         }
 
+        [DebuggerStepThrough]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void AreEqual<T>(IList<T> expected, IList<T> actual, bool aggressive = true)
         {
             if (!GetListComparer<T>(aggressive).Equals(expected, actual))
                 Fail(string.Format(FailureFormat, FormatCollection(expected), FormatCollection(actual)));
         }
 
+        [DebuggerStepThrough]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void AreEqual<T>(IList<T> expected, IList<T> actual, bool aggressive, string message, params object[] args)
         {
             if (!GetListComparer<T>(aggressive).Equals(expected, actual))
                 Fail(FormatErrorMessage(FormatCollection(expected), FormatCollection(actual), message, args));
         }
 
+        [DebuggerStepThrough]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void AreEqual<T>(IList<T> expected, IList<T> actual, bool aggressive, Func<string> getMessage)
         {
             if (!GetListComparer<T>(aggressive).Equals(expected, actual))
                 Fail(FormatErrorMessage(FormatCollection(expected), FormatCollection(actual), getMessage()));
         }
 
+        [DebuggerStepThrough]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void AreEqual<TKey, TValue>(IDictionary<TKey, TValue> expected, IDictionary<TKey, TValue> actual, bool aggressive = true)
         {
             if (!GetDictionaryComparer<TKey, TValue>(aggressive).Equals(expected, actual))
                 Fail(FailureFormat, FormatCollection(expected), FormatCollection(actual));
-        } 
+        }
 
+        [DebuggerStepThrough]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void AreEqual<TKey, TValue>(IDictionary<TKey, TValue> expected, IDictionary<TKey, TValue> actual, bool aggressive, string message, params object[] args)
         {
             if (!GetDictionaryComparer<TKey, TValue>(aggressive).Equals(expected, actual))
                 Fail(FormatErrorMessage(FormatCollection(expected), FormatCollection(actual), message, args));
         }
 
+        [DebuggerStepThrough]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void AreEqual<TKey, TValue>(IDictionary<TKey, TValue> expected, IDictionary<TKey, TValue> actual, bool aggressive, Func<string> getMessage)
         {
             if (!GetDictionaryComparer<TKey, TValue>(aggressive).Equals(expected, actual))
@@ -474,6 +533,8 @@ namespace Lucene.Net.TestFramework
 
 
         // From CollectionAssert
+        [DebuggerStepThrough]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void AreEqual<T>(T[] expected, T[] actual)
         {
             if (!J2N.Collections.ArrayEqualityComparer<T>.OneDimensional.Equals(expected, actual))
@@ -481,6 +542,8 @@ namespace Lucene.Net.TestFramework
         }
 
         // From CollectionAssert
+        [DebuggerStepThrough]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void AreEqual<T>(T[] expected, T[] actual, string message, params object[] args)
         {
             if (!J2N.Collections.ArrayEqualityComparer<T>.OneDimensional.Equals(expected, actual))
@@ -488,6 +551,8 @@ namespace Lucene.Net.TestFramework
         }
 
         // From CollectionAssert
+        [DebuggerStepThrough]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void AreEqual<T>(T[] expected, T[] actual, Func<string> getMessage)
         {
             if (!J2N.Collections.ArrayEqualityComparer<T>.OneDimensional.Equals(expected, actual))
@@ -513,6 +578,8 @@ namespace Lucene.Net.TestFramework
         //
         //   args:
         //     Array of objects to be used in formatting the message
+        [DebuggerStepThrough]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void AreNotEqual(object expected, object actual, string message, params object[] args)
         {
             _NUnit.Assert.AreNotEqual(expected, actual, message, args);
@@ -530,6 +597,8 @@ namespace Lucene.Net.TestFramework
         //
         //   actual:
         //     The actual value
+        [DebuggerStepThrough]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void AreNotEqual(object expected, object actual)
         {
             _NUnit.Assert.AreNotEqual(expected, actual);
@@ -551,6 +620,8 @@ namespace Lucene.Net.TestFramework
         //
         //   args:
         //     Array of objects to be used in formatting the message
+        [DebuggerStepThrough]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void AreNotSame(object expected, object actual, string message, params object[] args)
         {
             _NUnit.Assert.AreNotSame(expected, actual, message, args);
@@ -566,6 +637,8 @@ namespace Lucene.Net.TestFramework
         //
         //   actual:
         //     The actual object
+        [DebuggerStepThrough]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void AreNotSame(object expected, object actual)
         {
             _NUnit.Assert.AreNotSame(expected, actual);
@@ -581,6 +654,8 @@ namespace Lucene.Net.TestFramework
         //
         //   actual:
         //     The actual object
+        [DebuggerStepThrough]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void AreSame(object expected, object actual)
         {
             _NUnit.Assert.AreSame(expected, actual);
@@ -602,11 +677,15 @@ namespace Lucene.Net.TestFramework
         //
         //   args:
         //     Array of objects to be used in formatting the message
+        [DebuggerStepThrough]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void AreSame(object expected, object actual, string message, params object[] args)
         {
             _NUnit.Assert.AreSame(expected, actual, message, args);
         }
 
+        [DebuggerStepThrough]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Fail(string message, params object[] args)
         {
             _NUnit.Assert.Fail(message, args);
@@ -615,6 +694,8 @@ namespace Lucene.Net.TestFramework
         // Summary:
         //     Throws an NUnit.Framework.AssertionException. This is used by the other Assert
         //     functions.
+        [DebuggerStepThrough]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Fail()
         {
             _NUnit.Assert.Fail();
@@ -627,9 +708,32 @@ namespace Lucene.Net.TestFramework
         // Parameters:
         //   message:
         //     The message to initialize the NUnit.Framework.AssertionException with.
+        [DebuggerStepThrough]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Fail(string message)
         {
             _NUnit.Assert.Fail(message);
+        }
+
+        [DebuggerStepThrough]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void Pass(string message, params object[] args)
+        {
+            _NUnit.Assert.Pass(message, args);
+        }
+
+        [DebuggerStepThrough]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void Pass(string message)
+        {
+            _NUnit.Assert.Pass(message);
+        }
+
+        [DebuggerStepThrough]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void Pass()
+        {
+            _NUnit.Assert.Pass();
         }
 
         //
@@ -646,6 +750,8 @@ namespace Lucene.Net.TestFramework
         //
         //   args:
         //     Array of objects to be used in formatting the message
+        [DebuggerStepThrough]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void False(bool condition, string message, params object[] args)
         {
             if (condition)
@@ -659,6 +765,8 @@ namespace Lucene.Net.TestFramework
         // Parameters:
         //   condition:
         //     The evaluated condition
+        [DebuggerStepThrough]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void False(bool condition)
         {
             if (condition)
@@ -673,6 +781,8 @@ namespace Lucene.Net.TestFramework
         // Parameters:
         //   condition:
         //     The evaluated condition
+        [DebuggerStepThrough]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void IsFalse(bool condition)
         {
             if (condition)
@@ -693,6 +803,8 @@ namespace Lucene.Net.TestFramework
         //
         //   args:
         //     Array of objects to be used in formatting the message
+        [DebuggerStepThrough]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void IsFalse(bool condition, string message, params object[] args)
         {
             if (condition)
@@ -713,6 +825,8 @@ namespace Lucene.Net.TestFramework
         //
         //   args:
         //     Array of objects to be used in formatting the message
+        [DebuggerStepThrough]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void IsNotNull(object anObject, string message, params object[] args)
         {
             _NUnit.Assert.IsNotNull(anObject, message, args);
@@ -725,6 +839,8 @@ namespace Lucene.Net.TestFramework
         // Parameters:
         //   anObject:
         //     The object that is to be tested
+        [DebuggerStepThrough]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void IsNotNull(object anObject)
         {
             _NUnit.Assert.IsNotNull(anObject);
@@ -737,6 +853,8 @@ namespace Lucene.Net.TestFramework
         // Parameters:
         //   anObject:
         //     The object that is to be tested
+        [DebuggerStepThrough]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void IsNull(object anObject)
         {
             _NUnit.Assert.IsNull(anObject);
@@ -755,6 +873,8 @@ namespace Lucene.Net.TestFramework
         //
         //   args:
         //     Array of objects to be used in formatting the message
+        [DebuggerStepThrough]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void IsNull(object anObject, string message, params object[] args)
         {
             _NUnit.Assert.IsNull(anObject, message, args);
@@ -774,6 +894,8 @@ namespace Lucene.Net.TestFramework
         //
         //   args:
         //     Array of objects to be used in formatting the message
+        [DebuggerStepThrough]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void IsTrue(bool condition, string message, params object[] args)
         {
             if (!condition)
@@ -788,6 +910,8 @@ namespace Lucene.Net.TestFramework
         // Parameters:
         //   condition:
         //     The evaluated condition
+        [DebuggerStepThrough]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void IsTrue(bool condition)
         {
             if (!condition)
@@ -802,6 +926,8 @@ namespace Lucene.Net.TestFramework
         // Parameters:
         //   anObject:
         //     The object that is to be tested
+        [DebuggerStepThrough]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void NotNull(object anObject)
         {
             if (!(anObject is null))
@@ -821,6 +947,8 @@ namespace Lucene.Net.TestFramework
         //
         //   args:
         //     Array of objects to be used in formatting the message
+        [DebuggerStepThrough]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void NotNull(object anObject, string message, params object[] args)
         {
             if (anObject is null)
@@ -841,6 +969,8 @@ namespace Lucene.Net.TestFramework
         //
         //   args:void Null
         //     Array of objects to be used in formatting the message
+        [DebuggerStepThrough]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Null(object anObject, string message, params object[] args)
         {
             if (!(anObject is null))
@@ -854,6 +984,8 @@ namespace Lucene.Net.TestFramework
         // Parameters:
         //   anObject:
         //     The object that is to be tested
+        [DebuggerStepThrough]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Null(object anObject)
         {
             if (!(anObject is null))
@@ -874,6 +1006,8 @@ namespace Lucene.Net.TestFramework
         //
         //   args:
         //     Array of objects to be used in formatting the message
+        [DebuggerStepThrough]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void True(bool condition, string message, params object[] args)
         {
             if (!condition)
@@ -888,6 +1022,8 @@ namespace Lucene.Net.TestFramework
         // Parameters:
         //   condition:
         //     The evaluated condition
+        [DebuggerStepThrough]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void True(bool condition)
         {
             if (!condition)
@@ -909,6 +1045,8 @@ namespace Lucene.Net.TestFramework
         //
         //   args:
         //     Array of objects to be used in formatting the message
+        [DebuggerStepThrough]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void IsNotEmpty(string aString, string message, params object[] args)
         {
             if (string.Empty.Equals(aString))
@@ -922,6 +1060,8 @@ namespace Lucene.Net.TestFramework
         // Parameters:
         //   anObject:
         //     The object that is to be tested
+        [DebuggerStepThrough]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void IsNotEmpty(string aString)
         {
             if (string.Empty.Equals(aString))
@@ -943,6 +1083,8 @@ namespace Lucene.Net.TestFramework
         //
         //   args:
         //     Array of objects to be used in formatting the message
+        [DebuggerStepThrough]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void IsEmpty(string aString, string message, params object[] args)
         {
             if (!string.Empty.Equals(aString))
@@ -956,44 +1098,73 @@ namespace Lucene.Net.TestFramework
         // Parameters:
         //   anObject:
         //     The object that is to be tested
+        [DebuggerStepThrough]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void IsEmpty(string aString)
         {
             if (!string.Empty.Equals(aString))
                 _NUnit.Assert.IsEmpty(aString);
         }
 
+        [DebuggerStepThrough]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void LessOrEqual(int arg1, int arg2)
         {
             if (arg1 > arg2)
                 _NUnit.Assert.LessOrEqual(arg1, arg2);
         }
 
+        [DebuggerStepThrough]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Greater(int arg1, int arg2)
         {
             if (arg1 <= arg2)
                 _NUnit.Assert.Greater(arg1, arg2);
         }
 
+        [DebuggerStepThrough]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void DoesNotThrow(Action action, string message, params object[] args)
+        {
+            _NUnit.Assert.DoesNotThrow(() => action(), message, args);
+        }
+
+        [DebuggerStepThrough]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void DoesNotThrow(Action action)
+        {
+            _NUnit.Assert.DoesNotThrow(() => action());
+        }
+
+        [DebuggerStepThrough]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Exception Throws<TException>(Action action, string message, params object[] args)
         {
             return Throws(typeof(TException), action, message, args);
         }
 
+        [DebuggerStepThrough]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Exception Throws<TException>(Action action)
         {
             return Throws(typeof(TException), action);
         }
 
+        [DebuggerStepThrough]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Exception Throws(Type expectedExceptionType, Action action)
         {
             return _NUnit.Assert.Throws(expectedExceptionType, () => action());
         }
 
+        [DebuggerStepThrough]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Exception Throws(Type expectedExceptionType, Action action, string message, params object[] args)
         {
             return _NUnit.Assert.Throws(expectedExceptionType, () => action(), message, args);
         }
 
+        [DebuggerStepThrough]
         public static Exception ThrowsFileAlreadyExistsException(string filePath, Action action)
         {
             var messagePrefix = $"Expected: IOException indicating file not found\nBut was:";
@@ -1012,16 +1183,21 @@ namespace Lucene.Net.TestFramework
             }
         }
 
+        [DebuggerStepThrough]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Exception ThrowsAnyOf<TException1, TException2>(Action action)
         {
             return ThrowsAnyOf(new Type[] { typeof(TException1), typeof(TException2) }, action);
         }
 
+        [DebuggerStepThrough]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Exception ThrowsAnyOf<TException1, TException2, TException3>(Action action)
         {
             return ThrowsAnyOf(new Type[] { typeof(TException1), typeof(TException2), typeof(TException3) }, action);
         }
 
+        [DebuggerStepThrough]
         public static Exception ThrowsAnyOf(IEnumerable<Type> expectedExceptionTypes, Action action)
         {
             Exception exception = null;

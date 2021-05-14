@@ -1,4 +1,4 @@
-using J2N.Threading.Atomic;
+﻿using J2N.Threading.Atomic;
 using Lucene.Net.Diagnostics;
 using Lucene.Net.Documents;
 using System;
@@ -154,7 +154,7 @@ namespace Lucene.Net.Index
                     count = Info.Info.DocCount;
                 }
 
-                if (Debugging.AssertsEnabled) Debugging.Assert(Info.Info.DocCount - Info.DelCount - pendingDeleteCount == count, () => "info.docCount=" + Info.Info.DocCount + " info.DelCount=" + Info.DelCount + " pendingDeleteCount=" + pendingDeleteCount + " count=" + count);
+                if (Debugging.AssertsEnabled) Debugging.Assert(Info.Info.DocCount - Info.DelCount - pendingDeleteCount == count, "info.docCount={0} info.DelCount={1} pendingDeleteCount={2} count={3}", Info.Info.DocCount, Info.DelCount, pendingDeleteCount, count);
                 return true;
             }
         }
@@ -234,7 +234,7 @@ namespace Lucene.Net.Index
                 {
                     Debugging.Assert(liveDocs != null);
                     Debugging.Assert(Monitor.IsEntered(writer));
-                    Debugging.Assert(docID >= 0 && docID < liveDocs.Length, () => "out of bounds: docid=" + docID + " liveDocsLength=" + liveDocs.Length + " seg=" + Info.Info.Name + " docCount=" + Info.Info.DocCount);
+                    Debugging.Assert(docID >= 0 && docID < liveDocs.Length, "out of bounds: docid={0} liveDocsLength={1} seg={2} docCount={3}", docID, liveDocs.Length, Info.Info.Name, Info.Info.DocCount);
                     Debugging.Assert(!liveDocsShared);
                 }
                 bool didDelete = liveDocs.Get(docID);
@@ -440,7 +440,7 @@ namespace Lucene.Net.Index
                             {
                                 dir.DeleteFile(fileName);
                             }
-                            catch (Exception)
+                            catch (Exception t) when (t.IsThrowable())
                             {
                                 // Ignore so we throw only the first exc
                             }
@@ -483,7 +483,7 @@ namespace Lucene.Net.Index
 
                     // reader could be null e.g. for a just merged segment (from
                     // IndexWriter.commitMergedDeletes).
-                    SegmentReader reader = this.reader == null ? new SegmentReader(Info, writer.Config.ReaderTermsIndexDivisor, IOContext.READ_ONCE) : this.reader;
+                    SegmentReader reader = this.reader ?? new SegmentReader(Info, writer.Config.ReaderTermsIndexDivisor, IOContext.READ_ONCE);
                     try
                     {
                         // clone FieldInfos so that we can update their dvGen separately from
@@ -512,7 +512,7 @@ namespace Lucene.Net.Index
                         // create new fields or update existing ones to have BinaryDV type
                         foreach (string f in dvUpdates.binaryDVUpdates.Keys)
                         {
-                            builder.AddOrUpdate(f, BinaryDocValuesField.fType);
+                            builder.AddOrUpdate(f, BinaryDocValuesField.TYPE);
                         }
 
                         fieldInfos = builder.Finish();
@@ -593,7 +593,7 @@ namespace Lucene.Net.Index
                             {
                                 dir.DeleteFile(fileName);
                             }
-                            catch (Exception)
+                            catch (Exception t) when (t.IsThrowable())
                             {
                                 // Ignore so we throw only the first exc
                             }
@@ -607,8 +607,7 @@ namespace Lucene.Net.Index
                 {
                     foreach (KeyValuePair<string, NumericDocValuesFieldUpdates> e in dvUpdates.numericDVUpdates)
                     {
-                        DocValuesFieldUpdates updates;
-                        if (!mergingDVUpdates.TryGetValue(e.Key, out updates))
+                        if (!mergingDVUpdates.TryGetValue(e.Key, out DocValuesFieldUpdates updates))
                         {
                             mergingDVUpdates[e.Key] = e.Value;
                         }
@@ -619,8 +618,7 @@ namespace Lucene.Net.Index
                     }
                     foreach (KeyValuePair<string, BinaryDocValuesFieldUpdates> e in dvUpdates.binaryDVUpdates)
                     {
-                        DocValuesFieldUpdates updates;
-                        if (!mergingDVUpdates.TryGetValue(e.Key, out updates))
+                        if (!mergingDVUpdates.TryGetValue(e.Key, out DocValuesFieldUpdates updates))
                         {
                             mergingDVUpdates[e.Key] = e.Value;
                         }

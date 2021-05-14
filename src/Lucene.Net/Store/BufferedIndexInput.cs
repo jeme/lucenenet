@@ -1,6 +1,7 @@
-using Lucene.Net.Diagnostics;
+﻿using Lucene.Net.Diagnostics;
 using System;
 using System.IO;
+using System.Runtime.CompilerServices;
 
 namespace Lucene.Net.Store
 {
@@ -57,19 +58,19 @@ namespace Lucene.Net.Store
             return m_buffer[bufferPosition++];
         }
 
-        public BufferedIndexInput(string resourceDesc)
+        protected BufferedIndexInput(string resourceDesc) // LUCENENET: CA1012: Abstract types should not have constructors (marked protected)
             : this(resourceDesc, BUFFER_SIZE)
         {
         }
 
-        public BufferedIndexInput(string resourceDesc, IOContext context)
+        protected BufferedIndexInput(string resourceDesc, IOContext context) // LUCENENET: CA1012: Abstract types should not have constructors (marked protected)
             : this(resourceDesc, GetBufferSize(context))
         {
         }
 
         /// <summary>
         /// Inits <see cref="BufferedIndexInput"/> with a specific <paramref name="bufferSize"/> </summary>
-        public BufferedIndexInput(string resourceDesc, int bufferSize)
+        protected BufferedIndexInput(string resourceDesc, int bufferSize) // LUCENENET: CA1012: Abstract types should not have constructors (marked protected)
             : base(resourceDesc)
         {
             CheckBufferSize(bufferSize);
@@ -80,7 +81,7 @@ namespace Lucene.Net.Store
         /// Change the buffer size used by this <see cref="IndexInput"/> </summary>
         public void SetBufferSize(int newSize)
         {
-            if (Debugging.AssertsEnabled) Debugging.Assert(m_buffer == null || bufferSize == m_buffer.Length, () => "buffer=" + m_buffer + " bufferSize=" + bufferSize + " buffer.length=" + (m_buffer != null ? m_buffer.Length : 0));
+            if (Debugging.AssertsEnabled) Debugging.Assert(m_buffer == null || bufferSize == m_buffer.Length, "buffer={0} bufferSize={1} buffer.length={2}", m_buffer, bufferSize, (m_buffer != null ? m_buffer.Length : 0));
             if (newSize != bufferSize)
             {
                 CheckBufferSize(newSize);
@@ -110,6 +111,7 @@ namespace Lucene.Net.Store
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         protected virtual void NewBuffer(byte[] newBuffer)
         {
             // Subclasses can do something here
@@ -122,14 +124,16 @@ namespace Lucene.Net.Store
         /// <seealso cref="SetBufferSize(int)"/>
         public int BufferSize => bufferSize;
 
-        private void CheckBufferSize(int bufferSize)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void CheckBufferSize(int bufferSize) // LUCENENET: CA1822: Mark members as static
         {
             if (bufferSize <= 0)
             {
-                throw new ArgumentException("bufferSize must be greater than 0 (got " + bufferSize + ")");
+                throw new ArgumentOutOfRangeException("bufferSize must be greater than 0 (got " + bufferSize + ")"); // LUCENENET specific - changed from IllegalArgumentException to ArgumentOutOfRangeException (.NET convention)
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override sealed void ReadBytes(byte[] b, int offset, int len)
         {
             ReadBytes(b, offset, len, true);
@@ -168,7 +172,7 @@ namespace Lucene.Net.Store
                     {
                         // Throw an exception when refill() could not read len bytes:
                         Buffer.BlockCopy(m_buffer, 0, b, offset, bufferLength);
-                        throw new EndOfStreamException("read past EOF: " + this);
+                        throw EOFException.Create("read past EOF: " + this);
                     }
                     else
                     {
@@ -188,7 +192,7 @@ namespace Lucene.Net.Store
                     long after = bufferStart + bufferPosition + len;
                     if (after > Length)
                     {
-                        throw new EndOfStreamException("read past EOF: " + this);
+                        throw EOFException.Create("read past EOF: " + this);
                     }
                     ReadInternal(b, offset, len);
                     bufferStart = after;
@@ -220,7 +224,7 @@ namespace Lucene.Net.Store
         {
             if (4 <= (bufferLength - bufferPosition))
             {
-                return ((m_buffer[bufferPosition++] & 0xFF) << 24) | ((m_buffer[bufferPosition++] & 0xFF) << 16) 
+                return ((m_buffer[bufferPosition++] & 0xFF) << 24) | ((m_buffer[bufferPosition++] & 0xFF) << 16)
                     | ((m_buffer[bufferPosition++] & 0xFF) << 8) | (m_buffer[bufferPosition++] & 0xFF);
             }
             else
@@ -236,9 +240,9 @@ namespace Lucene.Net.Store
         {
             if (8 <= (bufferLength - bufferPosition))
             {
-                int i1 = ((m_buffer[bufferPosition++] & 0xff) << 24) | ((m_buffer[bufferPosition++] & 0xff) << 16) 
+                int i1 = ((m_buffer[bufferPosition++] & 0xff) << 24) | ((m_buffer[bufferPosition++] & 0xff) << 16)
                     | ((m_buffer[bufferPosition++] & 0xff) << 8) | (m_buffer[bufferPosition++] & 0xff);
-                int i2 = ((m_buffer[bufferPosition++] & 0xff) << 24) | ((m_buffer[bufferPosition++] & 0xff) << 16) 
+                int i2 = ((m_buffer[bufferPosition++] & 0xff) << 24) | ((m_buffer[bufferPosition++] & 0xff) << 16)
                     | ((m_buffer[bufferPosition++] & 0xff) << 8) | (m_buffer[bufferPosition++] & 0xff);
                 return (((long)i1) << 32) | (i2 & 0xFFFFFFFFL);
             }
@@ -256,26 +260,26 @@ namespace Lucene.Net.Store
             if (5 <= (bufferLength - bufferPosition))
             {
                 byte b = m_buffer[bufferPosition++];
-                if ((sbyte)b >= 0)
+                if (b <= sbyte.MaxValue) // LUCENENET: Optimized equivalent of "if ((sbyte)b >= 0)"
                 {
                     return b;
                 }
                 int i = b & 0x7F;
                 b = m_buffer[bufferPosition++];
                 i |= (b & 0x7F) << 7;
-                if ((sbyte)b >= 0)
+                if (b <= sbyte.MaxValue) // LUCENENET: Optimized equivalent of "if ((sbyte)b >= 0)"
                 {
                     return i;
                 }
                 b = m_buffer[bufferPosition++];
                 i |= (b & 0x7F) << 14;
-                if ((sbyte)b >= 0)
+                if (b <= sbyte.MaxValue) // LUCENENET: Optimized equivalent of "if ((sbyte)b >= 0)"
                 {
                     return i;
                 }
                 b = m_buffer[bufferPosition++];
                 i |= (b & 0x7F) << 21;
-                if ((sbyte)b >= 0)
+                if (b <= sbyte.MaxValue) // LUCENENET: Optimized equivalent of "if ((sbyte)b >= 0)"
                 {
                     return i;
                 }
@@ -302,56 +306,56 @@ namespace Lucene.Net.Store
             if (9 <= bufferLength - bufferPosition)
             {
                 byte b = m_buffer[bufferPosition++];
-                if ((sbyte)b >= 0)
+                if (b <= sbyte.MaxValue) // LUCENENET: Optimized equivalent of "if ((sbyte)b >= 0)"
                 {
                     return b;
                 }
                 long i = b & 0x7FL;
                 b = m_buffer[bufferPosition++];
                 i |= (b & 0x7FL) << 7;
-                if ((sbyte)b >= 0)
+                if (b <= sbyte.MaxValue) // LUCENENET: Optimized equivalent of "if ((sbyte)b >= 0)"
                 {
                     return i;
                 }
                 b = m_buffer[bufferPosition++];
                 i |= (b & 0x7FL) << 14;
-                if ((sbyte)b >= 0)
+                if (b <= sbyte.MaxValue) // LUCENENET: Optimized equivalent of "if ((sbyte)b >= 0)"
                 {
                     return i;
                 }
                 b = m_buffer[bufferPosition++];
                 i |= (b & 0x7FL) << 21;
-                if ((sbyte)b >= 0)
+                if (b <= sbyte.MaxValue) // LUCENENET: Optimized equivalent of "if ((sbyte)b >= 0)"
                 {
                     return i;
                 }
                 b = m_buffer[bufferPosition++];
                 i |= (b & 0x7FL) << 28;
-                if ((sbyte)b >= 0)
+                if (b <= sbyte.MaxValue) // LUCENENET: Optimized equivalent of "if ((sbyte)b >= 0)"
                 {
                     return i;
                 }
                 b = m_buffer[bufferPosition++];
                 i |= (b & 0x7FL) << 35;
-                if ((sbyte)b >= 0)
+                if (b <= sbyte.MaxValue) // LUCENENET: Optimized equivalent of "if ((sbyte)b >= 0)"
                 {
                     return i;
                 }
                 b = m_buffer[bufferPosition++];
                 i |= (b & 0x7FL) << 42;
-                if ((sbyte)b >= 0)
+                if (b <= sbyte.MaxValue) // LUCENENET: Optimized equivalent of "if ((sbyte)b >= 0)"
                 {
                     return i;
                 }
                 b = m_buffer[bufferPosition++];
                 i |= (b & 0x7FL) << 49;
-                if ((sbyte)b >= 0)
+                if (b <= sbyte.MaxValue) // LUCENENET: Optimized equivalent of "if ((sbyte)b >= 0)"
                 {
                     return i;
                 }
                 b = m_buffer[bufferPosition++];
                 i |= (b & 0x7FL) << 56;
-                if ((sbyte)b >= 0)
+                if (b <= sbyte.MaxValue) // LUCENENET: Optimized equivalent of "if ((sbyte)b >= 0)"
                 {
                     return i;
                 }
@@ -374,7 +378,7 @@ namespace Lucene.Net.Store
             int newLength = (int)(end - start);
             if (newLength <= 0)
             {
-                throw new EndOfStreamException("read past EOF: " + this);
+                throw EOFException.Create("read past EOF: " + this);
             }
 
             if (m_buffer == null)
@@ -396,10 +400,7 @@ namespace Lucene.Net.Store
         /// <param name="length"> the number of bytes to read </param>
         protected abstract void ReadInternal(byte[] b, int offset, int length);
 
-        public override sealed long GetFilePointer()
-        {
-            return bufferStart + bufferPosition;
-        }
+        public override sealed long Position => bufferStart + bufferPosition; // LUCENENET specific: Renamed from getFilePointer() to match FileStream
 
         public override sealed void Seek(long pos)
         {
@@ -429,7 +430,7 @@ namespace Lucene.Net.Store
             clone.m_buffer = null;
             clone.bufferLength = 0;
             clone.bufferPosition = 0;
-            clone.bufferStart = GetFilePointer();
+            clone.bufferStart = Position; // LUCENENET specific: Renamed from getFilePointer() to match FileStream
 
             return clone;
         }
@@ -460,6 +461,7 @@ namespace Lucene.Net.Store
         /// <summary>
         /// Returns default buffer sizes for the given <see cref="IOContext"/>
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int GetBufferSize(IOContext context) // LUCENENET NOTE: Renamed from BufferSize to prevent naming conflict
         {
             switch (context.Context)

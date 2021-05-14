@@ -1,8 +1,10 @@
-using J2N;
+﻿using J2N;
 using J2N.Collections.Generic.Extensions;
+using J2N.Numerics;
 using Lucene.Net.Diagnostics;
 using Lucene.Net.Index.Extensions;
 using NUnit.Framework;
+using RandomizedTesting.Generators;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -504,7 +506,7 @@ namespace Lucene.Net.Index
                     int id = Convert.ToInt32(reader.Document(i).Get("id"));
                     Assert.AreEqual(id, dvByte.Get(i));
 
-                    sbyte[] bytes = new sbyte[] { (sbyte)((int)((uint)id >> 24)), (sbyte)((int)((uint)id >> 16)), (sbyte)((int)((uint)id >> 8)), (sbyte)id };
+                    sbyte[] bytes = new sbyte[] { (sbyte)(id.TripleShift(24)), (sbyte)(id.TripleShift(16)), (sbyte)(id.TripleShift(8)), (sbyte)id };
                     BytesRef expectedRef = new BytesRef((byte[])(Array)bytes);
                     BytesRef scratch = new BytesRef();
 
@@ -710,7 +712,7 @@ namespace Lucene.Net.Index
             doc.Add(new Int64Field("trieLong", (long)id, Field.Store.NO));
             // add docvalues fields
             doc.Add(new NumericDocValuesField("dvByte", (sbyte)id));
-            sbyte[] bytes = new sbyte[] { (sbyte)((int)((uint)id >> 24)), (sbyte)((int)((uint)id >> 16)), (sbyte)((int)((uint)id >> 8)), (sbyte)id };
+            sbyte[] bytes = new sbyte[] { (sbyte)(id.TripleShift(24)), (sbyte)(id.TripleShift(16)), (sbyte)(id.TripleShift(8)), (sbyte)id };
             BytesRef @ref = new BytesRef((byte[])(Array)bytes);
             doc.Add(new BinaryDocValuesField("dvBytesDerefFixed", @ref));
             doc.Add(new BinaryDocValuesField("dvBytesDerefVar", @ref));
@@ -988,9 +990,9 @@ namespace Lucene.Net.Index
                 {
                     upgrader = IndexUpgrader.ParseArgs(args.ToArray());
                 }
-                catch (Exception e)
+                catch (Exception e) when (e.IsException())
                 {
-                    throw new Exception("unable to parse args: " + args, e);
+                    throw RuntimeException.Create("unable to parse args: " + args, e);
                 }
                 upgrader.Upgrade();
 

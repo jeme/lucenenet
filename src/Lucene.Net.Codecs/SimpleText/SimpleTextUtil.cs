@@ -31,8 +31,8 @@ namespace Lucene.Net.Codecs.SimpleText
 
     internal class SimpleTextUtil
     {
-        public static readonly byte NEWLINE = 10;
-        public static readonly byte ESCAPE = 92;
+        public const byte NEWLINE = 10;
+        public const byte ESCAPE = 92;
         internal static readonly BytesRef CHECKSUM = new BytesRef("checksum ");
 
         public static void Write(DataOutput output, string s, BytesRef scratch)
@@ -116,7 +116,7 @@ namespace Lucene.Net.Codecs.SimpleText
                 throw new CorruptIndexException("SimpleText checksum failure: " + actualChecksum + " != " +
                                                 expectedChecksum + " (resource=" + input + ")");
             }
-            if (input.Length != input.GetFilePointer())
+            if (input.Length != input.Position) // LUCENENET specific: Renamed from getFilePointer() to match FileStream
             {
                 throw new CorruptIndexException(
                     "Unexpected stuff at the end of file, please be careful with your text editor! (resource=" + input +

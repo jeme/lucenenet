@@ -1,4 +1,5 @@
-﻿using Lucene.Net.Analysis.Fr;
+// Lucene version compatibility level 4.8.1
+using Lucene.Net.Analysis.Fr;
 using System;
 using System.Collections.Generic;
 
@@ -47,7 +48,7 @@ namespace Lucene.Net.Analysis.Util
             ignoreCase = GetBoolean(args, "ignoreCase", false);
             if (args.Count > 0)
             {
-                throw new ArgumentException("Unknown parameters: " + args);
+                throw new ArgumentException(string.Format(J2N.Text.StringFormatter.CurrentCulture, "Unknown parameters: {0}", args));
             }
         }
 

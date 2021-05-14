@@ -1183,17 +1183,11 @@ namespace Lucene.Net.Search.Suggest.Analyzing
                 this.outerInstance = outerInstance;
             }
 
-            public override TokenStream TokenStream
-            {
-                get
-                {
-                    return new CannedTokenStream(new Token[] {
-                        NewToken("hairy", 1, 1),
-                        NewToken("smelly", 0, 1),
-                        NewToken("dog", 1, 1),
-                    });
-                }
-            }
+            public override TokenStream TokenStream => new CannedTokenStream(new Token[] {
+                    NewToken("hairy", 1, 1),
+                    NewToken("smelly", 0, 1),
+                    NewToken("dog", 1, 1),
+                });
 
             protected internal override void SetReader(TextReader reader)
             {
@@ -1481,7 +1475,7 @@ namespace Lucene.Net.Search.Suggest.Analyzing
                 suggester.DoLookup("а\u001E", false, 3);
                 fail("should throw IllegalArgumentException");
             }
-            catch (ArgumentException /*e*/)
+            catch (Exception e) when (e.IsIllegalArgumentException())
             {
                 // expected
             }
@@ -1490,7 +1484,7 @@ namespace Lucene.Net.Search.Suggest.Analyzing
                 suggester.DoLookup("а\u001F", false, 3);
                 fail("should throw IllegalArgumentException");
             }
-            catch (ArgumentException /*e*/)
+            catch (Exception e) when (e.IsIllegalArgumentException())
             {
                 // expected
             }
@@ -1506,5 +1500,25 @@ namespace Lucene.Net.Search.Suggest.Analyzing
             asList.Shuffle(Random);
             return asList;
         }
+
+        // LUCENENET TODO: This is a test from Lucene 4.8.1 that currently produces a stack overflow
+        //// TODO: we need BaseSuggesterTestCase?
+        //[Test]
+        //public void TestTooLongSuggestion()
+        //{
+        //    Analyzer a = new MockAnalyzer(Random);
+        //    AnalyzingSuggester suggester = new AnalyzingSuggester(a);
+        //    String bigString = TestUtil.RandomSimpleString(Random, 60000, 60000);
+        //    try
+        //    {
+        //        suggester.Build(new InputArrayEnumerator(new Input[] {
+        //            new Input(bigString, 7)}));
+        //        fail("did not hit expected exception");
+        //    }
+        //    catch (Exception iae) when (iae.IsIllegalArgumentException())
+        //    {
+        //        // expected
+        //    }
+        //}
     }
 }

@@ -1,4 +1,4 @@
-using J2N.Text;
+﻿using J2N.Text;
 using J2N.Threading;
 using Lucene.Net.Analysis;
 using Lucene.Net.Analysis.TokenAttributes;
@@ -11,6 +11,7 @@ using Lucene.Net.Search;
 using Lucene.Net.Support;
 using Lucene.Net.Util;
 using NUnit.Framework;
+using RandomizedTesting.Generators;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -242,14 +243,13 @@ namespace Lucene.Net.Index
         }
 
         [Test]
-        public virtual void TestChangesAfterClose([ValueSource(typeof(ConcurrentMergeSchedulerFactories), "Values")]Func<IConcurrentMergeScheduler> newScheduler)
+        public virtual void TestChangesAfterClose()
         {
             Directory dir = NewDirectory();
 
             IndexWriter writer = null;
 
-            var config = NewIndexWriterConfig(TEST_VERSION_CURRENT, new MockAnalyzer(Random)).SetMergeScheduler(newScheduler());
-            writer = new IndexWriter(dir, config);
+            writer = new IndexWriter(dir, NewIndexWriterConfig(TEST_VERSION_CURRENT, new MockAnalyzer(Random)));
             AddDoc(writer);
 
             // close
@@ -259,9 +259,7 @@ namespace Lucene.Net.Index
                 AddDoc(writer);
                 Assert.Fail("did not hit ObjectDisposedException");
             }
-#pragma warning disable 168
-            catch (ObjectDisposedException e)
-#pragma warning restore 168
+            catch (Exception e) when (e.IsAlreadyClosedException())
             {
                 // expected
             }
@@ -1020,7 +1018,7 @@ namespace Lucene.Net.Index
         [Test]
         public virtual void TestNegativePositions()
         {
-            TokenStream tokens = new TokenStreamAnonymousInnerClassHelper(this);
+            TokenStream tokens = new TokenStreamAnonymousClass(this);
 
             Directory dir = NewDirectory();
             IndexWriter w = new IndexWriter(dir, NewIndexWriterConfig(TEST_VERSION_CURRENT, new MockAnalyzer(Random)));
@@ -1031,9 +1029,7 @@ namespace Lucene.Net.Index
                 w.AddDocument(doc);
                 Assert.Fail("did not hit expected exception");
             }
-#pragma warning disable 168
-            catch (ArgumentException iea)
-#pragma warning restore 168
+            catch (Exception iea) when (iea.IsIllegalArgumentException())
             {
                 // expected
             }
@@ -1041,11 +1037,11 @@ namespace Lucene.Net.Index
             dir.Dispose();
         }
 
-        private class TokenStreamAnonymousInnerClassHelper : TokenStream
+        private class TokenStreamAnonymousClass : TokenStream
         {
             private readonly TestIndexWriter outerInstance;
 
-            public TokenStreamAnonymousInnerClassHelper(TestIndexWriter outerInstance)
+            public TokenStreamAnonymousClass(TestIndexWriter outerInstance)
             {
                 this.outerInstance = outerInstance;
                 termAtt = AddAttribute<ICharTermAttribute>();
@@ -1167,7 +1163,6 @@ namespace Lucene.Net.Index
             internal IndexerThreadInterrupt(TestIndexWriter outerInstance)
             {
                 this.outerInstance = outerInstance;
-                this.IsDebug = true; // LUCENENET: Rethrow with the original stack trace to assist with debugging
                 this.random = new Random(LuceneTestCase.Random.Next());
                 // make a little directory for addIndexes
                 // LUCENE-2239: won't work with NIOFS/MMAP
@@ -1177,40 +1172,38 @@ namespace Lucene.Net.Index
                     outerInstance,
 #endif
                     this.random, TEST_VERSION_CURRENT, new MockAnalyzer(this.random));
-                using (IndexWriter w = new IndexWriter(adder, conf))
+                using IndexWriter w = new IndexWriter(adder, conf);
+                Document doc = new Document();
+                doc.Add(NewStringField(this.random, "id", "500", Field.Store.NO));
+                doc.Add(NewField(this.random, "field", "some prepackaged text contents", storedTextType));
+                if (DefaultCodecSupportsDocValues)
                 {
-                    Document doc = new Document();
-                    doc.Add(NewStringField(this.random, "id", "500", Field.Store.NO));
-                    doc.Add(NewField(this.random, "field", "some prepackaged text contents", storedTextType));
-                    if (DefaultCodecSupportsDocValues)
-                    {
-                        doc.Add(new BinaryDocValuesField("binarydv", new BytesRef("500")));
-                        doc.Add(new NumericDocValuesField("numericdv", 500));
-                        doc.Add(new SortedDocValuesField("sorteddv", new BytesRef("500")));
-                    }
-                    if (DefaultCodecSupportsSortedSet)
-                    {
-                        doc.Add(new SortedSetDocValuesField("sortedsetdv", new BytesRef("one")));
-                        doc.Add(new SortedSetDocValuesField("sortedsetdv", new BytesRef("two")));
-                    }
-                    w.AddDocument(doc);
-                    doc = new Document();
-                    doc.Add(NewStringField(this.random, "id", "501", Field.Store.NO));
-                    doc.Add(NewField(this.random, "field", "some more contents", storedTextType));
-                    if (DefaultCodecSupportsDocValues)
-                    {
-                        doc.Add(new BinaryDocValuesField("binarydv", new BytesRef("501")));
-                        doc.Add(new NumericDocValuesField("numericdv", 501));
-                        doc.Add(new SortedDocValuesField("sorteddv", new BytesRef("501")));
-                    }
-                    if (DefaultCodecSupportsSortedSet)
-                    {
-                        doc.Add(new SortedSetDocValuesField("sortedsetdv", new BytesRef("two")));
-                        doc.Add(new SortedSetDocValuesField("sortedsetdv", new BytesRef("three")));
-                    }
-                    w.AddDocument(doc);
-                    w.DeleteDocuments(new Term("id", "500"));
-                } // w.Dispose();
+                    doc.Add(new BinaryDocValuesField("binarydv", new BytesRef("500")));
+                    doc.Add(new NumericDocValuesField("numericdv", 500));
+                    doc.Add(new SortedDocValuesField("sorteddv", new BytesRef("500")));
+                }
+                if (DefaultCodecSupportsSortedSet)
+                {
+                    doc.Add(new SortedSetDocValuesField("sortedsetdv", new BytesRef("one")));
+                    doc.Add(new SortedSetDocValuesField("sortedsetdv", new BytesRef("two")));
+                }
+                w.AddDocument(doc);
+                doc = new Document();
+                doc.Add(NewStringField(this.random, "id", "501", Field.Store.NO));
+                doc.Add(NewField(this.random, "field", "some more contents", storedTextType));
+                if (DefaultCodecSupportsDocValues)
+                {
+                    doc.Add(new BinaryDocValuesField("binarydv", new BytesRef("501")));
+                    doc.Add(new NumericDocValuesField("numericdv", 501));
+                    doc.Add(new SortedDocValuesField("sorteddv", new BytesRef("501")));
+                }
+                if (DefaultCodecSupportsSortedSet)
+                {
+                    doc.Add(new SortedSetDocValuesField("sortedsetdv", new BytesRef("two")));
+                    doc.Add(new SortedSetDocValuesField("sortedsetdv", new BytesRef("three")));
+                }
+                w.AddDocument(doc);
+                w.DeleteDocuments(new Term("id", "500"));
             }
 
             public override void Run()
@@ -1338,8 +1331,7 @@ namespace Lucene.Net.Index
                             allowInterrupt = true;
                         }
                     }
-#if FEATURE_THREAD_INTERRUPT
-                    catch (ThreadInterruptedException re)
+                    catch (ThreadInterruptedException re) // LUCENENET: This was a custom wrapper type named ThreadInterruptedException in Lucene, so leaving the catch block as is
                     {
                         // NOTE: important to leave this verbosity/noise
                         // on!!  this test doesn't repro easily so when
@@ -1359,8 +1351,7 @@ namespace Lucene.Net.Index
                             break;
                         }
                     }
-#endif
-                    catch (Exception t)
+                    catch (Exception t) when (t.IsThrowable())
                     {
                         Console.WriteLine("FAILED; unexpected exception");
                         Console.WriteLine(t.ToString());
@@ -1383,18 +1374,16 @@ namespace Lucene.Net.Index
                         {
                             w.Rollback();
                         }
-#if FEATURE_THREAD_INTERRUPT
                         // LUCENENET specific - there is a chance that our thread will be
                         // interrupted here, so we need to catch and ignore that exception
                         // when our MockDirectoryWrapper throws it.
-                        catch (ThreadInterruptedException)
+                        catch (Exception e) when (e.IsInterruptedException())
                         {
                             // ignore
                         }
-#endif
-                        catch (IOException ioe)
+                        catch (Exception ioe) when (ioe.IsIOException())
                         {
-                            throw new Exception(ioe.ToString(), ioe);
+                            throw RuntimeException.Create(ioe);
                         }
                     }
 
@@ -1402,7 +1391,7 @@ namespace Lucene.Net.Index
                     {
                         TestUtil.CheckIndex(dir);
                     }
-                    catch (Exception e)
+                    catch (Exception e) when (e.IsException())
                     {
                         failed = true;
                         Console.WriteLine("CheckIndex FAILED: unexpected exception");
@@ -1410,12 +1399,10 @@ namespace Lucene.Net.Index
                     }
                     try
                     {
-                        using (IndexReader r = DirectoryReader.Open(dir))
-                        {
-                            //System.out.println("doc count=" + r.NumDocs);
-                        } // r.Dispose();
+                        using IndexReader r = DirectoryReader.Open(dir);
+                        //System.out.println("doc count=" + r.NumDocs);
                     }
-                    catch (Exception e)
+                    catch (Exception e) when (e.IsException())
                     {
                         failed = true;
                         Console.WriteLine("DirectoryReader.open FAILED: unexpected exception");
@@ -1426,23 +1413,24 @@ namespace Lucene.Net.Index
                 {
                     IOUtils.Dispose(dir);
                 }
-                catch (IOException e)
+                catch (Exception e) when (e.IsIOException())
                 {
-                    throw new Exception(e.ToString(), e);
+                    throw RuntimeException.Create(e);
                 }
                 try
                 {
                     IOUtils.Dispose(adder);
                 }
-                catch (IOException e)
+                catch (Exception e) when (e.IsIOException())
                 {
-                    throw new Exception(e.ToString(), e);
+                    throw RuntimeException.Create(e);
                 }
             }
         }
 
         [Test]
         [Slow]
+        [AwaitsFix(BugUrl = "https://github.com/apache/lucenenet/issues/269")] // LUCENENET TODO: this test occasionally fails
         public virtual void TestThreadInterruptDeadlock()
         {
             IndexerThreadInterrupt t = new IndexerThreadInterrupt(this);
@@ -1483,6 +1471,7 @@ namespace Lucene.Net.Index
         /// testThreadInterruptDeadlock but with 2 indexer threads </summary>
         [Test]
         [Slow]
+        [AwaitsFix(BugUrl = "https://github.com/apache/lucenenet/issues/269")] // LUCENENET TODO: this test occasionally fails
         public virtual void TestTwoThreadsInterruptDeadlock()
         {
             IndexerThreadInterrupt t1 = new IndexerThreadInterrupt(this);
@@ -1955,9 +1944,9 @@ namespace Lucene.Net.Index
                 {
                     SetReader(r);
                 }
-                catch (IOException e)
+                catch (Exception e) when (e.IsIOException())
                 {
-                    throw new Exception(e.Message, e);
+                    throw RuntimeException.Create(e.Message, e);
                 }
             }
 
@@ -2019,9 +2008,7 @@ namespace Lucene.Net.Index
                 w.AddDocument(doc);
                 Assert.Fail("should have hit exception");
             }
-#pragma warning disable 168
-            catch (ArgumentException iae)
-#pragma warning restore 168
+            catch (Exception iae) when (iae.IsIllegalArgumentException())
             {
                 // expected
             }
@@ -2237,9 +2224,7 @@ namespace Lucene.Net.Index
                 w.Dispose();
                 Assert.Fail("should have hit exception");
             }
-#pragma warning disable 168
-            catch (InvalidOperationException ise)
-#pragma warning restore 168
+            catch (Exception ise) when (ise.IsIllegalStateException())
             {
                 // expected
             }
@@ -2285,7 +2270,7 @@ namespace Lucene.Net.Index
         [Test]
         public virtual void TestDontInvokeAnalyzerForUnAnalyzedFields()
         {
-            Analyzer analyzer = new AnalyzerAnonymousInnerClassHelper(this);
+            Analyzer analyzer = new AnalyzerAnonymousClass(this);
             Directory dir = NewDirectory();
             IndexWriter w = new IndexWriter(dir, NewIndexWriterConfig(TEST_VERSION_CURRENT, analyzer));
             Document doc = new Document();
@@ -2304,28 +2289,28 @@ namespace Lucene.Net.Index
             dir.Dispose();
         }
 
-        private class AnalyzerAnonymousInnerClassHelper : Analyzer
+        private class AnalyzerAnonymousClass : Analyzer
         {
             private readonly TestIndexWriter outerInstance;
 
-            public AnalyzerAnonymousInnerClassHelper(TestIndexWriter outerInstance)
+            public AnalyzerAnonymousClass(TestIndexWriter outerInstance)
             {
                 this.outerInstance = outerInstance;
             }
 
             protected internal override TokenStreamComponents CreateComponents(string fieldName, TextReader reader)
             {
-                throw new InvalidOperationException("don't invoke me!");
+                throw IllegalStateException.Create("don't invoke me!");
             }
 
             public override int GetPositionIncrementGap(string fieldName)
             {
-                throw new InvalidOperationException("don't invoke me!");
+                throw IllegalStateException.Create("don't invoke me!");
             }
 
             public override int GetOffsetGap(string fieldName)
             {
-                throw new InvalidOperationException("don't invoke me!");
+                throw IllegalStateException.Create("don't invoke me!");
             }
         }
 
@@ -2343,7 +2328,7 @@ namespace Lucene.Net.Index
             {
                 // Create my own random file:
                 IndexOutput @out = dir.CreateOutput("myrandomfile", NewIOContext(Random));
-                @out.WriteByte((byte)(sbyte)42);
+                @out.WriteByte((byte)42);
                 @out.Dispose();
 
                 (new IndexWriter(dir, NewIndexWriterConfig(TEST_VERSION_CURRENT, new MockAnalyzer(Random)))).Dispose();
@@ -2434,7 +2419,7 @@ namespace Lucene.Net.Index
             {
                 // Create my own random file:
                 IndexOutput @out = dir.CreateOutput("_a.frq", NewIOContext(Random));
-                @out.WriteByte((byte)(sbyte)42);
+                @out.WriteByte((byte)42);
                 @out.Dispose();
 
                 (new IndexWriter(dir, NewIndexWriterConfig(TEST_VERSION_CURRENT, new MockAnalyzer(Random)))).Dispose();
@@ -2598,7 +2583,7 @@ namespace Lucene.Net.Index
                     w.AddDocuments(new RandomFailingFieldIterable(docs, Random));
                     success = true;
                 }
-                catch (Exception e)
+                catch (Exception e) when (e.IsRuntimeException())
                 {
                     Assert.AreEqual("boom", e.Message);
                 }
@@ -2648,7 +2633,7 @@ namespace Lucene.Net.Index
             public virtual IEnumerator<IEnumerable<IIndexableField>> GetEnumerator()
             {
                 return docList.GetEnumerator();
-                //return new IteratorAnonymousInnerClassHelper(this, docIter);
+                //return new IteratorAnonymousClass(this, docIter);
             }
 
             System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
@@ -2657,13 +2642,13 @@ namespace Lucene.Net.Index
             }
 
             /*
-          private class IteratorAnonymousInnerClassHelper : IEnumerator<IEnumerable<IndexableField>>
+          private class IteratorAnonymousClass : IEnumerator<IEnumerable<IndexableField>>
           {
               private readonly RandomFailingFieldIterable outerInstance;
 
               private IEnumerator<IEnumerable<IndexableField>> DocIter;
 
-              public IteratorAnonymousInnerClassHelper(RandomFailingFieldIterable outerInstance, IEnumerator<IEnumerable<IndexableField>> docIter)
+              public IteratorAnonymousClass(RandomFailingFieldIterable outerInstance, IEnumerator<IEnumerable<IndexableField>> docIter)
               {
                   this.outerInstance = outerInstance;
                   this.DocIter = docIter;
@@ -2678,14 +2663,14 @@ namespace Lucene.Net.Index
               {
                 if (outerInstance.Random.Next(5) == 0)
                 {
-                  throw new Exception("boom");
+                  throw RuntimeException.Create("boom");
                 }
                 return DocIter.Next();
               }
 
               public virtual void Remove()
               {
-                  throw new NotSupportedException();
+                  throw UnsupportedOperationException.Create();
               }
           }*/
         }
@@ -2733,7 +2718,7 @@ namespace Lucene.Net.Index
                         Assert.Fail("expected exception");
                     }
                 }
-                catch (IOException /*ioe*/)
+                catch (Exception ioe) when (ioe.IsIOException())
                 {
                     // OpenMode_e.APPEND should throw an exception since no
                     // index exists:
@@ -2814,7 +2799,7 @@ namespace Lucene.Net.Index
             Directory dir = NewDirectory();
             IndexWriterConfig iwc = NewIndexWriterConfig(TEST_VERSION_CURRENT, new MockAnalyzer(Random));
             SetOnce<IndexWriter> iwRef = new SetOnce<IndexWriter>();
-            iwc.SetInfoStream(new TestPointInfoStream(iwc.InfoStream, new TestPointAnonymousInnerClassHelper(this, iwRef)));
+            iwc.SetInfoStream(new TestPointInfoStream(iwc.InfoStream, new TestPointAnonymousClass(this, iwRef)));
             IndexWriter evilWriter = new IndexWriter(dir, iwc);
             iwRef.Set(evilWriter);
             for (int i = 0; i < 1000; i++)
@@ -2831,13 +2816,13 @@ namespace Lucene.Net.Index
             dir.Dispose();
         }
 
-        private class TestPointAnonymousInnerClassHelper : ITestPoint
+        private class TestPointAnonymousClass : ITestPoint
         {
             private readonly TestIndexWriter outerInstance;
 
             private SetOnce<IndexWriter> iwRef;
 
-            public TestPointAnonymousInnerClassHelper(TestIndexWriter outerInstance, SetOnce<IndexWriter> iwRef)
+            public TestPointAnonymousClass(TestIndexWriter outerInstance, SetOnce<IndexWriter> iwRef)
             {
                 this.outerInstance = outerInstance;
                 this.iwRef = iwRef;

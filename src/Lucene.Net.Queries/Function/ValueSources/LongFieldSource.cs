@@ -1,4 +1,5 @@
-﻿using Lucene.Net.Index;
+﻿// Lucene version compatibility level 4.8.1
+using Lucene.Net.Index;
 using Lucene.Net.Queries.Function.DocValues;
 using Lucene.Net.Search;
 using Lucene.Net.Util;
@@ -80,17 +81,17 @@ namespace Lucene.Net.Queries.Function.ValueSources
         {
             var arr = m_cache.GetInt64s(readerContext.AtomicReader, m_field, m_parser, true);
             var valid = m_cache.GetDocsWithField(readerContext.AtomicReader, m_field);
-            return new Int64DocValuesAnonymousInnerClassHelper(this, this, arr, valid);
+            return new Int64DocValuesAnonymousClass(this, this, arr, valid);
         }
 
-        private class Int64DocValuesAnonymousInnerClassHelper : Int64DocValues
+        private class Int64DocValuesAnonymousClass : Int64DocValues
         {
             private readonly Int64FieldSource outerInstance;
 
             private readonly FieldCache.Int64s arr;
             private readonly IBits valid;
 
-            public Int64DocValuesAnonymousInnerClassHelper(Int64FieldSource outerInstance, Int64FieldSource @this, FieldCache.Int64s arr, IBits valid)
+            public Int64DocValuesAnonymousClass(Int64FieldSource outerInstance, Int64FieldSource @this, FieldCache.Int64s arr, IBits valid)
                 : base(@this)
             {
                 this.outerInstance = outerInstance;

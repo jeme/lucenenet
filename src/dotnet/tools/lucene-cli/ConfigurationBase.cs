@@ -25,7 +25,7 @@ namespace Lucene.Net.Cli
 
     public abstract class ConfigurationBase : CommandLineApplication
     {
-        private static Assembly thisAssembly = typeof(ConfigurationBase).Assembly;
+        private static readonly Assembly thisAssembly = typeof(ConfigurationBase).Assembly;
         protected static string HELP_VALUE_NAME = "help";
 
         protected ConfigurationBase()
@@ -55,7 +55,7 @@ namespace Lucene.Net.Cli
                 if (this.GetOptionByUniqueId(HELP_VALUE_NAME).HasValue())
                 {
                     this.ShowHelp();
-                    return 1;
+                    return ExitCode.Success;
                 }
                 try
                 {
@@ -68,7 +68,7 @@ namespace Lucene.Net.Cli
                     // if the args cannot be parsed.
                     this.ShowHint();
                     this.ShowHelp();
-                    return 1;
+                    return ExitCode.GeneralError;
                 }
             });
         }

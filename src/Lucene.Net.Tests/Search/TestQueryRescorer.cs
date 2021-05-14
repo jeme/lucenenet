@@ -1,6 +1,7 @@
-using Lucene.Net.Documents;
+﻿using Lucene.Net.Documents;
 using Lucene.Net.Support;
 using NUnit.Framework;
+using RandomizedTesting.Generators;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -158,7 +159,7 @@ namespace Lucene.Net.Search
             pq.Add(new Term("field", "wizard"));
             pq.Add(new Term("field", "oz"));
 
-            TopDocs hits2 = new QueryRescorerAnonymousInnerClassHelper(this, pq)
+            TopDocs hits2 = new QueryRescorerAnonymousClass(this, pq)
               .Rescore(searcher, hits, 10);
 
             // Resorting didn't change the order:
@@ -170,11 +171,11 @@ namespace Lucene.Net.Search
             dir.Dispose();
         }
 
-        private class QueryRescorerAnonymousInnerClassHelper : QueryRescorer
+        private class QueryRescorerAnonymousClass : QueryRescorer
         {
             private readonly TestQueryRescorer outerInstance;
 
-            public QueryRescorerAnonymousInnerClassHelper(TestQueryRescorer outerInstance, PhraseQuery pq)
+            public QueryRescorerAnonymousClass(TestQueryRescorer outerInstance, PhraseQuery pq)
                 : base(pq)
             {
                 this.outerInstance = outerInstance;
@@ -229,7 +230,7 @@ namespace Lucene.Net.Search
             pq.Add(new Term("field", "wizard"));
             pq.Add(new Term("field", "oz"));
 
-            Rescorer rescorer = new QueryRescorerAnonymousInnerClassHelper2(this, pq);
+            Rescorer rescorer = new QueryRescorerAnonymousClass2(this, pq);
 
             TopDocs hits2 = rescorer.Rescore(searcher, hits, 10);
 
@@ -262,11 +263,11 @@ namespace Lucene.Net.Search
             dir.Dispose();
         }
 
-        private class QueryRescorerAnonymousInnerClassHelper2 : QueryRescorer
+        private class QueryRescorerAnonymousClass2 : QueryRescorer
         {
             private readonly TestQueryRescorer outerInstance;
 
-            public QueryRescorerAnonymousInnerClassHelper2(TestQueryRescorer outerInstance, PhraseQuery pq)
+            public QueryRescorerAnonymousClass2(TestQueryRescorer outerInstance, PhraseQuery pq)
                 : base(pq)
             {
                 this.outerInstance = outerInstance;
@@ -382,7 +383,7 @@ namespace Lucene.Net.Search
             //System.out.println("numHits=" + numHits + " reverse=" + reverse);
             TopDocs hits = s.Search(new TermQuery(new Term("field", "a")), numHits);
 
-            TopDocs hits2 = new QueryRescorerAnonymousInnerClassHelper3(this, new FixedScoreQuery(idToNum, reverse))
+            TopDocs hits2 = new QueryRescorerAnonymousClass3(this, new FixedScoreQuery(idToNum, reverse))
               .Rescore(s, hits, numHits);
 
             int[] expected = new int[numHits];
@@ -396,24 +397,31 @@ namespace Lucene.Net.Search
             Array.Sort(expected,
                 Comparer<int>.Create((a, b) =>
                 {
-                    int av = idToNum[Convert.ToInt32(r.Document(a).Get("id"))];
-                    int bv = idToNum[Convert.ToInt32(r.Document(b).Get("id"))];
-                    if (av < bv)
+                    try
                     {
-                        return -reverseInt;
+                        int av = idToNum[Convert.ToInt32(r.Document(a).Get("id"))];
+                        int bv = idToNum[Convert.ToInt32(r.Document(b).Get("id"))];
+                        if (av < bv)
+                        {
+                            return -reverseInt;
+                        }
+                        else if (bv < av)
+                        {
+                            return reverseInt;
+                        }
+                        else
+                        {
+                            // Tie break by docID, ascending
+                            return a - b;
+                        }
                     }
-                    else if (bv < av)
+                    catch (Exception ioe) when (ioe.IsIOException())
                     {
-                        return reverseInt;
-                    }
-                    else
-                    {
-                        // Tie break by docID, ascending
-                        return a - b;
+                        throw RuntimeException.Create(ioe);
                     }
                 })
             );
-                        
+
             bool fail = false;
             for (int i = 0; i < numHits; i++)
             {
@@ -430,11 +438,11 @@ namespace Lucene.Net.Search
             dir.Dispose();
         }
 
-        private class QueryRescorerAnonymousInnerClassHelper3 : QueryRescorer
+        private class QueryRescorerAnonymousClass3 : QueryRescorer
         {
             private readonly TestQueryRescorer outerInstance;
 
-            public QueryRescorerAnonymousInnerClassHelper3(TestQueryRescorer outerInstance, FixedScoreQuery fixedScoreQuery)
+            public QueryRescorerAnonymousClass3(TestQueryRescorer outerInstance, FixedScoreQuery fixedScoreQuery)
                 : base(fixedScoreQuery)
             {
                 this.outerInstance = outerInstance;
@@ -461,14 +469,14 @@ namespace Lucene.Net.Search
 
             public override Weight CreateWeight(IndexSearcher searcher)
             {
-                return new WeightAnonymousInnerClassHelper(this);
+                return new WeightAnonymousClass(this);
             }
 
-            private class WeightAnonymousInnerClassHelper : Weight
+            private class WeightAnonymousClass : Weight
             {
                 private readonly FixedScoreQuery outerInstance;
 
-                public WeightAnonymousInnerClassHelper(FixedScoreQuery outerInstance)
+                public WeightAnonymousClass(FixedScoreQuery outerInstance)
                 {
                     this.outerInstance = outerInstance;
                 }
@@ -486,16 +494,16 @@ namespace Lucene.Net.Search
 
                 public override Scorer GetScorer(AtomicReaderContext context, IBits acceptDocs)
                 {
-                    return new ScorerAnonymousInnerClassHelper(this, context);
+                    return new ScorerAnonymousClass(this, context);
                 }
 
-                private class ScorerAnonymousInnerClassHelper : Scorer
+                private class ScorerAnonymousClass : Scorer
                 {
-                    private readonly WeightAnonymousInnerClassHelper outerInstance;
+                    private readonly WeightAnonymousClass outerInstance;
 
                     private readonly AtomicReaderContext context;
 
-                    public ScorerAnonymousInnerClassHelper(WeightAnonymousInnerClassHelper outerInstance, AtomicReaderContext context)
+                    public ScorerAnonymousClass(WeightAnonymousClass outerInstance, AtomicReaderContext context)
                         : base(null)
                     {
                         this.outerInstance = outerInstance;

@@ -5,6 +5,7 @@ using Lucene.Net.Util.Automaton;
 using System;
 using System.IO;
 using Lucene.Net.TestFramework;
+using RandomizedTesting.Generators;
 
 #if TESTFRAMEWORK_MSTEST
 using Test = Microsoft.VisualStudio.TestTools.UnitTesting.TestMethodAttribute;
@@ -293,22 +294,20 @@ namespace Lucene.Net.Analysis
                 StringReader reader = new StringReader(s);
                 MockCharFilter charfilter = new MockCharFilter(reader, 2);
                 MockAnalyzer analyzer = new MockAnalyzer(Random);
-                using (TokenStream ts = analyzer.GetTokenStream("bogus", charfilter))
+                using TokenStream ts = analyzer.GetTokenStream("bogus", charfilter);
+                ts.Reset();
+                while (ts.IncrementToken())
                 {
-                    ts.Reset();
-                    while (ts.IncrementToken())
-                    {
-                        ;
-                    }
-                    ts.End();
+                    ;
                 }
+                ts.End();
             }
         }
 
-        private class AnalyzerWrapperAnonymousHelper : AnalyzerWrapper
+        private class AnalyzerWrapperAnonymousClass : AnalyzerWrapper
         {
             private readonly Analyzer @delegate;
-            public AnalyzerWrapperAnonymousHelper(Analyzer @delegate)
+            public AnalyzerWrapperAnonymousClass(Analyzer @delegate)
                 : base(@delegate.Strategy)
             {
                 this.@delegate = @delegate;
@@ -331,7 +330,7 @@ namespace Lucene.Net.Analysis
             Random random = Random;
 
             Analyzer @delegate = new MockAnalyzer(random);
-            Analyzer a = new AnalyzerWrapperAnonymousHelper(@delegate);
+            Analyzer a = new AnalyzerWrapperAnonymousClass(@delegate);
 
 
             CheckOneTerm(a, "abc", "aabc");

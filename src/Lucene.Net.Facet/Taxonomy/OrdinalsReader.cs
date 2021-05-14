@@ -1,4 +1,6 @@
-﻿namespace Lucene.Net.Facet.Taxonomy
+﻿// Lucene version compatibility level 4.8.1
+
+namespace Lucene.Net.Facet.Taxonomy
 {
     /*
      * Licensed to the Apache Software Foundation (ASF) under one or more
@@ -39,7 +41,7 @@
             /// <summary>
             /// Default constructor. 
             /// </summary>
-            public OrdinalsSegmentReader()
+            protected OrdinalsSegmentReader() // LUCENENET: CA1012: Abstract types should not have constructors (marked protected)
             {
             }
         }
@@ -47,7 +49,7 @@
         /// <summary>
         /// Default constructor. 
         /// </summary>
-        public OrdinalsReader()
+        protected OrdinalsReader() // LUCENENET: CA1012: Abstract types should not have constructors (marked protected)
         {
         }
 

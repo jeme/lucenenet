@@ -87,12 +87,6 @@ namespace Lucene.Net.Search.Suggest.Analyzing
         }
 
         /// <summary>
-        /// LUCENENET specific to ensure our Queue is only altered by a single
-        /// thread at a time.
-        /// </summary>
-        private static readonly object syncLock = new object();
-
-        /// <summary>
         /// Create a new instance, loading from a previously built
         /// directory, if it exists.
         /// </summary>
@@ -110,8 +104,28 @@ namespace Lucene.Net.Search.Suggest.Analyzing
         /// <param name="blenderType"> Type of blending strategy, see BlenderType for more precisions </param>
         /// <param name="numFactor">   Factor to multiply the number of searched elements before ponderate </param>
         /// <exception cref="IOException"> If there are problems opening the underlying Lucene index. </exception>
-        public BlendedInfixSuggester(LuceneVersion matchVersion, Directory dir, Analyzer indexAnalyzer, Analyzer queryAnalyzer, int minPrefixChars, BlenderType blenderType, int numFactor)
-            : base(matchVersion, dir, indexAnalyzer, queryAnalyzer, minPrefixChars)
+        // LUCENENET specific - LUCENE-5889, a 4.11.0 feature. calls new constructor with extra param.
+        // LUCENENET TODO: Remove method at version 4.11.0. Was retained for perfect 4.8 compatibility
+        public BlendedInfixSuggester(LuceneVersion matchVersion, Directory dir, Analyzer indexAnalyzer, Analyzer queryAnalyzer, int minPrefixChars,
+                                     BlenderType blenderType, int numFactor)
+            : this(matchVersion, dir, indexAnalyzer, queryAnalyzer, minPrefixChars, blenderType, numFactor, commitOnBuild: false)
+        {
+        }
+
+        /// <summary>
+        /// Create a new instance, loading from a previously built
+        /// directory, if it exists.
+        /// </summary>
+        /// <param name="blenderType"> Type of blending strategy, see BlenderType for more precisions </param>
+        /// <param name="numFactor">   Factor to multiply the number of searched elements before ponderate </param>
+        ///  <param name="commitOnBuild"> Call commit after the index has finished building. This
+        ///  would persist the suggester index to disk and future instances of this suggester can
+        ///  use this pre-built dictionary. </param>
+        /// <exception cref="IOException"> If there are problems opening the underlying Lucene index. </exception>
+        // LUCENENET specific - LUCENE-5889, a 4.11.0 feature. (Code moved from other constructor to here.)
+        public BlendedInfixSuggester(LuceneVersion matchVersion, Directory dir, Analyzer indexAnalyzer, Analyzer queryAnalyzer, int minPrefixChars,
+                                     BlenderType blenderType, int numFactor, bool commitOnBuild)
+            : base(matchVersion, dir, indexAnalyzer, queryAnalyzer, minPrefixChars, commitOnBuild)
         {
             this.blenderType = blenderType;
             this.numFactor = numFactor;
@@ -214,7 +228,6 @@ namespace Lucene.Net.Search.Suggest.Analyzing
         /// <param name="num"> size limit </param>
         private static void BoundedTreeAdd(JCG.SortedSet<Lookup.LookupResult> results, Lookup.LookupResult result, int num)
         {
-
             if (results.Count >= num)
             {
                 var first = results.Min; // "get" our first object so we don't cross threads
@@ -291,11 +304,10 @@ namespace Lucene.Net.Search.Suggest.Analyzing
             return coefficient;
         }
 
-        private static IComparer<Lookup.LookupResult> LOOKUP_COMP = new LookUpComparer();
+        private static readonly IComparer<Lookup.LookupResult> LOOKUP_COMP = new LookUpComparer(); // LUCENENET: marked readonly
 
         private class LookUpComparer : IComparer<Lookup.LookupResult>
         {
-
             public virtual int Compare(Lookup.LookupResult o1, Lookup.LookupResult o2)
             {
                 // order on weight

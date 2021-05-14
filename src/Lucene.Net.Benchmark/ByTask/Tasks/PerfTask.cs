@@ -58,21 +58,18 @@ namespace Lucene.Net.Benchmarks.ByTask.Tasks
     ///     </description></item>
     /// </list>
     /// </remarks>
-    public abstract class PerfTask : IDisposable
-#if FEATURE_CLONEABLE
-        , System.ICloneable
-#endif
+    public abstract class PerfTask : IDisposable // LUCENENET specific: Not implementing ICloneable per Microsoft's recommendation
     {
-        internal static readonly int DEFAULT_LOG_STEP = 1000;
+        internal const int DEFAULT_LOG_STEP = 1000;
 
-        private PerfRunData runData;
+        private readonly PerfRunData runData;
 
         // propeties that all tasks have
         private string name;
         private int depth = 0;
         protected int m_logStep;
         private int logStepCount = 0;
-        private int maxDepthLogStart = 0;
+        private readonly int maxDepthLogStart = 0; // LUCENENET: marked readonly
         private bool disableCounting = false;
         protected string m_params = null;
 
@@ -121,7 +118,7 @@ namespace Lucene.Net.Benchmarks.ByTask.Tasks
             stopNow = true;
         }
 
-        public PerfTask(PerfRunData runData)
+        protected PerfTask(PerfRunData runData)
             : this()
         {
             this.runData = runData;
@@ -331,7 +328,7 @@ namespace Lucene.Net.Benchmarks.ByTask.Tasks
         {
             if (!SupportsParams)
             {
-                throw new NotSupportedException(GetName() + " does not support command line parameters.");
+                throw UnsupportedOperationException.Create(GetName() + " does not support command line parameters.");
             }
             this.m_params = @params;
         }

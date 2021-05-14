@@ -1,9 +1,10 @@
-using J2N;
+﻿using J2N;
 using J2N.Collections;
 using J2N.Collections.Generic.Extensions;
 using Lucene.Net.Diagnostics;
 using Lucene.Net.Store;
 using Lucene.Net.Util.Packed;
+using RandomizedTesting.Generators;
 using System;
 using System.Collections;
 using System.Collections.Concurrent;
@@ -217,7 +218,7 @@ namespace Lucene.Net.Util.Fst
         // isn't accepted.  if prefixLength is non-null it must be
         // length 1 int array; prefixLength[0] is set to the length
         // of the term prefix that matches
-        private T Run(FST<T> fst, Int32sRef term, int[] prefixLength)
+        private static T Run(FST<T> fst, Int32sRef term, int[] prefixLength) // LUCENENET: CA1822: Mark members as static
         {
             if (Debugging.AssertsEnabled) Debugging.Assert(prefixLength == null || prefixLength.Length == 1);
             FST.Arc<T> arc = fst.GetFirstArc(new FST.Arc<T>());
@@ -247,7 +248,7 @@ namespace Lucene.Net.Util.Fst
                     }
                     else
                     {
-                        return default(T);
+                        return default;
                     }
                 }
                 output = fst.Outputs.Add(output, arc.Output);
@@ -557,7 +558,7 @@ namespace Lucene.Net.Util.Fst
                     while (true)
                     {
                         Int32sRef term = ToInt32sRef(GetRandomString(random), inputMode);
-                        int pos = pairs.BinarySearch(new InputOutput<T>(term, default(T)));
+                        int pos = pairs.BinarySearch(new InputOutput<T>(term, default));
                         if (pos < 0)
                         {
                             pos = -(pos + 1);
@@ -689,7 +690,7 @@ namespace Lucene.Net.Util.Fst
                             Int32sRef term = ToInt32sRef(GetRandomString(random), inputMode);
                             if (!termsMap.ContainsKey(term) && term.CompareTo(pairs[upto].Input) > 0)
                             {
-                                int pos = pairs.BinarySearch(new InputOutput<T>(term, default(T)));
+                                int pos = pairs.BinarySearch(new InputOutput<T>(term, default));
                                 if (Debugging.AssertsEnabled) Debugging.Assert(pos < 0);
                                 upto = -(pos + 1);
 
@@ -823,9 +824,13 @@ namespace Lucene.Net.Util.Fst
 
             // build all prefixes
 
+#if FEATURE_DICTIONARY_REMOVE_CONTINUEENUMERATION
+            IDictionary<Int32sRef, CountMinOutput<T>> prefixes = new Dictionary<Int32sRef, CountMinOutput<T>>();
+#else
             // LUCENENET: We use ConcurrentDictionary<TKey, TValue> because Dictionary<TKey, TValue> doesn't support
             // deletion while iterating, but ConcurrentDictionary does.
             IDictionary<Int32sRef, CountMinOutput<T>> prefixes = new ConcurrentDictionary<Int32sRef, CountMinOutput<T>>();
+#endif
             Int32sRef scratch = new Int32sRef(10);
             foreach (InputOutput<T> pair in pairs)
             {

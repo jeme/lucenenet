@@ -1,4 +1,6 @@
-﻿namespace Lucene.Net.Facet.SortedSet
+﻿// Lucene version compatibility level 4.8.1
+
+namespace Lucene.Net.Facet.SortedSet
 {
     /*
      * Licensed to the Apache Software Foundation (ASF) under one or more
@@ -28,16 +30,11 @@
     {
         /// <summary>
         /// Indexed <see cref="FieldType"/>. </summary>
-        public static readonly FieldType TYPE = LoadType();
-        private static FieldType LoadType() // LUCENENET: Avoid static constructors (see https://github.com/apache/lucenenet/pull/224#issuecomment-469284006)
+        // LUCENENET: Avoid static constructors (see https://github.com/apache/lucenenet/pull/224#issuecomment-469284006)
+        public static readonly FieldType TYPE = new FieldType
         {
-            var type = new FieldType
-            {
-                IsIndexed = true
-            };            
-            type.Freeze();
-            return type;
-        }
+            IsIndexed = true
+        }.Freeze();
 
         /// <summary>
         /// Dimension. </summary>

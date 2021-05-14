@@ -1,4 +1,4 @@
-using J2N;
+﻿using J2N;
 using J2N.Collections.Generic.Extensions;
 using Lucene.Net.Diagnostics;
 using Lucene.Net.Support;
@@ -8,6 +8,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.CompilerServices;
+using System.Runtime.ExceptionServices;
 using System.Text;
 using System.Threading;
 using JCG = J2N.Collections.Generic;
@@ -113,10 +114,7 @@ namespace Lucene.Net.Index
     /// @lucene.experimental
     /// </summary>
 
-    public sealed class SegmentInfos : IEnumerable<SegmentCommitInfo>
-#if FEATURE_CLONEABLE
-        , System.ICloneable
-#endif
+    public sealed class SegmentInfos : IEnumerable<SegmentCommitInfo> // LUCENENET specific: Not implementing ICloneable per Microsoft's recommendation
     {
         /// <summary>
         /// The file format version for the segments_N codec header, up to 4.5. </summary>
@@ -128,14 +126,14 @@ namespace Lucene.Net.Index
 
         /// <summary>
         /// The file format version for the segments_N codec header, since 4.8+ </summary>
-        public static readonly int VERSION_48 = 2;
+        public const int VERSION_48 = 2;
 
         // Used for the segments.gen file only!
         // Whenever you add a new format, make it 1 smaller (negative version logic)!
-        private static readonly int FORMAT_SEGMENTS_GEN_47 = -2;
+        private const int FORMAT_SEGMENTS_GEN_47 = -2;
 
-        private static readonly int FORMAT_SEGMENTS_GEN_CHECKSUM = -3;
-        private static readonly int FORMAT_SEGMENTS_GEN_START = FORMAT_SEGMENTS_GEN_47;
+        private const int FORMAT_SEGMENTS_GEN_CHECKSUM = -3;
+        private const int FORMAT_SEGMENTS_GEN_START = FORMAT_SEGMENTS_GEN_47;
 
         /// <summary>
         /// Current format of segments.gen </summary>
@@ -221,7 +219,7 @@ namespace Lucene.Net.Index
             {
                 return GetLastCommitGeneration(directory.ListAll());
             }
-            catch (DirectoryNotFoundException)
+            catch (Exception nsde) when (nsde.IsNoSuchDirectoryException())
             {
                 return -1;
             }
@@ -304,7 +302,7 @@ namespace Lucene.Net.Index
                     dir.Sync(new JCG.HashSet<string> { IndexFileNames.SEGMENTS_GEN });
                 }
             }
-            catch (Exception)
+            catch (Exception t) when (t.IsThrowable())
             {
                 // It's OK if we fail to write this file since it's
                 // used only as one of the retry fallbacks.
@@ -312,7 +310,7 @@ namespace Lucene.Net.Index
                 {
                     dir.DeleteFile(IndexFileNames.SEGMENTS_GEN);
                 }
-                catch (Exception)
+                catch (Exception t2) when (t2.IsThrowable())
                 {
                     // Ignore; this file is only used in a retry
                     // fallback on init.
@@ -470,14 +468,14 @@ namespace Lucene.Net.Index
         {
             generation = lastGeneration = -1;
 
-            new FindSegmentsFileAnonymousInnerClassHelper(this, directory).Run();
+            new FindSegmentsFileAnonymousClass(this, directory).Run();
         }
 
-        private class FindSegmentsFileAnonymousInnerClassHelper : FindSegmentsFile
+        private class FindSegmentsFileAnonymousClass : FindSegmentsFile
         {
             private readonly SegmentInfos outerInstance;
 
-            public FindSegmentsFileAnonymousInnerClassHelper(SegmentInfos outerInstance, Directory directory)
+            public FindSegmentsFileAnonymousClass(SegmentInfos outerInstance, Directory directory)
                 : base(directory)
             {
                 this.outerInstance = outerInstance;
@@ -532,7 +530,7 @@ namespace Lucene.Net.Index
                     int delCount = siPerCommit.DelCount;
                     if (delCount < 0 || delCount > si.DocCount)
                     {
-                        throw new InvalidOperationException("cannot write segment: invalid docCount segment=" + si.Name + " docCount=" + si.DocCount + " delCount=" + delCount);
+                        throw IllegalStateException.Create("cannot write segment: invalid docCount segment=" + si.Name + " docCount=" + si.DocCount + " delCount=" + delCount);
                     }
                     segnOutput.WriteInt32(delCount);
                     segnOutput.WriteInt64(siPerCommit.FieldInfosGen);
@@ -598,7 +596,7 @@ namespace Lucene.Net.Index
                         {
                             directory.DeleteFile(fileName);
                         }
-                        catch (Exception)
+                        catch (Exception t) when (t.IsThrowable())
                         {
                             // Suppress so we keep throwing the original exception
                         }
@@ -610,7 +608,7 @@ namespace Lucene.Net.Index
                         // the index:
                         directory.DeleteFile(segmentsFileName);
                     }
-                    catch (Exception)
+                    catch (Exception t) when (t.IsThrowable())
                     {
                         // Suppress so we keep throwing the original exception
                     }
@@ -631,7 +629,7 @@ namespace Lucene.Net.Index
                     return true;
                 }
             }
-            catch (IOException)
+            catch (Exception ioe) when (ioe.IsIOException())
             {
                 // Ignore: if something is wrong w/ the marker file,
                 // we will just upgrade again
@@ -662,7 +660,7 @@ namespace Lucene.Net.Index
                 // so it had better be a 3.x segment or you will get very confusing errors later.
                 if ((si.Codec is Lucene3xCodec) == false)
                 {
-                    throw new InvalidOperationException("cannot write 3x SegmentInfo unless codec is Lucene3x (got: " + si.Codec + ")");
+                    throw IllegalStateException.Create("cannot write 3x SegmentInfo unless codec is Lucene3x (got: " + si.Codec + ")");
                 }
 
                 CodecUtil.WriteHeader(output, Lucene3xSegmentInfoFormat.UPGRADED_SI_CODEC_NAME, Lucene3xSegmentInfoFormat.UPGRADED_SI_VERSION_CURRENT);
@@ -672,7 +670,7 @@ namespace Lucene.Net.Index
 
                 output.WriteStringStringMap(si.Attributes);
 
-                output.WriteByte((byte)(sbyte)(si.UseCompoundFile ? SegmentInfo.YES : SegmentInfo.NO));
+                output.WriteByte((byte)(si.UseCompoundFile ? SegmentInfo.YES : SegmentInfo.NO));
                 output.WriteStringStringMap(si.Diagnostics);
                 output.WriteStringSet(si.GetFiles());
 
@@ -689,7 +687,7 @@ namespace Lucene.Net.Index
                     {
                         si.Dir.DeleteFile(fileName);
                     }
-                    catch (Exception)
+                    catch (Exception t) when (t.IsThrowable())
                     {
                         // Suppress so we keep throwing the original exception
                     }
@@ -799,7 +797,7 @@ namespace Lucene.Net.Index
 
             /// <summary>
             /// Sole constructor. </summary>
-            public FindSegmentsFile(Directory directory)
+            protected FindSegmentsFile(Directory directory) // LUCENENET: CA1012: Abstract types should not have constructors (marked protected)
             {
                 this.directory = directory;
             }
@@ -826,11 +824,11 @@ namespace Lucene.Net.Index
                     return DoBody(commit.SegmentsFileName);
                 }
 
-                string segmentFileName = null;
+                string segmentFileName/* = null*/; // LUCENENET: IDE0059: Remove unnecessary value assignment
                 long lastGen = -1;
                 long gen = 0;
                 int genLookaheadCount = 0;
-                IOException exc = null;
+                Exception exc = null; // LUCENENET: No need to cast to IOExcpetion
                 int retryCount = 0;
 
                 bool useFirstMethod = true;
@@ -860,11 +858,9 @@ namespace Lucene.Net.Index
                         // as there is no stale caching on the directory
                         // contents (NOTE: NFS clients often have such stale
                         // caching):
-                        string[] files = null;
+                        string[] files = directory.ListAll(); // LUCENENET: IDE0059: Remove unnecessary value assignment
 
                         long genA = -1;
-
-                        files = directory.ListAll();
 
                         if (files != null)
                         {
@@ -887,7 +883,7 @@ namespace Lucene.Net.Index
                         {
                             genInput = directory.OpenChecksumInput(IndexFileNames.SEGMENTS_GEN, IOContext.READ_ONCE);
                         }
-                        catch (IOException e)
+                        catch (Exception e) when (e.IsIOException())
                         {
                             if (infoStream != null)
                             {
@@ -929,7 +925,7 @@ namespace Lucene.Net.Index
                                     throw new IndexFormatTooNewException(genInput, version, FORMAT_SEGMENTS_GEN_START, FORMAT_SEGMENTS_GEN_CURRENT);
                                 }
                             }
-                            catch (IOException err2)
+                            catch (Exception err2) when (err2.IsIOException())
                             {
                                 // rethrow any format exception
                                 if (err2 is CorruptIndexException)
@@ -983,7 +979,7 @@ namespace Lucene.Net.Index
                         else
                         {
                             // All attempts have failed -- throw first exc:
-                            throw exc;
+                            ExceptionDispatchInfo.Capture(exc).Throw(); // LUCENENET: Rethrow to preserve stack details from the original throw
                         }
                     }
                     else if (lastGen == gen)
@@ -1012,7 +1008,7 @@ namespace Lucene.Net.Index
                         }
                         return v;
                     }
-                    catch (IOException err)
+                    catch (Exception err) when (err.IsIOException())
                     {
                         // Save the original root cause:
                         if (exc == null)
@@ -1041,9 +1037,7 @@ namespace Lucene.Net.Index
                                 directory.OpenInput(prevSegmentFileName, IOContext.DEFAULT).Dispose();
                                 prevExists = true;
                             }
-#pragma warning disable 168
-                            catch (IOException ioe)
-#pragma warning restore 168
+                            catch (Exception ioe) when (ioe.IsIOException())
                             {
                                 prevExists = false;
                             }
@@ -1063,7 +1057,7 @@ namespace Lucene.Net.Index
                                     }
                                     return v;
                                 }
-                                catch (IOException err2)
+                                catch (Exception err2) when (err2.IsIOException())
                                 {
                                     if (infoStream != null)
                                     {
@@ -1126,7 +1120,7 @@ namespace Lucene.Net.Index
         {
             if (pendingSegnOutput != null)
             {
-                throw new InvalidOperationException("prepareCommit was already called");
+                throw IllegalStateException.Create("prepareCommit was already called");
             }
             Write(dir);
         }
@@ -1168,7 +1162,7 @@ namespace Lucene.Net.Index
         {
             if (pendingSegnOutput == null)
             {
-                throw new InvalidOperationException("prepareCommit was not called");
+                throw IllegalStateException.Create("prepareCommit was not called");
             }
             bool success = false;
             try

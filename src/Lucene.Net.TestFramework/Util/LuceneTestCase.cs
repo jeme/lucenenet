@@ -4,8 +4,6 @@ using Lucene.Net.Diagnostics;
 using Lucene.Net.Documents;
 using Lucene.Net.Index;
 using Lucene.Net.Index.Extensions;
-using Lucene.Net.Randomized;
-using Lucene.Net.Randomized.Generators;
 using Lucene.Net.Search;
 using Lucene.Net.Store;
 using Lucene.Net.Support;
@@ -34,6 +32,7 @@ using FieldInfo = Lucene.Net.Index.FieldInfo;
 using static Lucene.Net.Search.FieldCache;
 using static Lucene.Net.Util.FieldCacheSanityChecker;
 using J2N.Collections.Generic.Extensions;
+using RandomizedTesting.Generators;
 
 #if TESTFRAMEWORK_MSTEST
 using Before = Microsoft.VisualStudio.TestTools.UnitTesting.TestInitializeAttribute;
@@ -42,6 +41,7 @@ using OneTimeSetUp = Microsoft.VisualStudio.TestTools.UnitTesting.ClassInitializ
 using OneTimeTearDown = Microsoft.VisualStudio.TestTools.UnitTesting.ClassCleanupAttribute;
 using Test = Microsoft.VisualStudio.TestTools.UnitTesting.TestMethodAttribute;
 using TestFixture = Microsoft.VisualStudio.TestTools.UnitTesting.TestClassAttribute;
+using AssumptionViolatedException = Microsoft.VisualStudio.TestTools.UnitTesting.AssertInconclusiveException;
 #elif TESTFRAMEWORK_NUNIT
 using Before = NUnit.Framework.SetUpAttribute;
 using After = NUnit.Framework.TearDownAttribute;
@@ -49,6 +49,7 @@ using OneTimeSetUp = NUnit.Framework.OneTimeSetUpAttribute;
 using OneTimeTearDown = NUnit.Framework.OneTimeTearDownAttribute;
 using Test = NUnit.Framework.TestAttribute;
 using TestFixture = NUnit.Framework.TestFixtureAttribute;
+using AssumptionViolatedException = NUnit.Framework.InconclusiveException;
 using NUnit.Framework.Interfaces;
 using NUnit.Framework.Internal;
 using NUnit.Framework.Internal.Commands;
@@ -59,6 +60,7 @@ using OneTimeSetUp = Lucene.Net.Attributes.NoOpAttribute;
 using OneTimeTearDown = Lucene.Net.Attributes.NoOpAttribute;
 using Test = Lucene.Net.TestFramework.SkippableFactAttribute;
 using TestFixture = Lucene.Net.Attributes.NoOpAttribute;
+using AssumptionViolatedException = Lucene.Net.TestFramework.SkipTestException;
 #endif
 
 namespace Lucene.Net.Util
@@ -292,9 +294,8 @@ namespace Lucene.Net.Util
             {
                 // Cover the case where this attribute is applied to the whole test fixture
                 var currentTest = context.CurrentTest;
-                if (!TestNightly && currentTest is NUnit.Framework.Internal.TestFixture)
+                if (!TestNightly && currentTest is NUnit.Framework.Internal.TestFixture fixture)
                 {
-                    var fixture = (NUnit.Framework.Internal.TestFixture)currentTest;
                     foreach (var testInterface in fixture.Tests)
                     {
                         var test = (NUnit.Framework.Internal.Test)testInterface;
@@ -337,9 +338,8 @@ namespace Lucene.Net.Util
             {
                 // Cover the case where this attribute is applied to the whole test fixture
                 var currentTest = context.CurrentTest;
-                if (!TestWeekly && currentTest is NUnit.Framework.Internal.TestFixture)
+                if (!TestWeekly && currentTest is NUnit.Framework.Internal.TestFixture fixture)
                 {
-                    var fixture = (NUnit.Framework.Internal.TestFixture)currentTest;
                     foreach (var testInterface in fixture.Tests)
                     {
                         var test = (NUnit.Framework.Internal.Test)testInterface;
@@ -380,9 +380,8 @@ namespace Lucene.Net.Util
             {
                 // Cover the case where this attribute is applied to the whole test fixture
                 var currentTest = context.CurrentTest;
-                if (!TestAwaitsFix && currentTest is NUnit.Framework.Internal.TestFixture)
+                if (!TestAwaitsFix && currentTest is NUnit.Framework.Internal.TestFixture fixture)
                 {
-                    var fixture = (NUnit.Framework.Internal.TestFixture)currentTest;
                     foreach (var testInterface in fixture.Tests)
                     {
                         var test = (NUnit.Framework.Internal.Test)testInterface;
@@ -427,9 +426,8 @@ namespace Lucene.Net.Util
             {
                 // Cover the case where this attribute is applied to the whole test fixture
                 var currentTest = context.CurrentTest;
-                if (!TestSlow && currentTest is NUnit.Framework.Internal.TestFixture)
+                if (!TestSlow && currentTest is NUnit.Framework.Internal.TestFixture fixture)
                 {
-                    var fixture = (NUnit.Framework.Internal.TestFixture)currentTest;
                     foreach (var testInterface in fixture.Tests)
                     {
                         var test = (NUnit.Framework.Internal.Test)testInterface;
@@ -507,7 +505,7 @@ namespace Lucene.Net.Util
         /// up after the suite is completed.
         /// </summary>
         /// <seealso cref="LuceneTestCase.CreateTempDir()"/>
-        /// <seealso cref="LuceneTestCase.CreateTempFile(String, String)"/>
+        /// <seealso cref="LuceneTestCase.CreateTempFile(string, string)"/>
         [AttributeUsage(AttributeTargets.Class, AllowMultiple = false, Inherited = true)]
         [SuppressMessage("Design", "CA1034:Nested types should not be visible", Justification = "API looks better with this nested.")]
         public sealed class SuppressTempFileChecksAttribute : System.Attribute
@@ -1129,7 +1127,7 @@ namespace Lucene.Net.Util
             catch (Exception ex)
             {
                 // Write the stack trace so we have something to go on if an error occurs here.
-                throw new Exception($"An exception occurred during BeforeClass:\n{ex.ToString()}", ex);
+                throw new Exception($"An exception occurred during BeforeClass:\n{ex}", ex);
             }
         }
 
@@ -1182,7 +1180,7 @@ namespace Lucene.Net.Util
             catch (Exception ex)
             {
                 // Write the stack trace so we have something to go on if an error occurs here.
-                throw new Exception($"An exception occurred during AfterClass:\n{ex.ToString()}", ex);
+                throw new Exception($"An exception occurred during AfterClass:\n{ex}", ex);
             }
         }
 
@@ -1210,6 +1208,7 @@ namespace Lucene.Net.Util
         /// // tight loop with many invocations.
         /// </code>
         /// </summary>
+        [SuppressMessage("Style", "IDE0025:Use expression body for properties", Justification = "Multiple lines")]
         public static Random Random
         {
             get
@@ -1279,9 +1278,11 @@ namespace Lucene.Net.Util
         }
 
 
+
         /// <summary>
         /// Return the name of the currently executing test case.
         /// </summary>
+        [SuppressMessage("Style", "IDE0025:Use expression body for properties", Justification = "Multiple lines")]
         public virtual string TestName
         {
             get
@@ -1350,7 +1351,7 @@ namespace Lucene.Net.Util
                 {
                     insanity = FieldCacheSanityChecker.CheckSanity(entries);
                 }
-                catch (Exception /*e*/)
+                catch (Exception e) when (e.IsRuntimeException())
                 {
                     DumpArray(msg + ": FieldCache", entries, Console.Error);
                     throw;  // LUCENENET: CA2200: Rethrow to preserve stack details (https://docs.microsoft.com/en-us/visualstudio/code-quality/ca2200-rethrow-to-preserve-stack-details)
@@ -1423,19 +1424,58 @@ namespace Lucene.Net.Util
             return Usually(Random);
         }
 
-        public static void AssumeTrue(string msg, bool condition)
+        /// <param name="msg">Message to be included in the exception's string.</param>
+        /// <param name="condition">
+        /// If <c>false</c> an <see cref="AssumptionViolatedException"/> is
+        /// thrown by this method and the test case (should be) ignored (or
+        /// rather technically, flagged as a failure not passing a certain
+        /// assumption). Tests that are assumption-failures do not break
+        /// builds (again: typically).
+        /// </param>
+        public static void AssumeTrue(string msg, bool condition) // LUCENENET: From RandomizedTest
         {
-            RandomizedTest.AssumeTrue(msg, condition);
+#if TESTFRAMEWORK_MSTEST
+            if (!condition)
+                Assert.Inconclusive(msg);
+#elif TESTFRAMEWORK_NUNIT
+            NUnit.Framework.Assume.That(condition, msg);
+#elif TESTFRAMEWORK_XUNIT
+            if (!condition)
+                throw new SkipTestException(msg);
+#endif
         }
 
-        public static void AssumeFalse(string msg, bool condition)
+        /// <param name="msg">Message to be included in the exception's string.</param>
+        /// <param name="condition">
+        /// If <c>true</c> an <see cref="AssumptionViolatedException"/> is
+        /// thrown by this method and the test case (should be) ignored (or
+        /// rather technically, flagged as a failure not passing a certain
+        /// assumption). Tests that are assumption-failures do not break
+        /// builds (again: typically).
+        /// </param>
+        public static void AssumeFalse(string msg, bool condition) // LUCENENET: From RandomizedTest
         {
-            RandomizedTest.AssumeFalse(msg, condition);
+#if TESTFRAMEWORK_MSTEST
+            if (condition)
+                Assert.Inconclusive(msg);
+#elif TESTFRAMEWORK_NUNIT
+            NUnit.Framework.Assume.That(!condition, msg);
+#elif TESTFRAMEWORK_XUNIT
+            if (condition)
+                throw new SkipTestException(msg);
+#endif
         }
 
-        public static void AssumeNoException(string msg, Exception e)
+        /// <summary>
+        /// Assume <paramref name="e"/> is <c>null</c>.
+        /// </summary>
+        public static void AssumeNoException(string msg, Exception e) // LUCENENET: From RandomizedTest
         {
-            RandomizedTest.AssumeNoException(msg, e);
+            if (e != null)
+            {
+                // This does chain the exception as the cause.
+                throw new AssumptionViolatedException(msg, e);
+            }
         }
 
         /// <summary>
@@ -1564,22 +1604,9 @@ namespace Lucene.Net.Util
             {
                 int maxThreadCount = TestUtil.NextInt32(Random, 1, 4);
                 int maxMergeCount = TestUtil.NextInt32(Random, maxThreadCount, maxThreadCount + 4);
-                IConcurrentMergeScheduler mergeScheduler;
-
-#if !FEATURE_CONCURRENTMERGESCHEDULER
-                mergeScheduler = new TaskMergeScheduler();
-#else
-                //if (Rarely(random))
-                //{
-                //    mergeScheduler = new TaskMergeScheduler();
-                //}
-                //else
-                {
-                    mergeScheduler = new ConcurrentMergeScheduler();
-                }
-#endif
-                mergeScheduler.SetMaxMergesAndThreads(maxMergeCount, maxThreadCount);
-                c.SetMergeScheduler(mergeScheduler);
+                IConcurrentMergeScheduler cms = new ConcurrentMergeScheduler();
+                cms.SetMaxMergesAndThreads(maxMergeCount, maxThreadCount);
+                c.SetMergeScheduler(cms);
             }
             if (random.NextBoolean())
             {
@@ -2093,6 +2120,7 @@ namespace Lucene.Net.Util
         private static Directory NewFSDirectoryImpl(Type clazz, DirectoryInfo file)
         {
             return CommandLineUtil.NewFSDirectory(clazz, file);
+            // LUCENENET: No sense in catching just to rethrow again as the same type
         }
 
         private static Directory NewDirectoryImpl(Random random, string clazzName)
@@ -2116,7 +2144,7 @@ namespace Lucene.Net.Util
 
             Type clazz = CommandLineUtil.LoadDirectoryClass(clazzName);
             if (clazz == null)
-                throw new InvalidOperationException($"Type '{clazzName}' could not be instantiated.");
+                throw IllegalStateException.Create($"Type '{clazzName}' could not be instantiated."); // LUCENENET: We don't get an exception in this case, so throwing one for compatibility
             // If it is a FSDirectory type, try its ctor(File)
             if (typeof(FSDirectory).IsAssignableFrom(clazz))
             {
@@ -2150,7 +2178,7 @@ namespace Lucene.Net.Util
 
                         case 1:
                             // will create no FC insanity in atomic case, as ParallelAtomicReader has own cache key:
-                            r = (r is AtomicReader) ? (IndexReader)new ParallelAtomicReader((AtomicReader)r) : new ParallelCompositeReader((CompositeReader)r);
+                            r = (r is AtomicReader atomicReader) ? (IndexReader)new ParallelAtomicReader(atomicReader) : new ParallelCompositeReader((CompositeReader)r);
                             break;
 
                         case 2:
@@ -2178,13 +2206,13 @@ namespace Lucene.Net.Util
                             // Häckidy-Hick-Hack: a standard Reader will cause FC insanity, so we use
                             // QueryUtils' reader with a fake cache key, so insanity checker cannot walk
                             // along our reader:
-                            if (r is AtomicReader)
+                            if (r is AtomicReader atomicReader2)
                             {
-                                r = new AssertingAtomicReader((AtomicReader)r);
+                                r = new AssertingAtomicReader(atomicReader2);
                             }
-                            else if (r is DirectoryReader)
+                            else if (r is DirectoryReader directoryReader)
                             {
-                                r = new AssertingDirectoryReader((DirectoryReader)r);
+                                r = new AssertingDirectoryReader(directoryReader);
                             }
                             break;
 
@@ -2378,6 +2406,7 @@ namespace Lucene.Net.Util
             {
                 if (maybeWrap)
                 {
+                    // LUCENENET: Rethrow.rethrow() call not needed here because it simply rethrows an exception as itself
                     r = MaybeWrapReader(r);
                 }
                 // TODO: this whole check is a coverage hack, we should move it to tests for various filterreaders.
@@ -2386,6 +2415,8 @@ namespace Lucene.Net.Util
                 {
                     // TODO: not useful to check DirectoryReader (redundant with checkindex)
                     // but maybe sometimes run this on the other crazy readers maybeWrapReader creates?
+
+                    // LUCENENET: Rethrow.rethrow() call not needed here because it simply rethrows an exception as itself
                     TestUtil.CheckReader(r);
                 }
                 IndexSearcher ret;
@@ -2426,7 +2457,7 @@ namespace Lucene.Net.Util
                     {
                         Console.WriteLine("NOTE: newSearcher using ExecutorService with " + threads + " threads");
                     }
-                    //r.AddReaderClosedListener(new ReaderClosedListenerAnonymousInnerClassHelper(ex)); // LUCENENET TODO: Implement event (see the commented ReaderClosedListenerAnonymousInnerClassHelper class near the bottom of this file)
+                    //r.AddReaderClosedListener(new ReaderClosedListenerAnonymousClass(ex)); // LUCENENET TODO: Implement event (see the commented ReaderClosedListenerAnonymousClass class near the bottom of this file)
                 }
                 IndexSearcher ret;
                 if (wrapWithAssertions)
@@ -2458,11 +2489,9 @@ namespace Lucene.Net.Util
             {
                 return this.GetType().getResourceAsStream(name);
             }
-#pragma warning disable 168
-            catch (Exception e)
-#pragma warning restore 168
+            catch (Exception e) when (e.IsException())
             {
-                throw new IOException("Cannot find resource: " + name);
+                throw new IOException("Cannot find resource: " + name, e); // LUCENENET specific - wrapped inner exception
             }
         }
 
@@ -2589,18 +2618,16 @@ namespace Lucene.Net.Util
             }
             AssertFieldStatisticsEquals(info, leftFields, rightFields);
 
-            using (IEnumerator<string> leftEnum = leftFields.GetEnumerator())
-            using (IEnumerator<string> rightEnum = rightFields.GetEnumerator())
+            using IEnumerator<string> leftEnum = leftFields.GetEnumerator();
+            using IEnumerator<string> rightEnum = rightFields.GetEnumerator();
+            while (leftEnum.MoveNext())
             {
-                while (leftEnum.MoveNext())
-                {
-                    string field = leftEnum.Current;
-                    rightEnum.MoveNext();
-                    Assert.AreEqual(field, rightEnum.Current, info);
-                    AssertTermsEquals(info, leftReader, leftFields.GetTerms(field), rightFields.GetTerms(field), deep);
-                }
-                Assert.IsFalse(rightEnum.MoveNext());
+                string field = leftEnum.Current;
+                rightEnum.MoveNext();
+                Assert.AreEqual(field, rightEnum.Current, info);
+                AssertTermsEquals(info, leftReader, leftFields.GetTerms(field), rightFields.GetTerms(field), deep);
             }
+            Assert.IsFalse(rightEnum.MoveNext());
         }
 
         /// <summary>
@@ -2826,7 +2853,7 @@ namespace Lucene.Net.Util
                 else
                 {
                     // advance()
-                    int skip = docid + (int)Math.Ceiling(Math.Abs(skipInterval + Random.NextDouble() * averageGap));
+                    int skip = docid + (int)Math.Ceiling(Math.Abs(skipInterval + Random.NextGaussian() * averageGap));
                     docid = leftDocs.Advance(skip);
                     Assert.AreEqual(docid, rightDocs.Advance(skip), info);
                 }
@@ -2869,7 +2896,7 @@ namespace Lucene.Net.Util
                 else
                 {
                     // advance()
-                    int skip = docid + (int)Math.Ceiling(Math.Abs(skipInterval + Random.NextDouble() * averageGap));
+                    int skip = docid + (int)Math.Ceiling(Math.Abs(skipInterval + Random.NextGaussian() * averageGap));
                     docid = leftDocs.Advance(skip);
                     Assert.AreEqual(docid, rightDocs.Advance(skip), info);
                 }
@@ -2947,7 +2974,7 @@ namespace Lucene.Net.Util
                                 break;
 
                             default:
-                                throw new InvalidOperationException();
+                                throw AssertionError.Create();
                         }
                     }
                 }
@@ -3048,20 +3075,18 @@ namespace Lucene.Net.Util
                 // in whatever way it wants (e.g. maybe it packs related fields together or something)
                 // To fix this, we sort the fields in both documents by name, but
                 // we still assume that all instances with same name are in order:
-                Comparison<IIndexableField> comp = (a, b) => String.Compare(a.Name, b.Name, StringComparison.Ordinal);
+                var comp = Comparer<IIndexableField>.Create((a, b) => string.Compare(a.Name, b.Name, StringComparison.Ordinal));
                 leftDoc.Fields.Sort(comp);
                 rightDoc.Fields.Sort(comp);
 
-                using (var leftIterator = leftDoc.GetEnumerator())
-                using (var rightIterator = rightDoc.GetEnumerator())
+                using var leftIterator = leftDoc.GetEnumerator();
+                using var rightIterator = rightDoc.GetEnumerator();
+                while (leftIterator.MoveNext())
                 {
-                    while (leftIterator.MoveNext())
-                    {
-                        Assert.IsTrue(rightIterator.MoveNext(), info);
-                        AssertStoredFieldEquals(info, leftIterator.Current, rightIterator.Current);
-                    }
-                    Assert.IsFalse(rightIterator.MoveNext(), info);
+                    Assert.IsTrue(rightIterator.MoveNext(), info);
+                    AssertStoredFieldEquals(info, leftIterator.Current, rightIterator.Current);
                 }
+                Assert.IsFalse(rightIterator.MoveNext(), info);
             }
         }
 
@@ -3308,18 +3333,7 @@ namespace Lucene.Net.Util
                 dir.OpenInput(fileName, IOContext.DEFAULT).Dispose();
                 return true;
             }
-            catch (FileNotFoundException)
-            {
-                return false;
-            }
-            // LUCENENET specific - .NET (thankfully) only has one FileNotFoundException, so we don't need this
-            //catch (NoSuchFileException)
-            //{
-            //    return false;
-            //}
-            // LUCENENET specific - since NoSuchDirectoryException subclasses FileNotFoundException
-            // in Lucene, we need to catch it here to be on the safe side.
-            catch (DirectoryNotFoundException)
+            catch (Exception e) when (e.IsNoSuchFileExceptionOrFileNotFoundException())
             {
                 return false;
             }
@@ -3364,7 +3378,7 @@ namespace Lucene.Net.Util
         ////            {
         ////                if (attempt++ >= TEMP_NAME_RETRY_THRESHOLD)
         ////                {
-        ////                    throw new Exception("Failed to get a temporary name too many times, check your temp directory and consider manually cleaning it: " + directory.FullName);
+        ////                    throw RuntimeException.Create("Failed to get a temporary name too many times, check your temp directory and consider manually cleaning it: " + directory.FullName);
         ////                }
         ////                f = new DirectoryInfo(Path.Combine(directory.FullName, prefix + "-" + ctx.RunnerSeed + "-" + string.Format(CultureInfo.InvariantCulture, "%03d", attempt)));
 
@@ -3372,7 +3386,7 @@ namespace Lucene.Net.Util
         ////                {
         ////                    f.Create();
         ////                }
-        ////                catch (IOException)
+        ////                catch (Exception ioe) when (ioe.IsIOException())
         ////                {
         ////                    iterate = false;
         ////                }
@@ -3413,7 +3427,7 @@ namespace Lucene.Net.Util
             {
                 if (attempt++ >= TEMP_NAME_RETRY_THRESHOLD)
                 {
-                    throw new Exception("Failed to get a temporary name too many times, check your temp directory and consider manually cleaning it: " + System.IO.Path.GetTempPath());
+                    throw RuntimeException.Create("Failed to get a temporary name too many times, check your temp directory and consider manually cleaning it: " + System.IO.Path.GetTempPath());
                 }
                 // LUCENENET specific - need to use a random file name instead of a sequential one or two threads may attempt to do 
                 // two operations on a file at the same time.
@@ -3428,9 +3442,7 @@ namespace Lucene.Net.Util
                         iterate = false;
                     }
                 }
-#pragma warning disable 168
-                catch (IOException exc)
-#pragma warning restore 168
+                catch (Exception exc) when (exc.IsIOException())
                 {
                     iterate = true;
                 }
@@ -3458,7 +3470,7 @@ namespace Lucene.Net.Util
             //{
             //    if (attempt++ >= TEMP_NAME_RETRY_THRESHOLD)
             //    {
-            //        throw new Exception("Failed to get a temporary name too many times, check your temp directory and consider manually cleaning it: " + System.IO.Path.GetTempPath());
+            //        throw RuntimeException.Create("Failed to get a temporary name too many times, check your temp directory and consider manually cleaning it: " + System.IO.Path.GetTempPath());
             //    }
             //    //f = new FileInfo(Path.Combine(System.IO.Path.GetTempPath(), prefix + "-" + string.Format(CultureInfo.InvariantCulture, "{0:D3}", attempt) + suffix));
             //    f = FileSupport.CreateTempFile(prefix, suffix, new DirectoryInfo(System.IO.Path.GetTempPath()));
@@ -3471,7 +3483,7 @@ namespace Lucene.Net.Util
         /// <summary>
         /// Creates an empty temporary file.
         /// </summary>
-        /// <seealso cref="CreateTempFile(String, String)"/>
+        /// <seealso cref="CreateTempFile(string, string)"/>
         public static FileInfo CreateTempFile()
         {
             return CreateTempFile("tempFile", ".tmp");
@@ -3481,7 +3493,9 @@ namespace Lucene.Net.Util
         /// A queue of temporary resources to be removed after the
         /// suite completes. </summary>
         /// <seealso cref="RegisterToRemoveAfterSuite(FileSystemInfo)"/>
-        private static readonly ConcurrentQueue<string> cleanupQueue = new ConcurrentQueue<string>();
+        // LUCENENET specific - using a stack, since this is read in reverse order
+        private static readonly Stack<FileSystemInfo> cleanupQueue = new Stack<FileSystemInfo>();
+        private static readonly object cleanupQueueLock = new object();
 
         /// <summary>
         /// Register temporary folder for removal after the suite completes.
@@ -3495,8 +3509,10 @@ namespace Lucene.Net.Util
                 Console.Error.WriteLine("INFO: Will leave temporary file: " + f.FullName);
                 return;
             }
-
-            cleanupQueue.Enqueue(f.FullName);
+            lock (cleanupQueueLock)
+            {
+                cleanupQueue.Push(f);
+            }
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
@@ -3508,44 +3524,41 @@ namespace Lucene.Net.Util
         private static void CleanupTemporaryFiles()
         {
             // Drain cleanup queue and clear it.
-            var tempDirBasePath = tempDirBase?.FullName;
-            tempDirBase = null;
+            FileSystemInfo[] everything;
+            string tempDirBasePath;
+
+            lock (cleanupQueueLock)
+            {
+                tempDirBasePath = tempDirBase?.FullName;
+                tempDirBase = null;
+
+                // LUCENENET: The stack order is alredy reversed, so no need to do that here as in Lucene
+                everything = cleanupQueue.ToArray();
+                cleanupQueue.Clear();
+            }
+
+            // LUCENENET specific - If the everything array is empty, there is no reason
+            // to continue.
+            if (everything.Length == 0)
+                return;
 
             // Only check and throw an IOException on un-removable files if the test
             // was successful. Otherwise just report the path of temporary files
             // and leave them there.
             if (LuceneTestCase.SuiteFailureMarker /*.WasSuccessful()*/)
             {
-                string f;
-                while (cleanupQueue.TryDequeue(out f))
+                try
                 {
-                    try
-                    {
-                        if (System.IO.Directory.Exists(f))
-                            System.IO.Directory.Delete(f, true);
-                        else if (System.IO.File.Exists(f))
-                            File.Delete(f);
-                    }
-                    // LUCENENET specific: UnauthorizedAccessException doesn't subclass IOException as
-                    // AccessDeniedException does in Java, so we need a special case for it.
-                    catch (UnauthorizedAccessException e)
-                    {
-                        //                    Type suiteClass = RandomizedContext.Current.GetTargetType;
-                        //                    if (suiteClass.IsAnnotationPresent(typeof(SuppressTempFileChecks)))
-                        //                    {
-                        Console.Error.WriteLine("WARNING: Leftover undeleted temporary files " + e.Message);
-                        return;
-                        //                    }
-                    }
-                    catch (IOException e)
-                    {
-                        //                    Type suiteClass = RandomizedContext.Current.GetTargetType;
-                        //                    if (suiteClass.IsAnnotationPresent(typeof(SuppressTempFileChecks)))
-                        //                    {
-                        Console.Error.WriteLine("WARNING: Leftover undeleted temporary files " + e.Message);
-                        return;
-                        //                    }
-                    }
+                    TestUtil.Rm(everything);
+                }
+                catch (Exception e) when (e.IsIOException())
+                {
+                    //                    Type suiteClass = RandomizedContext.Current.GetTargetType;
+                    //                    if (suiteClass.IsAnnotationPresent(typeof(SuppressTempFileChecks)))
+                    //                    {
+                    Console.Error.WriteLine("WARNING: Leftover undeleted temporary files " + e.Message);
+                    return;
+                    //                    }
                 }
             }
             else
@@ -3553,34 +3566,6 @@ namespace Lucene.Net.Util
                 if (tempDirBasePath != null)
                 {
                     Console.Error.WriteLine("NOTE: leaving temporary files on disk at: " + tempDirBasePath);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Contains a list of the Func&lt;IConcurrentMergeSchedulers&gt; to be tested.
-        /// Delegate method allows them to be created on their target thread instead of the test thread
-        /// and also ensures a separate instance is created in each case (which can affect the result of the test).
-        /// <para/>
-        /// The <see cref="TaskMergeScheduler"/> is only rarely included.
-        /// <para/>
-        /// LUCENENET specific for injection into tests (i.e. using NUnit.Framework.ValueSourceAttribute)
-        /// </summary>
-        public static class ConcurrentMergeSchedulerFactories
-        {
-            public static IList<Func<IConcurrentMergeScheduler>> Values
-            {
-                get
-                {
-                    var schedulerFactories = new List<Func<IConcurrentMergeScheduler>>();
-#if FEATURE_CONCURRENTMERGESCHEDULER
-                    schedulerFactories.Add(() => new ConcurrentMergeScheduler());
-                    //if (Rarely())
-                    //    schedulerFactories.Add(() => new TaskMergeScheduler());
-#else
-                    schedulerFactories.Add(() => new TaskMergeScheduler());
-#endif
-                    return schedulerFactories;
                 }
             }
         }
@@ -3605,7 +3590,7 @@ namespace Lucene.Net.Util
                 return;
             }
 
-            Stream lockStream;
+            Stream lockStream = null;
             try
             {
                 lockStream = new FileStream(fileName, FileMode.OpenOrCreate, FileAccess.Write, FileShare.None, 1, FileOptions.None);
@@ -3616,12 +3601,14 @@ namespace Lucene.Net.Util
                 SystemConsole.WriteLine($"******* HResult: {e.HResult}");
                 return;
             }
+            finally
+            {
+                lockStream?.Dispose();
+            }
             try
             {
                 // Try to get an exclusive lock on the file - this should throw an IOException with the current platform's HResult value for FileShare violation
-                using (var stream = new FileStream(fileName, FileMode.Open, FileAccess.Write, FileShare.None, 1, FileOptions.None))
-                {
-                }
+                using var stream = new FileStream(fileName, FileMode.Open, FileAccess.Write, FileShare.None, 1, FileOptions.None);
             }
             catch (IOException io) when (io.HResult != 0)
             {
@@ -3631,19 +3618,16 @@ namespace Lucene.Net.Util
             }
             finally
             {
-                lockStream.Dispose();
+                lockStream?.Dispose();
             }
         }
-
-        private double nextNextGaussian; // LUCENENET specific
-        private bool haveNextNextGaussian = false; // LUCENENET specific
 
         /// <summary>
         /// Returns the next pseudorandom, Gaussian ("normally") distributed
         /// <c>double</c> value with mean <c>0.0</c> and standard
         /// deviation <c>1.0</c> from this random number generator's sequence.
         /// <para/>
-        /// The general contract of <c>nextGaussian</c> is that one
+        /// The general contract of <see cref="RandomGaussian()"/> is that one
         /// <see cref="double"/> value, chosen from (approximately) the usual
         /// normal distribution with mean <c>0.0</c> and standard deviation
         /// <c>1.0</c>, is pseudorandomly generated and returned.
@@ -3652,45 +3636,27 @@ namespace Lucene.Net.Util
         /// G. Marsaglia, as described by Donald E. Knuth in <i>The Art of
         /// Computer Programming</i>, Volume 3: <i>Seminumerical Algorithms</i>,
         /// section 3.4.1, subsection C, algorithm P. Note that it generates two
-        /// independent values at the cost of only one call to <c>StrictMath.log</c>
-        /// and one call to <c>StrictMath.sqrt</c>.
+        /// independent values at the cost of only one call to <see cref="Math.Log(double)"/>
+        /// and one call to <see cref="Math.Sqrt(double)"/>.
         /// </summary>
         /// <returns>The next pseudorandom, Gaussian ("normally") distributed
         /// <see cref="double"/> value with mean <c>0.0</c> and
         /// standard deviation <c>1.0</c> from this random number
         /// generator's sequence.</returns>
-        // LUCENENET specific - moved this here, since this requires instance variables
-        // in order to work. Was originally in carrotsearch.randomizedtesting.RandomizedTest.
+        // LUCENENET specific - moved this here so we can reference it more readily (similar to how Spatial does it).
+        // However, this is also available as an extension method of the System.Random class in RandomizedTesting.Generators.
+        // This method was originally in carrotsearch.randomizedtesting.RandomizedTest.
         public double RandomGaussian()
         {
-            // See Knuth, ACP, Section 3.4.1 Algorithm C.
-            if (haveNextNextGaussian)
-            {
-                haveNextNextGaussian = false;
-                return nextNextGaussian;
-            }
-            else
-            {
-                double v1, v2, s;
-                do
-                {
-                    v1 = 2 * Random.NextDouble() - 1; // between -1 and 1
-                    v2 = 2 * Random.NextDouble() - 1; // between -1 and 1
-                    s = v1 * v1 + v2 * v2;
-                } while (s >= 1 || s == 0);
-                double multiplier = Math.Sqrt(-2 * Math.Log(s) / s);
-                nextNextGaussian = v2 * multiplier;
-                haveNextNextGaussian = true;
-                return v1 * multiplier;
-            }
+            return Random.NextGaussian();
         }
     }
 
-    //internal class ReaderClosedListenerAnonymousInnerClassHelper : IndexReader.IReaderClosedListener
+    //private class ReaderClosedListenerAnonymousClass : IndexReader.IReaderClosedListener
     //{
     //    private TaskScheduler ex;
 
-    //    public ReaderClosedListenerAnonymousInnerClassHelper(TaskScheduler ex)
+    //    public ReaderClosedListenerAnonymousClass(TaskScheduler ex)
     //    {
     //        this.ex = ex;
     //    }

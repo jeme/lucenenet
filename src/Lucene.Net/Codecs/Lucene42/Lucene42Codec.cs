@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.CompilerServices;
 
 namespace Lucene.Net.Codecs.Lucene42
 {
@@ -52,15 +53,16 @@ namespace Lucene.Net.Codecs.Lucene42
 
         private readonly PostingsFormat postingsFormat;
 
-        private class PerFieldPostingsFormatAnonymousInnerClassHelper : PerFieldPostingsFormat
+        private class PerFieldPostingsFormatAnonymousClass : PerFieldPostingsFormat
         {
             private readonly Lucene42Codec outerInstance;
 
-            public PerFieldPostingsFormatAnonymousInnerClassHelper(Lucene42Codec outerInstance)
+            public PerFieldPostingsFormatAnonymousClass(Lucene42Codec outerInstance)
             {
                 this.outerInstance = outerInstance;
             }
 
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public override PostingsFormat GetPostingsFormatForField(string field)
             {
                 return outerInstance.GetPostingsFormatForField(field);
@@ -69,15 +71,16 @@ namespace Lucene.Net.Codecs.Lucene42
 
         private readonly DocValuesFormat docValuesFormat;
 
-        private class PerFieldDocValuesFormatAnonymousInnerClassHelper : PerFieldDocValuesFormat
+        private class PerFieldDocValuesFormatAnonymousClass : PerFieldDocValuesFormat
         {
             private readonly Lucene42Codec outerInstance;
 
-            public PerFieldDocValuesFormatAnonymousInnerClassHelper(Lucene42Codec outerInstance)
+            public PerFieldDocValuesFormatAnonymousClass(Lucene42Codec outerInstance)
             {
                 this.outerInstance = outerInstance;
             }
 
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public override DocValuesFormat GetDocValuesFormatForField(string field)
             {
                 return outerInstance.GetDocValuesFormatForField(field);
@@ -89,8 +92,8 @@ namespace Lucene.Net.Codecs.Lucene42
         public Lucene42Codec()
             : base()
         {
-            postingsFormat = new PerFieldPostingsFormatAnonymousInnerClassHelper(this);
-            docValuesFormat = new PerFieldDocValuesFormatAnonymousInnerClassHelper(this);
+            postingsFormat = new PerFieldPostingsFormatAnonymousClass(this);
+            docValuesFormat = new PerFieldDocValuesFormatAnonymousClass(this);
         }
 
         public override sealed StoredFieldsFormat StoredFieldsFormat => fieldsFormat;
@@ -111,6 +114,7 @@ namespace Lucene.Net.Codecs.Lucene42
         /// <para/>
         /// The default implementation always returns "Lucene41"
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public virtual PostingsFormat GetPostingsFormatForField(string field)
         {
             // LUCENENET specific - lazy initialize the codec to ensure we get the correct type if overridden.
@@ -127,6 +131,7 @@ namespace Lucene.Net.Codecs.Lucene42
         /// <para/>
         /// The default implementation always returns "Lucene42"
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public virtual DocValuesFormat GetDocValuesFormatForField(string field)
         {
             // LUCENENET specific - lazy initialize the codec to ensure we get the correct type if overridden.
@@ -143,17 +148,13 @@ namespace Lucene.Net.Codecs.Lucene42
         private PostingsFormat defaultFormat;
         private DocValuesFormat defaultDVFormat;
 
-        private readonly NormsFormat normsFormat = new Lucene42NormsFormatAnonymousInnerClassHelper();
+        private readonly NormsFormat normsFormat = new Lucene42NormsFormatAnonymousClass();
 
-        private class Lucene42NormsFormatAnonymousInnerClassHelper : Lucene42NormsFormat
+        private class Lucene42NormsFormatAnonymousClass : Lucene42NormsFormat
         {
-            public Lucene42NormsFormatAnonymousInnerClassHelper()
-            {
-            }
-
             public override DocValuesConsumer NormsConsumer(SegmentWriteState state)
             {
-                throw new NotSupportedException("this codec can only be used for reading");
+                throw UnsupportedOperationException.Create("this codec can only be used for reading");
             }
         }
 

@@ -1,4 +1,5 @@
-﻿using J2N.Text;
+﻿// Lucene version compatibility level 4.8.1
+using J2N.Text;
 using Lucene.Net.Support;
 using System;
 using System.Collections.Generic;
@@ -76,11 +77,11 @@ namespace Lucene.Net.Facet.SortedSet
         {
             if (topN <= 0)
             {
-                throw new ArgumentException("topN must be > 0 (got: " + topN + ")");
+                throw new ArgumentOutOfRangeException(nameof(topN), "topN must be > 0 (got: " + topN + ")"); // LUCENENET specific - changed from IllegalArgumentException to ArgumentOutOfRangeException (.NET convention)
             }
             if (path.Length > 0)
             {
-                throw new ArgumentException("path should be 0 length");
+                throw new ArgumentOutOfRangeException(nameof(path), "path should be 0 length"); // LUCENENET specific - changed from IllegalArgumentException to ArgumentOutOfRangeException (.NET convention)
             }
             OrdRange ordRange = state.GetOrdRange(dim);
             if (ordRange == null)
@@ -155,9 +156,9 @@ namespace Lucene.Net.Facet.SortedSet
             // TODO: is this right?  really, we need a way to
             // verify that this ordinalMap "matches" the leaves in
             // matchingDocs...
-            if (dv is MultiDocValues.MultiSortedSetDocValues && matchingDocs.Count > 1)
+            if (dv is MultiDocValues.MultiSortedSetDocValues values && matchingDocs.Count > 1)
             {
-                ordinalMap = ((MultiDocValues.MultiSortedSetDocValues)dv).Mapping;
+                ordinalMap = values.Mapping;
             }
             else
             {
@@ -176,7 +177,7 @@ namespace Lucene.Net.Facet.SortedSet
                 // AIOOBE can happen:
                 if (!Equals(ReaderUtil.GetTopLevelContext(hits.Context).Reader, origReader))
                 {
-                    throw new InvalidOperationException("the SortedSetDocValuesReaderState provided to this class does not match the reader being searched; you must create a new SortedSetDocValuesReaderState every time you open a new IndexReader");
+                    throw IllegalStateException.Create("the SortedSetDocValuesReaderState provided to this class does not match the reader being searched; you must create a new SortedSetDocValuesReaderState every time you open a new IndexReader");
                 }
 
                 SortedSetDocValues segValues = reader.GetSortedSetDocValues(field);
@@ -275,7 +276,7 @@ namespace Lucene.Net.Facet.SortedSet
         {
             if (path.Length != 1)
             {
-                throw new ArgumentException("path must be length=1");
+                throw new ArgumentException("path must be Length=1");
             }
             int ord = (int)dv.LookupTerm(new BytesRef(FacetsConfig.PathToString(dim, path)));
             if (ord < 0)

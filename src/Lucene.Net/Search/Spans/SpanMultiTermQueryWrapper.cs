@@ -59,10 +59,9 @@ namespace Lucene.Net.Search.Spans
             this.m_query = query;
 
             MultiTermQuery.RewriteMethod method = this.m_query.MultiTermRewriteMethod;
-            if (method is ITopTermsRewrite)
+            if (method is ITopTermsRewrite topTermsRewrite)
             {
-                int pqsize = ((ITopTermsRewrite)method).Count;
-                MultiTermRewriteMethod = new TopTermsSpanBooleanQueryRewrite(pqsize);
+                MultiTermRewriteMethod = new TopTermsSpanBooleanQueryRewrite(topTermsRewrite.Count);
             }
             else
             {
@@ -79,18 +78,18 @@ namespace Lucene.Net.Search.Spans
             get
             {
                 MultiTermQuery.RewriteMethod m = m_query.MultiTermRewriteMethod;
-                if (!(m is SpanRewriteMethod))
+                if (!(m is SpanRewriteMethod spanRewriteMethod))
                 {
-                    throw new NotSupportedException("You can only use SpanMultiTermQueryWrapper with a suitable SpanRewriteMethod.");
+                    throw UnsupportedOperationException.Create("You can only use SpanMultiTermQueryWrapper with a suitable SpanRewriteMethod.");
                 }
-                return (SpanRewriteMethod)m;
+                return spanRewriteMethod;
             }
             set => m_query.MultiTermRewriteMethod = value;
         }
 
         public override Spans GetSpans(AtomicReaderContext context, IBits acceptDocs, IDictionary<Term, TermContext> termContexts)
         {
-            throw new NotSupportedException("Query should have been rewritten");
+            throw UnsupportedOperationException.Create("Query should have been rewritten");
         }
 
         public override string Field => m_query.Field;
@@ -118,7 +117,7 @@ namespace Lucene.Net.Search.Spans
             Query q = m_query.Rewrite(reader);
             if (!(q is SpanQuery))
             {
-                throw new NotSupportedException("You can only use SpanMultiTermQueryWrapper with a suitable SpanRewriteMethod.");
+                throw UnsupportedOperationException.Create("You can only use SpanMultiTermQueryWrapper with a suitable SpanRewriteMethod.");
             }
             q.Boost = q.Boost * Boost; // multiply boost
             return q;
@@ -162,19 +161,19 @@ namespace Lucene.Net.Search.Spans
         /// scores as computed by the query.
         /// </summary>
         /// <seealso cref="MultiTermRewriteMethod"/>
-        public static readonly SpanRewriteMethod SCORING_SPAN_QUERY_REWRITE = new SpanRewriteMethodAnonymousInnerClassHelper();
+        public static readonly SpanRewriteMethod SCORING_SPAN_QUERY_REWRITE = new SpanRewriteMethodAnonymousClass();
 
-        private class SpanRewriteMethodAnonymousInnerClassHelper : SpanRewriteMethod
+        private class SpanRewriteMethodAnonymousClass : SpanRewriteMethod
         {
-            public SpanRewriteMethodAnonymousInnerClassHelper()
+            public SpanRewriteMethodAnonymousClass()
             {
             }
 
-            private readonly ScoringRewrite<SpanOrQuery> @delegate = new ScoringRewriteAnonymousInnerClassHelper();
+            private readonly ScoringRewrite<SpanOrQuery> @delegate = new ScoringRewriteAnonymousClass();
 
-            private class ScoringRewriteAnonymousInnerClassHelper : ScoringRewrite<SpanOrQuery>
+            private class ScoringRewriteAnonymousClass : ScoringRewrite<SpanOrQuery>
             {
-                public ScoringRewriteAnonymousInnerClassHelper()
+                public ScoringRewriteAnonymousClass()
                 {
                 }
 
@@ -225,17 +224,14 @@ namespace Lucene.Net.Search.Spans
             /// </summary>
             public TopTermsSpanBooleanQueryRewrite(int size)
             {
-                @delegate = new TopTermsRewriteAnonymousInnerClassHelper(this, size);
+                @delegate = new TopTermsRewriteAnonymousClass(size);
             }
 
-            private class TopTermsRewriteAnonymousInnerClassHelper : TopTermsRewrite<SpanOrQuery>
+            private class TopTermsRewriteAnonymousClass : TopTermsRewrite<SpanOrQuery>
             {
-                private readonly TopTermsSpanBooleanQueryRewrite outerInstance;
-
-                public TopTermsRewriteAnonymousInnerClassHelper(TopTermsSpanBooleanQueryRewrite outerInstance, int size)
+                public TopTermsRewriteAnonymousClass(int size)
                     : base(size)
                 {
-                    this.outerInstance = outerInstance;
                 }
 
                 protected override int MaxSize => int.MaxValue;

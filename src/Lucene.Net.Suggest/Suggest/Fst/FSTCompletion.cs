@@ -1,4 +1,5 @@
 ﻿using Lucene.Net.Diagnostics;
+using Lucene.Net.Support;
 using Lucene.Net.Util;
 using Lucene.Net.Util.Fst;
 using System;
@@ -99,9 +100,6 @@ namespace Lucene.Net.Search.Suggest.Fst
         /// <seealso cref="FSTCompletion(FST{object}, bool, bool)" />
         private readonly bool higherWeightsFirst;
 
-        // LUCENENET SPECIFIC: We need some thread safety to execute atomic list operations
-        private readonly object syncLock = new object();
-
         /// <summary>
         /// Constructs an FSTCompletion, specifying higherWeightsFirst and exactFirst. </summary>
         /// <param name="automaton">
@@ -123,7 +121,7 @@ namespace Lucene.Net.Search.Suggest.Fst
             }
             else
             {
-                this.rootArcs = new FST.Arc<object>[0];
+                this.rootArcs = Arrays.Empty<FST.Arc<object>>();
             }
             this.higherWeightsFirst = higherWeightsFirst;
             this.exactFirst = exactFirst;
@@ -145,13 +143,14 @@ namespace Lucene.Net.Search.Suggest.Fst
         {
             try
             {
-                List<FST.Arc<object>> rootArcs = new List<FST.Arc<object>>();
+                // LUCENENET specific: Using a stack rather than List, as we want the results in reverse
+                Stack<FST.Arc<object>> rootArcs = new Stack<FST.Arc<object>>();
                 FST.Arc<object> arc = automaton.GetFirstArc(new FST.Arc<object>());
                 FST.BytesReader fstReader = automaton.GetBytesReader();
                 automaton.ReadFirstTargetArc(arc, arc, fstReader);
                 while (true)
                 {
-                    rootArcs.Add((new FST.Arc<object>()).CopyFrom(arc));
+                    rootArcs.Push(new FST.Arc<object>().CopyFrom(arc));
                     if (arc.IsLast)
                     {
                         break;
@@ -160,12 +159,11 @@ namespace Lucene.Net.Search.Suggest.Fst
                 }
 
                 // we want highest weights first.
-                rootArcs.Reverse();
                 return rootArcs.ToArray();
             }
-            catch (IOException e)
+            catch (Exception e) when (e.IsIOException())
             {
-                throw new Exception(e.ToString(), e);
+                throw RuntimeException.Create(e);
             }
         }
 
@@ -206,10 +204,10 @@ namespace Lucene.Net.Search.Suggest.Fst
                     }
                 }
             }
-            catch (IOException e)
+            catch (Exception e) when (e.IsIOException())
             {
                 // Should never happen, but anyway.
-                throw new Exception(e.ToString(), e);
+                throw RuntimeException.Create(e);
             }
 
             // No match.
@@ -227,7 +225,11 @@ namespace Lucene.Net.Search.Suggest.Fst
         ///         (decreasing) and then alphabetically (UTF-8 codepoint order). </returns>
         public virtual IList<Completion> DoLookup(string key, int num)
         {
-            if (key.Length == 0 || automaton == null)
+            // LUCENENET: Added guard clause for null
+            if (key is null)
+                throw new ArgumentNullException(nameof(key));
+
+            if (key.Length == 0 || automaton is null)
             {
                 return EMPTY_RESULT;
             }
@@ -249,10 +251,10 @@ namespace Lucene.Net.Search.Suggest.Fst
                     return LookupSortedByWeight(keyUtf8, num, false);
                 }
             }
-            catch (IOException e)
+            catch (Exception e) when (e.IsIOException())
             {
                 // Should never happen, but anyway.
-                throw new Exception(e.ToString(), e);
+                throw RuntimeException.Create(e);
             }
         }
 
@@ -352,14 +354,11 @@ namespace Lucene.Net.Search.Suggest.Fst
                     // Key found. Unless already at i==0, remove it and push up front so
                     // that the ordering
                     // remains identical with the exception of the exact match.
-                    lock (syncLock)
+                    if (key.Equals(list[i].Utf8))
                     {
-                        if (key.Equals(list[i].Utf8))
-                        {
-                            var element = list[i];
-                            list.Remove(element);
-                            list.Insert(0, element);
-                        }
+                        var element = list[i];
+                        list.Remove(element);
+                        list.Insert(0, element);
                     }
                     return true;
                 }

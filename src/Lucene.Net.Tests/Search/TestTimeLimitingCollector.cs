@@ -155,7 +155,7 @@ namespace Lucene.Net.Search
                 Search(tlCollector);
                 totalTLCResults = myHc.HitCount();
             }
-            catch (Exception e)
+            catch (Exception e) when (e.IsException())
             {
                 e.printStackTrace();
                 assertTrue("Unexpected exception: " + e, false); //==fail
@@ -205,7 +205,7 @@ namespace Lucene.Net.Search
             {
                 timoutException = x;
             }
-            catch (Exception e)
+            catch (Exception e) when (e.IsException())
             {
                 assertTrue("Unexpected exception: " + e, false); //==fail
             }
@@ -325,7 +325,7 @@ namespace Lucene.Net.Search
             for (int i = 0; i < threadArray.Length; ++i)
             {
                 int num = i;
-                threadArray[num] = new ThreadClassAnonymousHelper(this, success, withTimeout, num);
+                threadArray[num] = new ThreadAnonymousClass(this, success, withTimeout, num);
             }
             for (int i = 0; i < threadArray.Length; ++i)
             {
@@ -335,16 +335,16 @@ namespace Lucene.Net.Search
             {
                 threadArray[i].Join();
             }
-            assertEquals("some threads failed!", N_THREADS, success.Cardinality());
+            assertEquals("some threads failed!", N_THREADS, success.Cardinality);
         }
 
-        internal class ThreadClassAnonymousHelper : ThreadJob
+        private class ThreadAnonymousClass : ThreadJob
         {
             private readonly TestTimeLimitingCollector outerInstance;
             private readonly OpenBitSet success;
             private readonly bool withTimeout;
             private readonly int num;
-            public ThreadClassAnonymousHelper(TestTimeLimitingCollector outerInstance, OpenBitSet success, bool withTimeout, int num)
+            public ThreadAnonymousClass(TestTimeLimitingCollector outerInstance, OpenBitSet success, bool withTimeout, int num)
             {
                 this.outerInstance = outerInstance;
                 this.success = success;
@@ -386,7 +386,7 @@ namespace Lucene.Net.Search
 
             public int HitCount()
             {
-                return (int) bits.Cardinality();
+                return (int) bits.Cardinality;
             }
 
             public int LastDocCollected => lastDocCollected;
@@ -401,24 +401,11 @@ namespace Lucene.Net.Search
                 int docId = doc + docBase;
                 if (slowdown > 0)
                 {
-                    //try
-                    //{
                     ThreadJob.Sleep(slowdown);
-//                    }
-//#if !FEATURE_THREAD_INTERRUPT
-//                    catch (Exception)
-//                    {
-//                        throw;
-//                    }
-//#else
-//                    catch (ThreadInterruptedException) // LUCENENET NOTE: Senseless to catch and rethrow the same exception type
-//                    {
-//                        throw;
-//                    }
-//#endif
+                    // LUCENENET NOTE: No need to catch and rethrow same excepton type ThreadInterruptedException
                 }
 
-                if (Debugging.AssertsEnabled) Debugging.Assert(docId >= 0, () => " base=" + docBase + " doc=" + doc);
+                if (Debugging.AssertsEnabled) Debugging.Assert(docId >= 0," base={0} doc={1}", docBase, doc);
                 bits.Set(docId);
                 lastDocCollected = docId;
             }

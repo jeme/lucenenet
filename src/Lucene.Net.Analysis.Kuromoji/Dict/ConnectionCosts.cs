@@ -1,4 +1,5 @@
-﻿using Lucene.Net.Codecs;
+﻿using J2N.Numerics;
+using Lucene.Net.Codecs;
 using Lucene.Net.Store;
 using Lucene.Net.Support;
 using System;
@@ -52,7 +53,7 @@ namespace Lucene.Net.Analysis.Ja.Dict
                     for (int i = 0; i < a.Length; i++)
                     {
                         int raw = @in.ReadVInt32();
-                        accum += ((int)((uint)raw) >> 1) ^ -(raw & 1);
+                        accum += raw.TripleShift(1) ^ -(raw & 1);
                         a[i] = (short)accum;
                     }
                 }
@@ -77,9 +78,9 @@ namespace Lucene.Net.Analysis.Ja.Dict
                 {
                     return new ConnectionCosts();
                 }
-                catch (IOException ioe)
+                catch (Exception ioe) when (ioe.IsIOException())
                 {
-                    throw new Exception("Cannot load ConnectionCosts.", ioe);
+                    throw RuntimeException.Create("Cannot load ConnectionCosts.", ioe);
                 }
             }
         }

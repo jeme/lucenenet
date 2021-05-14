@@ -112,7 +112,7 @@ namespace Lucene.Net.Index
             // TODO: if the Sorter interface changes to take long indexes, we can remove that limitation
             if (size == int.MaxValue)
             {
-                throw new InvalidOperationException("cannot support more than System.Int32.MaxValue doc/value entries");
+                throw IllegalStateException.Create("cannot support more than System.Int32.MaxValue doc/value entries");
             }
 
             long? val = (long?)value;
@@ -145,22 +145,19 @@ namespace Lucene.Net.Index
             PagedMutable docs = this.docs;
             PagedGrowableWriter values = this.values;
             FixedBitSet docsWithField = this.docsWithField;
-            new InPlaceMergeSorterAnonymousInnerClassHelper(this, docs, values, docsWithField).Sort(0, size);
+            new InPlaceMergeSorterAnonymousClass(docs, values, docsWithField).Sort(0, size);
 
             return new Iterator(size, values, docsWithField, docs);
         }
 
-        private class InPlaceMergeSorterAnonymousInnerClassHelper : InPlaceMergeSorter
+        private class InPlaceMergeSorterAnonymousClass : InPlaceMergeSorter
         {
-            private readonly NumericDocValuesFieldUpdates outerInstance;
+            private readonly PagedMutable docs;
+            private readonly PagedGrowableWriter values;
+            private readonly FixedBitSet docsWithField;
 
-            private PagedMutable docs;
-            private PagedGrowableWriter values;
-            private FixedBitSet docsWithField;
-
-            public InPlaceMergeSorterAnonymousInnerClassHelper(NumericDocValuesFieldUpdates outerInstance, PagedMutable docs, PagedGrowableWriter values, FixedBitSet docsWithField)
+            public InPlaceMergeSorterAnonymousClass(PagedMutable docs, PagedGrowableWriter values, FixedBitSet docsWithField)
             {
-                this.outerInstance = outerInstance;
                 this.docs = docs;
                 this.values = values;
                 this.docsWithField = docsWithField;
@@ -210,7 +207,7 @@ namespace Lucene.Net.Index
             NumericDocValuesFieldUpdates otherUpdates = (NumericDocValuesFieldUpdates)other;
             if (size + otherUpdates.size > int.MaxValue)
             {
-                throw new InvalidOperationException("cannot support more than System.Int32.MaxValue doc/value entries; size=" + size + " other.size=" + otherUpdates.size);
+                throw IllegalStateException.Create("cannot support more than System.Int32.MaxValue doc/value entries; size=" + size + " other.size=" + otherUpdates.size);
             }
             docs = docs.Grow(size + otherUpdates.size);
             values = values.Grow(size + otherUpdates.size);

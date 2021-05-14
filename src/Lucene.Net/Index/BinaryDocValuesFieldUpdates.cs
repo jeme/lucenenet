@@ -121,7 +121,7 @@ namespace Lucene.Net.Index
         private FixedBitSet docsWithField;
         private PagedMutable docs;
         private PagedGrowableWriter offsets, lengths;
-        private BytesRef values;
+        private readonly BytesRef values; // LUCENENET: marked readonly
         private int size;
 
         public BinaryDocValuesFieldUpdates(string field, int maxDoc)
@@ -140,7 +140,7 @@ namespace Lucene.Net.Index
             // TODO: if the Sorter interface changes to take long indexes, we can remove that limitation
             if (size == int.MaxValue)
             {
-                throw new InvalidOperationException("cannot support more than System.Int32.MaxValue doc/value entries");
+                throw IllegalStateException.Create("cannot support more than System.Int32.MaxValue doc/value entries");
             }
 
             BytesRef val = (BytesRef)value;
@@ -178,23 +178,20 @@ namespace Lucene.Net.Index
             PagedGrowableWriter lengths = this.lengths;
             BytesRef values = this.values;
             FixedBitSet docsWithField = this.docsWithField;
-            new InPlaceMergeSorterAnonymousInnerClassHelper(this, docs, offsets, lengths, docsWithField).Sort(0, size);
+            new InPlaceMergeSorterAnonymousClass(docs, offsets, lengths, docsWithField).Sort(0, size);
 
             return new Iterator(size, offsets, lengths, docs, values, docsWithField);
         }
 
-        private class InPlaceMergeSorterAnonymousInnerClassHelper : InPlaceMergeSorter
+        private class InPlaceMergeSorterAnonymousClass : InPlaceMergeSorter
         {
-            private readonly BinaryDocValuesFieldUpdates outerInstance;
+            private readonly PagedMutable docs;
+            private readonly PagedGrowableWriter offsets;
+            private readonly PagedGrowableWriter lengths;
+            private readonly FixedBitSet docsWithField;
 
-            private PagedMutable docs;
-            private PagedGrowableWriter offsets;
-            private PagedGrowableWriter lengths;
-            private FixedBitSet docsWithField;
-
-            public InPlaceMergeSorterAnonymousInnerClassHelper(BinaryDocValuesFieldUpdates outerInstance, PagedMutable docs, PagedGrowableWriter offsets, PagedGrowableWriter lengths, FixedBitSet docsWithField)
+            public InPlaceMergeSorterAnonymousClass(PagedMutable docs, PagedGrowableWriter offsets, PagedGrowableWriter lengths, FixedBitSet docsWithField)
             {
-                this.outerInstance = outerInstance;
                 this.docs = docs;
                 this.offsets = offsets;
                 this.lengths = lengths;
@@ -249,7 +246,7 @@ namespace Lucene.Net.Index
             int newSize = size + otherUpdates.size;
             if (newSize > int.MaxValue)
             {
-                throw new InvalidOperationException("cannot support more than System.Int32.MaxValue doc/value entries; size=" + size + " other.size=" + otherUpdates.size);
+                throw IllegalStateException.Create("cannot support more than System.Int32.MaxValue doc/value entries; size=" + size + " other.size=" + otherUpdates.size);
             }
             docs = docs.Grow(newSize);
             offsets = offsets.Grow(newSize);

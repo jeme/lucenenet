@@ -1,4 +1,4 @@
-using Lucene.Net.Documents;
+﻿using Lucene.Net.Documents;
 using Lucene.Net.Util;
 using NUnit.Framework;
 using System;
@@ -79,9 +79,7 @@ namespace Lucene.Net.Search
                 BooleanQuery.MaxClauseCount = 0;
                 Assert.Fail();
             }
-#pragma warning disable 168
-            catch (ArgumentException e)
-#pragma warning restore 168
+            catch (ArgumentOutOfRangeException) // LUCENENET specific - changed from IllegalArgumentException to ArgumentOutOfRangeException (.NET convention)
             {
                 // okay
             }
@@ -214,6 +212,9 @@ namespace Lucene.Net.Search
         }
 
         [Test]
+#if NETFRAMEWORK
+        [AwaitsFix(BugUrl = "https://github.com/apache/lucenenet/issues/269")] // LUCENENET TODO: this test fails on x86 on .NET Framework in Release mode only
+#endif
         public virtual void TestBS2DisjunctionNextVsAdvance()
         {
             Directory d = NewDirectory();
@@ -400,7 +401,7 @@ namespace Lucene.Net.Search
             w.AddDocument(doc);
             IndexReader r = w.GetReader();
             w.Dispose();
-            IndexSearcher s = new IndexSearcherAnonymousInnerClassHelper(this, r);
+            IndexSearcher s = new IndexSearcherAnonymousClass(this, r);
             BooleanQuery bq = new BooleanQuery();
             bq.Add(new TermQuery(new Term("field", "some")), Occur.SHOULD);
             bq.Add(new TermQuery(new Term("field", "text")), Occur.SHOULD);
@@ -411,11 +412,11 @@ namespace Lucene.Net.Search
             dir.Dispose();
         }
 
-        private class IndexSearcherAnonymousInnerClassHelper : IndexSearcher
+        private class IndexSearcherAnonymousClass : IndexSearcher
         {
             private readonly TestBooleanQuery outerInstance;
 
-            public IndexSearcherAnonymousInnerClassHelper(TestBooleanQuery outerInstance, IndexReader r)
+            public IndexSearcherAnonymousClass(TestBooleanQuery outerInstance, IndexReader r)
                 : base(r)
             {
                 this.outerInstance = outerInstance;

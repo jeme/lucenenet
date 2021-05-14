@@ -1,12 +1,12 @@
-﻿using Lucene.Net.Diagnostics;
+﻿// Lucene version compatibility level 4.8.1
+using Lucene.Net.Diagnostics;
 using Lucene.Net.Index;
 using Lucene.Net.Search;
 using Lucene.Net.Util;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 
-namespace Lucene.Net.Join
+namespace Lucene.Net.Search.Join
 {
     /*
      * Licensed to the Apache Software Foundation (ASF) under one or more
@@ -135,7 +135,7 @@ namespace Lucene.Net.Join
                 }
                 if (!(parents is FixedBitSet))
                 {
-                    throw new InvalidOperationException("parentFilter must return FixedBitSet; got " + parents);
+                    throw IllegalStateException.Create("parentFilter must return FixedBitSet; got " + parents);
                 }
 
                 return new ToChildBlockJoinScorer(this, parentScorer, (FixedBitSet)parents, _doScores, acceptDocs);
@@ -144,7 +144,7 @@ namespace Lucene.Net.Join
             public override Explanation Explain(AtomicReaderContext reader, int doc)
             {
                 // TODO
-                throw new NotSupportedException(GetType().Name + " cannot explain match on parent document");
+                throw UnsupportedOperationException.Create(GetType().Name + " cannot explain match on parent document");
             }
 
             public override bool ScoresDocsOutOfOrder => false;
@@ -246,7 +246,7 @@ namespace Lucene.Net.Join
                         }
                     }
 
-                    if (Debugging.AssertsEnabled) Debugging.Assert(_childDoc < _parentDoc, () => "childDoc=" + _childDoc + " parentDoc=" + _parentDoc);
+                    if (Debugging.AssertsEnabled) Debugging.Assert(_childDoc < _parentDoc, "childDoc={0} parentDoc={1}", _childDoc, _parentDoc);
                     _childDoc++;
                     if (_acceptDocs != null && !_acceptDocs.Get(_childDoc))
                     {
@@ -265,7 +265,7 @@ namespace Lucene.Net.Join
             {
                 if (_parentDoc != NO_MORE_DOCS && !_parentBits.Get(_parentDoc))
                 {
-                    throw new InvalidOperationException(INVALID_QUERY_MESSAGE + _parentDoc);
+                    throw IllegalStateException.Create(INVALID_QUERY_MESSAGE + _parentDoc);
                 }
             }
 
@@ -289,7 +289,7 @@ namespace Lucene.Net.Join
                     return _childDoc = _parentDoc = NO_MORE_DOCS;
                 }
 
-                if (Debugging.AssertsEnabled) Debugging.Assert(_childDoc == -1 || childTarget != _parentDoc, () => "childTarget=" + childTarget);
+                if (Debugging.AssertsEnabled) Debugging.Assert(_childDoc == -1 || childTarget != _parentDoc, "childTarget={0}", childTarget);
                 if (_childDoc == -1 || childTarget > _parentDoc)
                 {
                     // Advance to new parent:
@@ -355,9 +355,9 @@ namespace Lucene.Net.Join
 
         public override bool Equals(object obj)
         {
-            if (obj is ToChildBlockJoinQuery)
+            if (obj is null) return false;
+            if (obj is ToChildBlockJoinQuery other)
             {
-                ToChildBlockJoinQuery other = (ToChildBlockJoinQuery)obj;
                 return _origParentQuery.Equals(other._origParentQuery) &&
                     _parentsFilter.Equals(other._parentsFilter) &&
                     _doScores == other._doScores &&

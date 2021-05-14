@@ -1,10 +1,11 @@
-using J2N.Collections.Generic.Extensions;
+﻿using J2N.Collections.Generic.Extensions;
 using J2N.Threading;
 using Lucene.Net.Analysis.TokenAttributes;
 using Lucene.Net.Documents;
 using Lucene.Net.Index;
 using Lucene.Net.Support;
 using Lucene.Net.Util;
+using RandomizedTesting.Generators;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -12,7 +13,6 @@ using System.IO;
 using System.Text;
 using System.Threading;
 using Assert = Lucene.Net.TestFramework.Assert;
-using AssertionError = Lucene.Net.Diagnostics.AssertionException;
 using Attribute = Lucene.Net.Util.Attribute;
 using AttributeFactory = Lucene.Net.Util.AttributeSource.AttributeFactory;
 using Console = Lucene.Net.Util.SystemConsole;
@@ -68,7 +68,8 @@ namespace Lucene.Net.Analysis
 
         public override bool Equals(object other)
         {
-            return (other is CheckClearAttributesAttribute && ((CheckClearAttributesAttribute)other).clearCalled == this.clearCalled);
+            return other is CheckClearAttributesAttribute checkClearAttributesAttribute
+                && checkClearAttributesAttribute.clearCalled == this.clearCalled;
         }
 
         public override int GetHashCode()
@@ -412,7 +413,7 @@ namespace Lucene.Net.Analysis
                 //ts.Reset();
                 ts.ClearAttributes();
                 ts.End();
-                throw;
+                throw; // LUCENENET: CA2200: Rethrow to preserve stack details (https://docs.microsoft.com/en-us/visualstudio/code-quality/ca2200-rethrow-to-preserve-stack-details)
             }
             finally
             {
@@ -420,7 +421,9 @@ namespace Lucene.Net.Analysis
             }
         }
 
+#pragma warning disable IDE0060 // Remove unused parameter
         public static void AssertTokenStreamContents(TokenStream ts, string[] output, int[] startOffsets, int[] endOffsets, string[] types, int[] posIncrements, int[] posLengths, int? finalOffset, bool[] keywordAtts, bool offsetsAreCorrect)
+#pragma warning restore IDE0060 // Remove unused parameter
         {
             AssertTokenStreamContents(ts, output, startOffsets, endOffsets, types, posIncrements, posLengths, finalOffset, null, null, offsetsAreCorrect, null);
         }
@@ -551,21 +554,18 @@ namespace Lucene.Net.Analysis
                     Assert.Fail("didn't get expected exception when reset() not called");
                 }
             }
-#pragma warning disable 168
-            catch (InvalidOperationException expected)
-#pragma warning restore 168
+            catch (Exception expected) when (expected.IsIllegalStateException())
             {
                 //ok
             }
-            catch (AssertionError expected) // LUCENENET: Actual AssertionError type is Lucene.Net.Diagnostics.AssertionException
+            catch (Exception expected) when (expected.IsAssertionError())
             {
                 // ok: MockTokenizer
                 Assert.IsTrue(expected.Message != null && expected.Message.Contains("wrong state"), expected.Message);
             }
-            catch (Exception unexpected)
+            catch (Exception unexpected) when (unexpected.IsException())
             {
-                //unexpected.printStackTrace(System.err);
-                Console.Error.WriteLine(unexpected.StackTrace);
+                unexpected.printStackTrace(Console.Error);
                 Assert.Fail("Got wrong exception when Reset() not called: " + unexpected);
             }
             finally
@@ -591,7 +591,7 @@ namespace Lucene.Net.Analysis
                 ts = a.GetTokenStream("bogus", new StringReader(input));
                 Assert.Fail("Didn't get expected exception when Dispose() not called");
             }
-            catch (Exception)
+            catch (Exception expected) when (expected.IsIllegalStateException())
             {
                 // ok
             }
@@ -716,10 +716,10 @@ namespace Lucene.Net.Analysis
                     CheckRandomData(new Random((int)seed), a, iterations, maxWordLength, useCharFilter, simple, offsetsAreCorrect, iw);
                     success = true;
                 }
-                catch (Exception e)
+                catch (Exception e) when (e.IsException()) // LUCENENET TODO: This catch block can be removed because Rethrow.rethrow() simply does what its name says, but need to get rid of the FirstException functionality and fix ThreadJob so it re-throws ThreadInterruptedExcepetion first.
                 {
                     //Console.WriteLine("Exception in Thread: " + e);
-                    //throw;
+                    //throw; // LUCENENET: CA2200: Rethrow to preserve stack details (https://docs.microsoft.com/en-us/visualstudio/code-quality/ca2200-rethrow-to-preserve-stack-details)
                     // LUCENENET: Throwing an exception on another thread
                     // is pointless, so we set it to a variable so we can read
                     // it from our main thread (for debugging).
@@ -792,20 +792,14 @@ namespace Lucene.Net.Analysis
                 startingGun.Signal();
                 foreach (var t in threads)
                 {
-#if FEATURE_THREAD_INTERRUPT
                     try
                     {
-#endif
                         t.Join();
-#if FEATURE_THREAD_INTERRUPT
                     }
-#pragma warning disable 168
-                    catch (ThreadInterruptedException e)
-#pragma warning restore 168
+                    catch (Exception e) when (e.IsInterruptedException())
                     {
                         fail("Thread interrupted");
                     }
-#endif
                 }
 
                 //if (threads.Any(x => x.Failed))
@@ -948,14 +942,12 @@ namespace Lucene.Net.Analysis
                             }
                         }
                     }
-#pragma warning disable 168
-                    catch (Exception t)
-#pragma warning restore 168
+                    catch (Exception t) when (t.IsThrowable())
                     {
                         // TODO: really we should pass a random seed to
                         // checkAnalysisConsistency then print it here too:
                         Console.Error.WriteLine("TEST FAIL: useCharFilter=" + useCharFilter + " text='" + Escape(text) + "'");
-                        throw;
+                        throw; // LUCENENET: CA2200: Rethrow to preserve stack details (https://docs.microsoft.com/en-us/visualstudio/code-quality/ca2200-rethrow-to-preserve-stack-details)
                     }
                 }
             }
@@ -1123,9 +1115,9 @@ namespace Lucene.Net.Analysis
                         }
                         // Throw an errant exception from the Reader:
 
-                        MockReaderWrapper evilReader = new MockReaderWrapper(random, new StringReader(text));
+                        using MockReaderWrapper evilReader = new MockReaderWrapper(random, new StringReader(text));
                         evilReader.ThrowExcAfterChar(random.Next(text.Length)); // LUCENENET note, Next() is exclusive, so we don't need +1
-                        reader = evilReader;
+                        //reader = evilReader; // LUCENENET: IDE0059: Remove unnecessary value assignment
 
                         try
                         {
@@ -1143,7 +1135,7 @@ namespace Lucene.Net.Analysis
                             while (ts.IncrementToken()) ;
                             Assert.Fail("did not hit exception");
                         }
-                        catch (Exception re)
+                        catch (Exception re) when (re.IsRuntimeException())
                         {
                             Assert.IsTrue(MockReaderWrapper.IsMyEvilException(re));
                         }
@@ -1152,8 +1144,7 @@ namespace Lucene.Net.Analysis
                         {
                             ts.End();
                         }
-                        // LUCENENET: Actual AssertionError type is Lucene.Net.Diagnostics.AssertionException
-                        catch (AssertionError ae) when (ae.Message.Contains("End() called before IncrementToken() returned false!"))
+                        catch (Exception ae) when (ae.IsAssertionError() && ae.Message.Contains("End() called before IncrementToken() returned false!"))
                         {
                             // Catch & ignore MockTokenizer's
                             // anger...
@@ -1185,8 +1176,7 @@ namespace Lucene.Net.Analysis
                         {
                             ts.End();
                         }
-                        // LUCENENET: Actual AssertionError type is Lucene.Net.Diagnostics.AssertionException
-                        catch (AssertionError ae) when (ae.Message.Contains("End() called before IncrementToken() returned false!"))
+                        catch (Exception ae) when (ae.IsAssertionError() && ae.Message.Contains("End() called before IncrementToken() returned false!"))
                         {
                             // Catch & ignore MockTokenizer's
                             // anger...
@@ -1282,12 +1272,10 @@ namespace Lucene.Net.Analysis
 
         protected internal virtual void ToDotFile(Analyzer a, string inputText, string localFileName)
         {
-            using (StreamWriter w = new StreamWriter(new FileStream(localFileName, FileMode.Open), Encoding.UTF8))
-            {
-                TokenStream ts = a.GetTokenStream("field", new StringReader(inputText));
-                ts.Reset();
-                (new TokenStreamToDot(inputText, ts,/* new PrintWriter(*/w/*)*/)).ToDot();    
-            }
+            using StreamWriter w = new StreamWriter(new FileStream(localFileName, FileMode.Open), Encoding.UTF8);
+            TokenStream ts = a.GetTokenStream("field", new StringReader(inputText));
+            ts.Reset();
+            (new TokenStreamToDot(inputText, ts,/* new PrintWriter(*/w/*)*/)).ToDot();
         }
 
         [ExceptionToNetNumericConvention] // LUCENENET: Private API, keeping as-is
@@ -1314,7 +1302,7 @@ namespace Lucene.Net.Analysis
                 case 1:
                     return AttributeFactory.DEFAULT_ATTRIBUTE_FACTORY;
                 default:
-                    throw new AssertionError("Please fix the Random.nextInt() call above");
+                    throw AssertionError.Create("Please fix the Random.nextInt() call above");
             }
 
             //switch (random.nextInt(3))
@@ -1326,7 +1314,7 @@ namespace Lucene.Net.Analysis
             //    case 2:
             //        return AttributeFactory.DEFAULT_ATTRIBUTE_FACTORY;
             //    default:
-            //        throw new AssertionError("Please fix the Random.nextInt() call above");
+            //        throw AssertionError.Create("Please fix the Random.nextInt() call above");
             //}
         }
 

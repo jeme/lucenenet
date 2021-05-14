@@ -1,7 +1,8 @@
-using J2N;
+﻿using J2N;
 using J2N.Threading.Atomic;
 using Lucene.Net.Documents;
 using Lucene.Net.Support.IO;
+using RandomizedTesting.Generators;
 using System;
 using System.Globalization;
 using System.IO;
@@ -118,7 +119,7 @@ namespace Lucene.Net.Util
             }
         }
 
-        private long RandomSeekPos(Random random, long size)
+        private static long RandomSeekPos(Random random, long size) // LUCENENET: CA1822: Mark members as static
         {
             if (random == null || size <= 3L)
             {
@@ -133,15 +134,13 @@ namespace Lucene.Net.Util
         // so tests can be run without the overhead of seeking within a MemoryStream
         private Stream PrepareGZipStream(Stream input)
         {
-            using (var gzs = new GZipStream(input, CompressionMode.Decompress, leaveOpen: false))
-            {
-                FileInfo tempFile = LuceneTestCase.CreateTempFile(TEMP_FILE_PREFIX, TEMP_FILE_SUFFIX);
-                tempFilePath = tempFile.FullName;
-                Stream result = new FileStream(tempFilePath, FileMode.Open, FileAccess.ReadWrite, FileShare.Read);
-                gzs.CopyTo(result);
-                // Use the decompressed stream now
-                return new BufferedStream(result);
-            }
+            using var gzs = new GZipStream(input, CompressionMode.Decompress, leaveOpen: false);
+            FileInfo tempFile = LuceneTestCase.CreateTempFile(TEMP_FILE_PREFIX, TEMP_FILE_SUFFIX);
+            tempFilePath = tempFile.FullName;
+            Stream result = new FileStream(tempFilePath, FileMode.Open, FileAccess.ReadWrite, FileShare.Read); // Leave open
+            gzs.CopyTo(result);
+            // Use the decompressed stream now
+            return new BufferedStream(result);
         }
 
         private void Open(Random random)
@@ -328,12 +327,12 @@ namespace Lucene.Net.Util
             int spot = line.IndexOf(SEP);
             if (spot == -1)
             {
-                throw new Exception("line: [" + line + "] is in an invalid format !");
+                throw RuntimeException.Create("line: [" + line + "] is in an invalid format !");
             }
             int spot2 = line.IndexOf(SEP, 1 + spot);
             if (spot2 == -1)
             {
-                throw new Exception("line: [" + line + "] is in an invalid format !");
+                throw RuntimeException.Create("line: [" + line + "] is in an invalid format !");
             }
 
             docState.Body.SetStringValue(line.Substring(1 + spot2, line.Length - (1 + spot2)));
@@ -367,11 +366,9 @@ namespace Lucene.Net.Util
                     ? LuceneTestCase.CreateTempFile(TEMP_FILE_PREFIX, TEMP_FILE_SUFFIX)
                     : FileSupport.CreateTempFile(TEMP_FILE_PREFIX, TEMP_FILE_SUFFIX);
                 result = file.FullName;
-                using (var gzs = new GZipStream(temp, CompressionMode.Decompress, leaveOpen: false))
-                using (Stream output = new FileStream(result, FileMode.Open, FileAccess.Write, FileShare.Read))
-                {
-                    gzs.CopyTo(output);
-                }
+                using var gzs = new GZipStream(temp, CompressionMode.Decompress, leaveOpen: false);
+                using Stream output = new FileStream(result, FileMode.Open, FileAccess.Write, FileShare.Read);
+                gzs.CopyTo(output);
             }
             return result;
         }

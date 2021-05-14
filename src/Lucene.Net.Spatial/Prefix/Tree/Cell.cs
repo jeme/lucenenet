@@ -85,7 +85,7 @@ namespace Lucene.Net.Spatial.Prefix.Tree
             }
             if (Level == 0)
             {
-                var x = Shape;//ensure any lazy instantiation completes to make this threadsafe
+                var _ = Shape;//ensure any lazy instantiation completes to make this threadsafe
             }
         }
 
@@ -163,7 +163,7 @@ namespace Lucene.Net.Spatial.Prefix.Tree
             {
                 if (b_off != 0 || b_len != bytes.Length)
                 {
-                    throw new InvalidOperationException("Not supported if byte[] needs to be recreated.");
+                    throw IllegalStateException.Create("Not supported if byte[] needs to be recreated.");
                 }
             }
             else
@@ -194,9 +194,9 @@ namespace Lucene.Net.Spatial.Prefix.Tree
         public virtual ICollection<Cell> GetSubCells(IShape shapeFilter)
         {
             //Note: Higher-performing subclasses might override to consider the shape filter to generate fewer cells.
-            if (shapeFilter is IPoint)
+            if (shapeFilter is IPoint point)
             {
-                Cell subCell = GetSubCell((IPoint)shapeFilter);
+                Cell subCell = GetSubCell(point);
                 subCell.m_shapeRel = SpatialRelation.CONTAINS;
                 return new ReadOnlyCollection<Cell>(new[] { subCell });
             }
@@ -269,8 +269,8 @@ namespace Lucene.Net.Spatial.Prefix.Tree
 
         public override bool Equals(object obj)
         {
-            return !(obj == null || !(obj is Cell)) &&
-                   TokenString.Equals(((Cell)obj).TokenString, StringComparison.Ordinal);
+            return !(obj == null || !(obj is Cell cell)) &&
+                   TokenString.Equals(cell.TokenString, StringComparison.Ordinal);
         }
 
         public override int GetHashCode()

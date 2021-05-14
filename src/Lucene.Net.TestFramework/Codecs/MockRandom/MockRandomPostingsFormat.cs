@@ -1,4 +1,4 @@
-using Lucene.Net.Codecs.BlockTerms;
+﻿using Lucene.Net.Codecs.BlockTerms;
 using Lucene.Net.Codecs.Lucene41;
 using Lucene.Net.Codecs.Memory;
 using Lucene.Net.Codecs.MockIntBlock;
@@ -9,6 +9,7 @@ using Lucene.Net.Diagnostics;
 using Lucene.Net.Index;
 using Lucene.Net.Store;
 using Lucene.Net.Util;
+using RandomizedTesting.Generators;
 using System;
 using System.Collections.Generic;
 using Console = Lucene.Net.Util.SystemConsole;
@@ -39,7 +40,7 @@ namespace Lucene.Net.Codecs.MockRandom
     public sealed class MockRandomPostingsFormat : PostingsFormat
     {
         private readonly Random seedRandom;
-        private readonly string SEED_EXT = "sd";
+        private const string SEED_EXT = "sd";
 
         private class RandomAnonymousClassHelper : Random
         {
@@ -49,7 +50,7 @@ namespace Lucene.Net.Codecs.MockRandom
 
             public override int Next(int maxValue)
             {
-                throw new InvalidOperationException("Please use MockRandomPostingsFormat(Random)");
+                throw IllegalStateException.Create("Please use MockRandomPostingsFormat(Random)");
             }
         }
 
@@ -115,11 +116,11 @@ namespace Lucene.Net.Codecs.MockRandom
             }
         }
 
-        private class IndexTermSelectorAnonymousHelper : VariableGapTermsIndexWriter.IndexTermSelector
+        private class IndexTermSelectorAnonymousClass : VariableGapTermsIndexWriter.IndexTermSelector
         {
             private readonly Random rand;
             private readonly int gap;
-            public IndexTermSelectorAnonymousHelper(int seed, int gap)
+            public IndexTermSelectorAnonymousClass(int seed, int gap)
             {
                 rand = new Random(seed);
                 this.gap = gap;
@@ -315,22 +316,7 @@ namespace Lucene.Net.Codecs.MockRandom
                             {
                                 Console.WriteLine("MockRandomCodec: random-gap terms index (max gap=" + gap + ")");
                             }
-                            selector = new IndexTermSelectorAnonymousHelper(seed2, gap);
-
-                            //           selector = new VariableGapTermsIndexWriter.IndexTermSelector() {
-                            //                Random rand = new Random(seed2);
-
-                            //@Override
-                            //                public bool isIndexTerm(BytesRef term, TermStats stats)
-                            //{
-                            //    return rand.nextInt(gap) == gap / 2;
-                            //}
-
-                            //@Override
-                            //                  public void newField(FieldInfo fieldInfo)
-                            //{
-                            //}
-                            //              };
+                            selector = new IndexTermSelectorAnonymousClass(seed2, gap);
                         }
                         indexWriter = new VariableGapTermsIndexWriter(state, selector);
                     }

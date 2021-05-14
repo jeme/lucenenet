@@ -1,4 +1,4 @@
-using J2N.Text;
+﻿using J2N.Text;
 using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
@@ -33,10 +33,7 @@ namespace Lucene.Net.Analysis.TokenAttributes
 
     /// <summary>
     /// Default implementation of <see cref="ICharTermAttribute"/>. </summary>
-    public class CharTermAttribute : Attribute, ICharTermAttribute, ITermToBytesRefAttribute, IAppendable
-#if FEATURE_CLONEABLE
-        , System.ICloneable
-#endif
+    public class CharTermAttribute : Attribute, ICharTermAttribute, ITermToBytesRefAttribute, IAppendable // LUCENENET specific: Not implementing ICloneable per Microsoft's recommendation
     {
         private const int MIN_BUFFER_SIZE = 10;
 
@@ -126,15 +123,7 @@ namespace Lucene.Net.Analysis.TokenAttributes
 
         // *** CharSequence interface ***
 
-        // LUCENENET specific: Replaced with this[int] to .NETify
-        //public char CharAt(int index)
-        //{
-        //    if (index >= TermLength)
-        //    {
-        //        throw new IndexOutOfRangeException();
-        //    }
-        //    return TermBuffer[index];
-        //}
+        // LUCENENET specific: Replaced CharAt(int) with this[int] to .NETify
 
         char ICharSequence.this[int index] => this[index];
 

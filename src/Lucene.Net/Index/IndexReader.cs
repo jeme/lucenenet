@@ -1,4 +1,4 @@
-using J2N.Threading.Atomic;
+﻿using J2N.Threading.Atomic;
 using Lucene.Net.Documents;
 using Lucene.Net.Support;
 using Lucene.Net.Util;
@@ -81,7 +81,7 @@ namespace Lucene.Net.Index
         {
             if (!(this is CompositeReader || this is AtomicReader))
             {
-                throw new Exception("IndexReader should never be directly extended, subclass AtomicReader or CompositeReader instead.");
+                throw Error.Create("IndexReader should never be directly extended, subclass AtomicReader or CompositeReader instead.");
             }
         }
 
@@ -149,7 +149,7 @@ namespace Lucene.Net.Index
                     {
                         listener.OnClose(this);
                     }
-                    catch (Exception t)
+                    catch (Exception t) when (t.IsThrowable())
                     {
                         if (th == null)
                         {
@@ -207,6 +207,7 @@ namespace Lucene.Net.Index
         /// </summary>
         /// <seealso cref="DecRef"/>
         /// <seealso cref="TryIncRef"/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void IncRef()
         {
             if (!TryIncRef())
@@ -265,7 +266,7 @@ namespace Lucene.Net.Index
             // still close the reader if it was made invalid by a child:
             if (refCount <= 0)
             {
-                throw new ObjectDisposedException(this.GetType().FullName, "this IndexReader is closed");
+                throw AlreadyClosedException.Create(this.GetType().FullName, "this IndexReader is disposed.");
             }
 
             int rc = refCount.DecrementAndGet();
@@ -277,7 +278,7 @@ namespace Lucene.Net.Index
                 {
                     DoClose();
                 }
-                catch (Exception th)
+                catch (Exception th) when (th.IsThrowable())
                 {
                     throwable = th;
                 }
@@ -295,7 +296,7 @@ namespace Lucene.Net.Index
             }
             else if (rc < 0)
             {
-                throw new InvalidOperationException("too many decRef calls: refCount is " + rc + " after decrement");
+                throw IllegalStateException.Create("too many decRef calls: refCount is " + rc + " after decrement");
             }
         }
 
@@ -303,17 +304,18 @@ namespace Lucene.Net.Index
         /// Throws <see cref="ObjectDisposedException"/> if this <see cref="IndexReader"/> or any
         /// of its child readers is disposed, otherwise returns.
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         protected internal void EnsureOpen()
         {
             if (refCount <= 0)
             {
-                throw new ObjectDisposedException(this.GetType().FullName, "this IndexReader is closed");
+                throw AlreadyClosedException.Create(this.GetType().FullName, "this IndexReader is disposed.");
             }
             // the happens before rule on reading the refCount, which must be after the fake write,
             // ensures that we see the value:
             if (closedByChild)
             {
-                throw new ObjectDisposedException(this.GetType().FullName, "this IndexReader cannot be used anymore as one of its child readers was closed");
+                throw AlreadyClosedException.Create(this.GetType().FullName, "this IndexReader cannot be used anymore as one of its child readers was disposed.");
             }
         }
 

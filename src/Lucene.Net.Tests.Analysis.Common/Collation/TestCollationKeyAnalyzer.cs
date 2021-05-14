@@ -1,4 +1,5 @@
-﻿#if FEATURE_COLLATION
+// Lucene version compatibility level 4.8.1
+#if FEATURE_COLLATION
 using Icu;
 using Icu.Collation;
 using Lucene.Net.Analysis;
@@ -32,11 +33,6 @@ namespace Lucene.Net.Collation
     public class TestCollationKeyAnalyzer : CollationTestBase
     {
         public TestCollationKeyAnalyzer()
-        {
-            InitializeInstanceFields();
-        }
-        
-        private void InitializeInstanceFields()
         {
             this.analyzer = new CollationKeyAnalyzer(LuceneTestCase.TEST_VERSION_CURRENT, this.collator);
             this.firstRangeBeginning = new BytesRef(this.collator.GetSortKey(this.FirstRangeBeginningOriginal).KeyData);
@@ -153,7 +149,7 @@ namespace Lucene.Net.Collation
                 .Select(x => new Locale(x))
                 .FirstOrDefault(x => availableCollationLocales.Contains(x.Id));
 
-            if (firstAvailableLocale == default(Locale))
+            if (firstAvailableLocale == default)
                 throw new ArgumentException($"None of the locales are available: {string.Join(", ", localeNames)}");
 
             Collator collator = Collator.Create(firstAvailableLocale.Id);

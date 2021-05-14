@@ -1,4 +1,4 @@
-using J2N.Collections.Generic.Extensions;
+﻿using J2N.Collections.Generic.Extensions;
 using J2N.Text;
 using Antlr.Runtime;
 using Antlr.Runtime.Tree;
@@ -144,10 +144,12 @@ namespace Lucene.Net.Expressions.JS
         /// If this method fails to compile, you also have to change the byte code generator to correctly
         /// use the <see cref="FunctionValues"/> class.
         /// </remarks>
+#pragma warning disable IDE0051 // Remove unused private members
         private static void UnusedTestCompile()
+#pragma warning restore IDE0051 // Remove unused private members
         {
             FunctionValues f = null;
-            double ret = f.DoubleVal(2);
+            /*double ret = */f.DoubleVal(2); // LUCENENET: IDE0059: Remove unnecessary value assignment
         }
 
         /// <summary>Constructs a compiler for expressions.</summary>
@@ -162,7 +164,7 @@ namespace Lucene.Net.Expressions.JS
         /// <param name="functions">The set of functions to compile with</param>
         private JavascriptCompiler(string sourceText, IDictionary<string, MethodInfo> functions)
         {
-            this.sourceText = sourceText ?? throw new ArgumentNullException(nameof(sourceText));
+            this.sourceText = sourceText ?? throw new ArgumentNullException(nameof(sourceText)); // LUCENENET specific - changed from IllegalArgumentException to ArgumentNullException (.NET convention)
             this.functions = functions;
         }
 
@@ -183,16 +185,10 @@ namespace Lucene.Net.Expressions.JS
                         Activator.CreateInstance(dynamicType.CreateTypeInfo().AsType(), sourceText, externalsMap.Keys.ToArray());
 
             }
-
-            catch (MemberAccessException exception)
+            catch (Exception exception) when (exception.IsInstantiationException() || exception.IsIllegalAccessException() ||
+                                              exception.IsNoSuchMethodException()  || exception.IsInvocationTargetException())
             {
-                throw new InvalidOperationException("An internal error occurred attempting to compile the expression ("
-                                                    + sourceText + ").", exception);
-            }
-            catch (TargetInvocationException exception)
-            {
-                throw new InvalidOperationException("An internal error occurred attempting to compile the expression ("
-                                                    + sourceText + ").", exception);
+                throw IllegalStateException.Create("An internal error occurred attempting to compile the expression (" + sourceText + ").", exception);
             }
         }
 
@@ -237,8 +233,7 @@ namespace Lucene.Net.Expressions.JS
                         ITree identifier = current.GetChild(0);
                         string call = identifier.Text;
                         int arguments = current.ChildCount - 1;
-                        MethodInfo method;
-                        if (!functions.TryGetValue(call, out method) || method == null)
+                        if (!functions.TryGetValue(call, out MethodInfo method) || method == null)
                         {
                             throw new ArgumentException("Unrecognized method call (" + call + ").");
                         }
@@ -290,14 +285,13 @@ namespace Lucene.Net.Expressions.JS
 
                         if (bitwiseOps.Any(s => sourceText.Contains(s)))
                         {
-                            int val;
-                            if (int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out val))
+                            if (int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out int val))
                             {
                                 gen.Emit(OpCodes.Ldc_I4, val);
                             }
                             else
                             {
-                                gen.Emit(OpCodes.Ldc_I8,long.Parse(text, CultureInfo.InvariantCulture));
+                                gen.Emit(OpCodes.Ldc_I8, long.Parse(text, CultureInfo.InvariantCulture));
                                 gen.Emit(OpCodes.Conv_Ovf_U4_Un);
                             }
                         }
@@ -495,7 +489,7 @@ namespace Lucene.Net.Expressions.JS
 
                 default:
                     {
-                        throw new InvalidOperationException("Unknown operation specified: (" + current.Text + ").");
+                        throw IllegalStateException.Create("Unknown operation specified: (" + current.Text + ").");
                     }
             }
 
@@ -511,7 +505,9 @@ namespace Lucene.Net.Expressions.JS
             gen.Emit(OpCodes.Conv_R8);
         }
 
+#pragma warning disable IDE0060 // Remove unused parameter
         private void PushArith(OpCode op, ITree current, Type expected)
+#pragma warning restore IDE0060 // Remove unused parameter
         {
             PushBinaryOp(op, current, typeof(double), typeof(double));
         }
@@ -584,6 +580,9 @@ namespace Lucene.Net.Expressions.JS
             {
                 throw new ArgumentException(re.Message, re);
             }
+            // LUCENENET: Antlr 3.5.1 doesn't ever wrap ParseException, so the other catch block
+            // for RuntimeException that wraps ParseException would have
+            // been completely unnecesary in Java and is also unnecessary here.
         }
 
         /// <summary>The default set of functions available to expressions.</summary>
@@ -604,7 +603,7 @@ namespace Lucene.Net.Expressions.JS
                     string[] vals = property.Value.Split(',').TrimEnd();
                     if (vals.Length != 3)
                     {
-                        throw new Exception("Error reading Javascript functions from settings");
+                        throw Error.Create("Error reading Javascript functions from settings");
                     }
                     string typeName = vals[0];
 
@@ -628,9 +627,9 @@ namespace Lucene.Net.Expressions.JS
                     map[property.Key] = method;
                 }
             }
-            catch (Exception e)
+            catch (Exception e) when (e.IsNoSuchMethodException() || e.IsClassNotFoundException() || e.IsIOException())
             {
-                throw new Exception("Cannot resolve function", e);
+                throw Error.Create("Cannot resolve function", e);
             }
             return map.AsReadOnly();
         }

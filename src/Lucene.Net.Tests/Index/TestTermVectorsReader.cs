@@ -1,4 +1,4 @@
-using Lucene.Net.Analysis;
+﻿using Lucene.Net.Analysis;
 using Lucene.Net.Analysis.TokenAttributes;
 using Lucene.Net.Documents;
 using Lucene.Net.Index.Extensions;
@@ -42,11 +42,6 @@ namespace Lucene.Net.Index
     public class TestTermVectorsReader : LuceneTestCase
     {
         public TestTermVectorsReader()
-        {
-            InitializeInstanceFields();
-        }
-
-        private void InitializeInstanceFields()
         {
             positions = new int[testTerms.Length][];
             tokens = new TestToken[testTerms.Length * TERM_FREQ];
@@ -421,7 +416,7 @@ namespace Lucene.Net.Index
                 w.AddDocument(doc);
                 Assert.Fail("did not hit exception");
             }
-            catch (ArgumentException iae)
+            catch (Exception iae) when (iae.IsIllegalArgumentException())
             {
                 // Expected
                 Assert.AreEqual("cannot index term vector payloads without term vector positions (field=\"field\")", iae.Message);
@@ -437,7 +432,7 @@ namespace Lucene.Net.Index
                 w.AddDocument(doc);
                 Assert.Fail("did not hit exception");
             }
-            catch (ArgumentException iae)
+            catch (Exception iae) when (iae.IsIllegalArgumentException())
             {
                 // Expected
                 Assert.AreEqual("cannot index term vector offsets when term vectors are not indexed (field=\"field\")", iae.Message);
@@ -453,7 +448,7 @@ namespace Lucene.Net.Index
                 w.AddDocument(doc);
                 Assert.Fail("did not hit exception");
             }
-            catch (ArgumentException iae)
+            catch (Exception iae) when (iae.IsIllegalArgumentException())
             {
                 // Expected
                 Assert.AreEqual("cannot index term vector positions when term vectors are not indexed (field=\"field\")", iae.Message);
@@ -469,7 +464,7 @@ namespace Lucene.Net.Index
                 w.AddDocument(doc);
                 Assert.Fail("did not hit exception");
             }
-            catch (ArgumentException iae)
+            catch (Exception iae) when (iae.IsIllegalArgumentException())
             {
                 // Expected
                 Assert.AreEqual("cannot index term vector payloads when term vectors are not indexed (field=\"field\")", iae.Message);

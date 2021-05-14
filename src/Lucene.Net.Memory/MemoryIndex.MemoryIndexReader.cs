@@ -1,4 +1,5 @@
-using J2N.Collections.Generic.Extensions;
+﻿using J2N.Collections.Generic.Extensions;
+using J2N.Numerics;
 using Lucene.Net.Diagnostics;
 using Lucene.Net.Search;
 using Lucene.Net.Search.Similarities;
@@ -7,6 +8,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Lucene.Net.Index.Memory
 {
@@ -105,14 +107,14 @@ namespace Lucene.Net.Index.Memory
 
                 public override IEnumerator<string> GetEnumerator()
                 {
-                    return new IteratorAnonymousInnerClassHelper(this);
+                    return new IteratorAnonymousClass(this);
                 }
 
-                private class IteratorAnonymousInnerClassHelper : IEnumerator<string>
+                private class IteratorAnonymousClass : IEnumerator<string>
                 {
                     private readonly MemoryFields outerInstance;
 
-                    public IteratorAnonymousInnerClassHelper(MemoryFields outerInstance)
+                    public IteratorAnonymousClass(MemoryFields outerInstance)
                     {
                         this.outerInstance = outerInstance;
                         upto = -1;
@@ -143,7 +145,7 @@ namespace Lucene.Net.Index.Memory
 
                     public void Reset()
                     {
-                        throw new NotSupportedException();
+                        throw UnsupportedOperationException.Create();
                     }
                 }
 
@@ -160,17 +162,17 @@ namespace Lucene.Net.Index.Memory
                         Info info = outerInstance.GetInfo(i);
                         info.SortTerms();
 
-                        return new TermsAnonymousInnerClassHelper(this, info);
+                        return new TermsAnonymousClass(this, info);
                     }
                 }
 
-                private class TermsAnonymousInnerClassHelper : Terms
+                private class TermsAnonymousClass : Terms
                 {
                     private readonly MemoryFields outerInstance;
 
-                    private MemoryIndex.Info info;
+                    private readonly MemoryIndex.Info info;
 
-                    public TermsAnonymousInnerClassHelper(MemoryFields outerInstance, MemoryIndex.Info info)
+                    public TermsAnonymousClass(MemoryFields outerInstance, MemoryIndex.Info info)
                     {
                         this.outerInstance = outerInstance;
                         this.info = info;
@@ -231,10 +233,10 @@ namespace Lucene.Net.Index.Memory
 
                 internal int BinarySearch(BytesRef b, BytesRef bytesRef, int low, int high, BytesRefHash hash, int[] ords, IComparer<BytesRef> comparer)
                 {
-                    int mid = 0;
+                    int mid; // LUCENENET: IDE0059: Remove unnecessary value assignment
                     while (low <= high)
                     {
-                        mid = (int)((uint)(low + high) >> 1);
+                        mid = (low + high).TripleShift(1);
                         hash.Get(ords[mid], bytesRef);
                         int cmp = comparer.Compare(bytesRef, b);
                         if (cmp < 0)
@@ -322,7 +324,7 @@ namespace Lucene.Net.Index.Memory
                 public override DocsEnum Docs(IBits liveDocs, DocsEnum reuse, DocsFlags flags)
                 {
                     if (reuse is null || !(reuse is MemoryDocsEnum toReuse))
-                        toReuse = new MemoryDocsEnum(outerInstance);
+                        toReuse = new MemoryDocsEnum();
 
                     return toReuse.Reset(liveDocs, info.sliceArray.freq[info.sortedTerms[termUpto]]);
                 }
@@ -354,11 +356,8 @@ namespace Lucene.Net.Index.Memory
 
             private class MemoryDocsEnum : DocsEnum
             {
-                private readonly MemoryIndex.MemoryIndexReader outerInstance;
-
-                public MemoryDocsEnum(MemoryIndex.MemoryIndexReader outerInstance)
+                public MemoryDocsEnum()
                 {
-                    this.outerInstance = outerInstance;
                 }
 
                 internal bool hasNext;
@@ -461,7 +460,7 @@ namespace Lucene.Net.Index.Memory
                     if (Debugging.AssertsEnabled)
                     {
                         Debugging.Assert(posUpto++ < freq);
-                        Debugging.Assert(!sliceReader.IsEndOfSlice, () => " stores offsets : " + startOffset);
+                        Debugging.Assert(!sliceReader.IsEndOfSlice, " stores offsets : {0}", startOffset);
                     }
                     if (outerInstance.outerInstance.storeOffsets)
                     {
@@ -521,6 +520,7 @@ namespace Lucene.Net.Index.Memory
                 set => this.searcher = value;
             }
 
+            [SuppressMessage("Style", "IDE0025:Use expression body for properties", Justification = "Multiple lines")]
             public override int NumDocs
             {
                 get
@@ -532,6 +532,7 @@ namespace Lucene.Net.Index.Memory
                 }
             }
 
+            [SuppressMessage("Style", "IDE0025:Use expression body for properties", Justification = "Multiple lines")]
             public override int MaxDoc
             {
                 get
@@ -565,8 +566,7 @@ namespace Lucene.Net.Index.Memory
 
             public override NumericDocValues GetNormValues(string field)
             {
-                FieldInfo fieldInfo;
-                if (!outerInstance.fieldInfos.TryGetValue(field, out fieldInfo) || fieldInfo.OmitsNorms)
+                if (!outerInstance.fieldInfos.TryGetValue(field, out FieldInfo fieldInfo) || fieldInfo.OmitsNorms)
                 {
                     return null;
                 }

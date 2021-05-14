@@ -138,11 +138,8 @@ namespace Lucene.Net.Search
 
         public override bool Equals(object o)
         {
-            var other = o as CachingWrapperFilter;
-            if (other == null)
-            {
-                return false;
-            }
+            if (o is null) return false;
+            if (!(o is CachingWrapperFilter other)) return false;
             return _filter.Equals(other._filter);
         }
 
@@ -153,9 +150,9 @@ namespace Lucene.Net.Search
 
         /// <summary>
         /// An empty <see cref="DocIdSet"/> instance </summary>
-        protected static readonly DocIdSet EMPTY_DOCIDSET = new DocIdSetAnonymousInnerClassHelper();
+        protected static readonly DocIdSet EMPTY_DOCIDSET = new DocIdSetAnonymousClass();
 
-        private class DocIdSetAnonymousInnerClassHelper : DocIdSet
+        private class DocIdSetAnonymousClass : DocIdSet
         {
             public override DocIdSetIterator GetIterator()
             {

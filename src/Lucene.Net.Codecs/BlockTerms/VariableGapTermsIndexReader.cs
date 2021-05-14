@@ -1,4 +1,4 @@
-using Lucene.Net.Diagnostics;
+﻿using Lucene.Net.Diagnostics;
 using Lucene.Net.Index;
 using Lucene.Net.Store;
 using Lucene.Net.Support;
@@ -81,7 +81,7 @@ namespace Lucene.Net.Codecs.BlockTerms
                     int field = input.ReadVInt32();
                     long indexStart = input.ReadVInt64();
                     FieldInfo fieldInfo = fieldInfos.FieldInfo(field);
-                    FieldIndexData previous = fields.Put(fieldInfo, new FieldIndexData(this, fieldInfo, indexStart));
+                    FieldIndexData previous = fields.Put(fieldInfo, new FieldIndexData(this, /* fieldInfo, // LUCENENET: Not referenced */ indexStart));
                     if (previous != null)
                     {
                         throw new CorruptIndexException("duplicate field: " + fieldInfo.Name + " (resource=" + input + ")");
@@ -152,7 +152,7 @@ namespace Lucene.Net.Codecs.BlockTerms
                 }
                 else
                 {
-                    throw new NullReferenceException("_current.Output is null"); // LUCENENET NOTE: NullReferenceException would be thrown in Java, so doing it here
+                    throw new NullReferenceException("current.Output is null"); // LUCENENET NOTE: NullReferenceException would be thrown in Java, so doing it here
                 }
             }
 
@@ -174,16 +174,16 @@ namespace Lucene.Net.Codecs.BlockTerms
                     }
                     else
                     {
-                        throw new NullReferenceException("_current.Output is null"); // LUCENENET NOTE: NullReferenceException would be thrown in Java, so doing it here
+                        throw new NullReferenceException("current.Output is null"); // LUCENENET NOTE: NullReferenceException would be thrown in Java, so doing it here
                     }
                 }
             }
 
-            public override long Ord => throw new NotSupportedException();
+            public override long Ord => throw UnsupportedOperationException.Create();
 
             public override long Seek(long ord)
             {
-                throw new NotSupportedException();
+                throw UnsupportedOperationException.Create();
             }
         }
 
@@ -197,7 +197,7 @@ namespace Lucene.Net.Codecs.BlockTerms
             // Set only if terms index is loaded:
             internal volatile FST<long?> fst;
 
-            public FieldIndexData(VariableGapTermsIndexReader outerInstance, FieldInfo fieldInfo, long indexStart)
+            public FieldIndexData(VariableGapTermsIndexReader outerInstance, /*FieldInfo fieldInfo, // LUCENENET: Not referenced */ long indexStart)
             {
                 this.outerInstance = outerInstance;
 

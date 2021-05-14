@@ -1,22 +1,23 @@
-﻿using J2N.Collections.Generic.Extensions;
+﻿// Lucene version compatibility level 4.8.1
+using J2N.Collections.Generic.Extensions;
 using Lucene.Net.Analysis;
 using Lucene.Net.Documents;
 using Lucene.Net.Documents.Extensions;
 using Lucene.Net.Index;
 using Lucene.Net.Index.Extensions;
-using Lucene.Net.Join;
-using Lucene.Net.Search;
 using Lucene.Net.Search.Grouping;
 using Lucene.Net.Store;
 using Lucene.Net.Util;
 using NUnit.Framework;
+using RandomizedTesting.Generators;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using Console = Lucene.Net.Util.SystemConsole;
 
-namespace Lucene.Net.Tests.Join
+namespace Lucene.Net.Search.Join
 {
     /*
      * Licensed to the Apache Software Foundation (ASF) under one or more
@@ -355,7 +356,8 @@ namespace Lucene.Net.Tests.Join
 
 
             TermQuery us = new TermQuery(new Term("country", "United States"));
-            assertEquals("@ US we have java and ruby", 2, s.Search(new ToChildBlockJoinQuery(us, parentsFilter, Random.NextBoolean()), 10).TotalHits);
+            assertEquals("@ US we have java and ruby", 2,
+                s.Search(new ToChildBlockJoinQuery(us, parentsFilter, Random.NextBoolean()), 10).TotalHits);
 
             assertEquals("java skills in US", 1, s.Search(new ToChildBlockJoinQuery(us, parentsFilter, Random.NextBoolean()), Skill("java"), 10).TotalHits);
 
@@ -438,7 +440,11 @@ namespace Lucene.Net.Tests.Join
             w.Commit();
             IndexSearcher s = NewSearcher(DirectoryReader.Open(dir));
 
-            ToParentBlockJoinQuery q = new ToParentBlockJoinQuery(NumericRangeQuery.NewInt32Range("year", 1990, 2010, true, true), new FixedBitSetCachingWrapperFilter(new QueryWrapperFilter(new TermQuery(new Term("docType", "resume")))), ScoreMode.Total);
+            ToParentBlockJoinQuery q = new ToParentBlockJoinQuery(
+                NumericRangeQuery.NewInt32Range("year", 1990, 2010, true, true),
+                new FixedBitSetCachingWrapperFilter(new QueryWrapperFilter(new TermQuery(new Term("docType", "resume")))),
+                ScoreMode.Total
+            );
 
             TopDocs topDocs = s.Search(q, 10);
             assertEquals(2, topDocs.TotalHits);
@@ -465,7 +471,6 @@ namespace Lucene.Net.Tests.Join
 
         private string[][] GetRandomFields(int maxUniqueValues)
         {
-
             string[][] fields = new string[TestUtil.NextInt32(Random, 2, 4)][];
             for (int fieldID = 0; fieldID < fields.Length; fieldID++)
             {
@@ -531,7 +536,7 @@ namespace Lucene.Net.Tests.Join
             Directory joinDir = NewDirectory();
 
             int numParentDocs = TestUtil.NextInt32(Random, 100 * RandomMultiplier, 300 * RandomMultiplier);
-            //final int numParentDocs = 30;
+            //int numParentDocs = 30;
 
             // Values for parent fields:
             string[][] parentFields = GetRandomFields(numParentDocs / 2);
@@ -693,7 +698,8 @@ namespace Lucene.Net.Tests.Join
                 if (Random.Next(3) == 2)
                 {
                     int childFieldID = Random.Next(childFields.Length);
-                    childQuery = new TermQuery(new Term("child" + childFieldID, childFields[childFieldID][Random.Next(childFields[childFieldID].Length)]));
+                    childQuery = new TermQuery(new Term("child" + childFieldID,
+                        childFields[childFieldID][Random.Next(childFields[childFieldID].Length)]));
                 }
                 else if (Random.Next(3) == 2)
                 {
@@ -727,7 +733,8 @@ namespace Lucene.Net.Tests.Join
 
                     bq.Add(new TermQuery(RandomChildTerm(childFields[0])), Occur.MUST);
                     int childFieldID = TestUtil.NextInt32(Random, 1, childFields.Length - 1);
-                    bq.Add(new TermQuery(new Term("child" + childFieldID, childFields[childFieldID][Random.Next(childFields[childFieldID].Length)])), Random.NextBoolean() ? Occur.MUST : Occur.MUST_NOT);
+                    bq.Add(new TermQuery(new Term("child" + childFieldID, childFields[childFieldID][Random.Next(childFields[childFieldID].Length)])),
+                        Random.NextBoolean() ? Occur.MUST : Occur.MUST_NOT);
                 }
 
                 int x = Random.Next(4);
@@ -910,7 +917,7 @@ namespace Lucene.Net.Tests.Join
                     {
                         Explanation explanation = joinS.Explain(childJoinQuery, hit.Doc);
                         Document document = joinS.Doc(hit.Doc - 1);
-                        int childId = Convert.ToInt32(document.Get("childID"));
+                        int childId = Convert.ToInt32(document.Get("childID"), CultureInfo.InvariantCulture);
                         assertTrue(explanation.IsMatch);
                         assertEquals(hit.Score, explanation.Value, 0.0f);
                         assertEquals(string.Format("Score based on child doc range from {0} to {1}", hit.Doc - 1 - childId, hit.Doc - 1), explanation.Description);
@@ -1060,7 +1067,8 @@ namespace Lucene.Net.Tests.Join
                 // Search join index:
                 if (Verbose)
                 {
-                    Console.WriteLine("TEST: run top down join query=" + childJoinQuery2 + " filter=" + childJoinFilter2 + " sort=" + childSort2);
+                    Console.WriteLine("TEST: run top down join query=" + childJoinQuery2 +
+                        " filter=" + childJoinFilter2 + " sort=" + childSort2);
                 }
                 TopDocs joinResults2 = joinS.Search(childJoinQuery2, childJoinFilter2, joinR.NumDocs, childSort2);
                 if (Verbose)
@@ -1093,7 +1101,8 @@ namespace Lucene.Net.Tests.Join
                 ScoreDoc joinHit = joinResults.ScoreDocs[hitCount];
                 Document doc1 = r.Document(hit.Doc);
                 Document doc2 = joinR.Document(joinHit.Doc);
-                assertEquals("hit " + hitCount + " differs", doc1.Get("childID"), doc2.Get("childID"));
+                assertEquals("hit " + hitCount + " differs",
+                    doc1.Get("childID"), doc2.Get("childID"));
                 // don't compare scores -- they are expected to differ
 
 
@@ -1306,7 +1315,6 @@ namespace Lucene.Net.Tests.Join
         [Test]
         public void TestGetTopGroups()
         {
-
             Directory dir = NewDirectory();
             RandomIndexWriter w = new RandomIndexWriter(
 #if FEATURE_INSTANCE_TESTDATA_INITIALIZATION
@@ -1350,7 +1358,7 @@ namespace Lucene.Net.Tests.Join
             getTopGroupsResults[0] = c.GetTopGroups(childJoinQuery, null, 0, 10, 0, true);
             getTopGroupsResults[1] = c.GetTopGroupsWithAllChildDocs(childJoinQuery, null, 0, 0, true);
 
-            foreach (TopGroups<int> results in getTopGroupsResults)
+            foreach (ITopGroups<int> results in getTopGroupsResults)
             {
                 assertFalse(float.IsNaN(results.MaxScore));
                 assertEquals(2, results.TotalGroupedHitCount);
@@ -1369,7 +1377,7 @@ namespace Lucene.Net.Tests.Join
                 {
                     Document childDoc = s.Doc(scoreDoc.Doc);
                     assertEquals("java", childDoc.Get("skill"));
-                    int year = Convert.ToInt32(childDoc.Get("year"));
+                    int year = Convert.ToInt32(childDoc.Get("year"), CultureInfo.InvariantCulture);
                     assertTrue(year >= 2006 && year <= 2011);
                 }
             }
@@ -1393,7 +1401,7 @@ namespace Lucene.Net.Tests.Join
             {
                 Document childDoc = s.Doc(scoreDoc.Doc);
                 assertEquals("java", childDoc.Get("skill"));
-                int year = Convert.ToInt32(childDoc.Get("year"));
+                int year = Convert.ToInt32(childDoc.Get("year"), CultureInfo.InvariantCulture);
                 assertTrue(year >= 2006 && year <= 2011);
             }
 
@@ -1590,7 +1598,15 @@ namespace Lucene.Net.Tests.Join
 
             ToParentBlockJoinCollector c = new ToParentBlockJoinCollector(new Sort(new SortField("parentID", SortFieldType.STRING)), 10, true, true);
 
-            Assert.Throws<InvalidOperationException>(() => NewSearcher(r).Search(parentQuery, c));
+            try
+            {
+                NewSearcher(r).Search(parentQuery, c);
+                fail("should have hit exception");
+            }
+            catch (Exception ise) when (ise.IsIllegalStateException())
+            {
+                // expected
+            }
 
             r.Dispose();
             d.Dispose();

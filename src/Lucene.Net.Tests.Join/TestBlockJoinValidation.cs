@@ -1,16 +1,16 @@
-﻿using Lucene.Net.Analysis;
+﻿// Lucene version compatibility level 4.8.1
+using Lucene.Net.Analysis;
 using Lucene.Net.Documents;
 using Lucene.Net.Index;
-using Lucene.Net.Join;
-using Lucene.Net.Search;
 using Lucene.Net.Store;
 using Lucene.Net.Util;
 using NUnit.Framework;
+using RandomizedTesting.Generators;
 using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace Lucene.Net.Tests.Join
+namespace Lucene.Net.Search.Join
 {
     /*
      * Licensed to the Apache Software Foundation (ASF) under one or more
@@ -31,7 +31,6 @@ namespace Lucene.Net.Tests.Join
 
     public class TestBlockJoinValidation : LuceneTestCase
     {
-
         public const int AMOUNT_OF_SEGMENTS = 5;
         public const int AMOUNT_OF_PARENT_DOCS = 10;
         public const int AMOUNT_OF_CHILD_DOCS = 5;
@@ -60,22 +59,22 @@ namespace Lucene.Net.Tests.Join
             parentsFilter = new FixedBitSetCachingWrapperFilter(new QueryWrapperFilter(new WildcardQuery(new Term("parent", "*"))));
         }
 
-        [TearDown]
-        public override void TearDown()
-        {
-            indexReader.Dispose();
-            directory.Dispose();
-        }
-
         [Test]
         public void TestNextDocValidationForToParentBjq()
         {
             Query parentQueryWithRandomChild = CreateChildrenQueryWithOneParent(GetRandomChildNumber(0));
             var blockJoinQuery = new ToParentBlockJoinQuery(parentQueryWithRandomChild, parentsFilter, ScoreMode.None);
 
-            var ex = Assert.Throws<InvalidOperationException>(() => indexSearcher.Search(blockJoinQuery, 1));
-            StringAssert.Contains("child query must only match non-parent docs", ex.Message);
-
+            // LUCENENET: Refactored to allow us to use our IsIllegalStateException() extension method
+            try
+            {
+                indexSearcher.Search(blockJoinQuery, 1);
+                fail();
+            }
+            catch (Exception ise) when (ise.IsIllegalStateException())
+            {
+                assertTrue(ise.Message.Contains("child query must only match non-parent docs"));
+            }
         }
 
         [Test]
@@ -93,8 +92,16 @@ namespace Lucene.Net.Tests.Join
             conjunctionQuery.Add(new BooleanClause(childQuery, Occur.MUST));
             conjunctionQuery.Add(new BooleanClause(blockJoinQuery, Occur.MUST));
 
-            var ex = Assert.Throws<InvalidOperationException>(() => indexSearcher.Search(conjunctionQuery, 1));
-            StringAssert.Contains("child query must only match non-parent docs", ex.Message);
+            // LUCENENET: Refactored to allow us to use our IsIllegalStateException() extension method
+            try
+            {
+                indexSearcher.Search(conjunctionQuery, 1);
+                fail();
+            }
+            catch (Exception ise) when (ise.IsIllegalStateException())
+            {
+                assertTrue(ise.Message.Contains("child query must only match non-parent docs"));
+            }
         }
 
         [Test]
@@ -103,8 +110,16 @@ namespace Lucene.Net.Tests.Join
             Query parentQueryWithRandomChild = CreateParentsQueryWithOneChild(GetRandomChildNumber(0));
             var blockJoinQuery = new ToChildBlockJoinQuery(parentQueryWithRandomChild, parentsFilter, false);
 
-            var ex = Assert.Throws<InvalidOperationException>(() => indexSearcher.Search(blockJoinQuery, 1));
-            StringAssert.Contains(ToChildBlockJoinQuery.INVALID_QUERY_MESSAGE, ex.Message);
+            // LUCENENET: Refactored to allow us to use our IsIllegalStateException() extension method
+            try
+            {
+                indexSearcher.Search(blockJoinQuery, 1);
+                fail();
+            }
+            catch (Exception ise) when (ise.IsIllegalStateException())
+            {
+                assertTrue(ise.Message.Contains(ToChildBlockJoinQuery.INVALID_QUERY_MESSAGE));
+            }
         }
         
         [Test]
@@ -122,8 +137,23 @@ namespace Lucene.Net.Tests.Join
             conjunctionQuery.Add(new BooleanClause(childQuery, Occur.MUST));
             conjunctionQuery.Add(new BooleanClause(blockJoinQuery, Occur.MUST));
             
-            var ex = Assert.Throws<InvalidOperationException>(() => indexSearcher.Search(conjunctionQuery, 1));
-            StringAssert.Contains(ToChildBlockJoinQuery.INVALID_QUERY_MESSAGE, ex.Message);
+            // LUCENENET: Refactored to allow us to use our IsIllegalStateException() extension method
+            try
+            {
+                indexSearcher.Search(conjunctionQuery, 1);
+                fail();
+            }
+            catch (Exception ise) when (ise.IsIllegalStateException())
+            {
+                assertTrue(ise.Message.Contains(ToChildBlockJoinQuery.INVALID_QUERY_MESSAGE));
+            }
+        }
+
+        [TearDown]
+        public override void TearDown()
+        {
+            indexReader.Dispose();
+            directory.Dispose();
         }
 
         private IList<Document> CreateDocsForSegment(int segmentNumber)
@@ -185,7 +215,7 @@ namespace Lucene.Net.Tests.Join
         private static Query CreateChildrenQueryWithOneParent(int childNumber)
         {
             TermQuery childQuery = new TermQuery(new Term("child", CreateFieldValue(childNumber)));
-            Query randomParentQuery = new TermQuery(new Term("id", CreateFieldValue(RandomParentId)));
+            Query randomParentQuery = new TermQuery(new Term("id", CreateFieldValue(GetRandomParentId())));
             BooleanQuery childrenQueryWithRandomParent = new BooleanQuery();
             childrenQueryWithRandomParent.Add(new BooleanClause(childQuery, Occur.SHOULD));
             childrenQueryWithRandomParent.Add(new BooleanClause(randomParentQuery, Occur.SHOULD));
@@ -195,19 +225,19 @@ namespace Lucene.Net.Tests.Join
         private static Query CreateParentsQueryWithOneChild(int randomChildNumber)
         {
             BooleanQuery childQueryWithRandomParent = new BooleanQuery();
-            Query parentsQuery = new TermQuery(new Term("parent", CreateFieldValue(RandomParentNumber)));
+            Query parentsQuery = new TermQuery(new Term("parent", CreateFieldValue(GetRandomParentNumber())));
             childQueryWithRandomParent.Add(new BooleanClause(parentsQuery, Occur.SHOULD));
             childQueryWithRandomParent.Add(new BooleanClause(RandomChildQuery(randomChildNumber), Occur.SHOULD));
             return childQueryWithRandomParent;
         }
 
-        private static int RandomParentId => Random.Next(AMOUNT_OF_PARENT_DOCS*AMOUNT_OF_SEGMENTS);
+        private static int GetRandomParentId() => Random.Next(AMOUNT_OF_PARENT_DOCS*AMOUNT_OF_SEGMENTS);
 
-        private static int RandomParentNumber => Random.Next(AMOUNT_OF_PARENT_DOCS);
+        private static int GetRandomParentNumber() => Random.Next(AMOUNT_OF_PARENT_DOCS);
 
         private static Query RandomChildQuery(int randomChildNumber)
         {
-            return new TermQuery(new Term("id", CreateFieldValue(RandomParentId, randomChildNumber)));
+            return new TermQuery(new Term("id", CreateFieldValue(GetRandomParentId(), randomChildNumber)));
         }
 
         private static int GetRandomChildNumber(int notLessThan)

@@ -97,9 +97,9 @@ namespace Lucene.Net.Analysis.Icu.Segmentation
             }
             cjkAsWords = GetBoolean(args, "cjkAsWords", true);
             myanmarAsWords = GetBoolean(args, "myanmarAsWords", true);
-            if (args.Count != 0)
+            if (args.Count > 0)
             {
-                throw new ArgumentException("Unknown parameters: " + args);
+                throw new ArgumentException(string.Format(J2N.Text.StringFormatter.CurrentCulture, "Unknown parameters: {0}", args));
             }
         }
 
@@ -112,14 +112,14 @@ namespace Lucene.Net.Analysis.Icu.Segmentation
             }
             else
             {
-                config = new DefaultICUTokenizerConfigAnonymousHelper(cjkAsWords, myanmarAsWords, tailored, loader);
+                config = new DefaultICUTokenizerConfigAnonymousClass(cjkAsWords, myanmarAsWords, tailored, loader);
             }
         }
 
-        private class DefaultICUTokenizerConfigAnonymousHelper : DefaultICUTokenizerConfig
+        private class DefaultICUTokenizerConfigAnonymousClass : DefaultICUTokenizerConfig
         {
             private readonly BreakIterator[] breakers;
-            public DefaultICUTokenizerConfigAnonymousHelper(bool cjkAsWords, bool myanmarAsWords, IDictionary<int, string> tailored, IResourceLoader loader)
+            public DefaultICUTokenizerConfigAnonymousClass(bool cjkAsWords, bool myanmarAsWords, IDictionary<int, string> tailored, IResourceLoader loader)
                 : base(cjkAsWords, myanmarAsWords)
             {
                 breakers = new BreakIterator[1 + UChar.GetIntPropertyMaxValue(UProperty.Script)];

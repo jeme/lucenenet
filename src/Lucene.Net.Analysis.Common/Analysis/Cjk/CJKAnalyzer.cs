@@ -1,4 +1,5 @@
-﻿using Lucene.Net.Analysis.Core;
+﻿// Lucene version compatibility level 4.8.1
+using Lucene.Net.Analysis.Core;
 using Lucene.Net.Analysis.Standard;
 using Lucene.Net.Analysis.Util;
 using Lucene.Net.Util;
@@ -55,11 +56,11 @@ namespace Lucene.Net.Analysis.Cjk
                 {
                     return LoadStopwordSet(false, typeof(CJKAnalyzer), DEFAULT_STOPWORD_FILE, "#");
                 }
-                catch (IOException ex)
+                catch (Exception ex) when (ex.IsIOException())
                 {
                     // default set should always be present as it is part of the
                     // distribution (JAR)
-                    throw new Exception("Unable to load default stopword set", ex);
+                    throw RuntimeException.Create("Unable to load default stopword set", ex);
                 }
             }
         }

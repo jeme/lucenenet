@@ -1,4 +1,4 @@
-using Lucene.Net.Support;
+﻿using Lucene.Net.Support;
 using System;
 using System.Collections.Generic;
 using Lucene.Net.Diagnostics;
@@ -43,10 +43,12 @@ namespace Lucene.Net.Search
         /// Strips off scores from the passed in <see cref="Search.Query"/>. The hits will get a constant score
         /// dependent on the boost factor of this query.
         /// </summary>
+        /// <exception cref="ArgumentNullException">if <paramref name="query"/> is <c>null</c>.</exception>
         public ConstantScoreQuery(Query query)
         {
+            // LUCENENET specific: Changed guard clause to throw ArgumentNullException instead of NullPointerException
             this.m_filter = null;
-            this.m_query = query ?? throw new NullReferenceException("Query may not be null");
+            this.m_query = query ?? throw new ArgumentNullException(nameof(query), "Query may not be null"); // LUCENENET specific - changed from IllegalArgumentException to ArgumentNullException (.NET convention)
         }
 
         /// <summary>
@@ -56,9 +58,11 @@ namespace Lucene.Net.Search
         /// <c>new ConstantScoreQuery(new QueryWrapperFilter(query))</c>, instead
         /// use <see cref="ConstantScoreQuery(Query)"/>!
         /// </summary>
+        /// <exception cref="ArgumentNullException">if <paramref name="filter"/> is <c>null</c>.</exception>
         public ConstantScoreQuery(Filter filter)
         {
-            this.m_filter = filter ?? throw new NullReferenceException("Filter may not be null");
+            // LUCENENET specific: Changed guard clause to throw ArgumentNullException instead of NullPointerException
+            this.m_filter = filter ?? throw new ArgumentNullException(nameof(filter), "Filter may not be null");
             this.m_query = null;
         }
 
@@ -88,9 +92,8 @@ namespace Lucene.Net.Search
                 // Fix outdated usage pattern from Lucene 2.x/early-3.x:
                 // because ConstantScoreQuery only accepted filters,
                 // QueryWrapperFilter was used to wrap queries.
-                if (m_filter is QueryWrapperFilter)
+                if (m_filter is QueryWrapperFilter qwf)
                 {
-                    QueryWrapperFilter qwf = (QueryWrapperFilter)m_filter;
                     Query rewritten = new ConstantScoreQuery(qwf.Query.Rewrite(reader));
                     rewritten.Boost = this.Boost;
                     return rewritten;
@@ -122,7 +125,7 @@ namespace Lucene.Net.Search
             public ConstantWeight(ConstantScoreQuery outerInstance, IndexSearcher searcher)
             {
                 this.outerInstance = outerInstance;
-                this.innerWeight = (outerInstance.m_query == null) ? null : outerInstance.m_query.CreateWeight(searcher);
+                this.innerWeight = outerInstance.m_query?.CreateWeight(searcher);
             }
 
             public override Query Query => outerInstance;
@@ -250,16 +253,16 @@ namespace Lucene.Net.Search
 
             private ICollector WrapCollector(ICollector collector)
             {
-                return new CollectorAnonymousInnerClassHelper(this, collector);
+                return new CollectorAnonymousClass(this, collector);
             }
 
-            private class CollectorAnonymousInnerClassHelper : ICollector
+            private class CollectorAnonymousClass : ICollector
             {
                 private readonly ConstantBulkScorer outerInstance;
 
-                private ICollector collector;
+                private readonly ICollector collector;
 
-                public CollectorAnonymousInnerClassHelper(ConstantBulkScorer outerInstance, Lucene.Net.Search.ICollector collector)
+                public CollectorAnonymousClass(ConstantBulkScorer outerInstance, ICollector collector)
                 {
                     this.outerInstance = outerInstance;
                     this.collector = collector;
@@ -359,9 +362,8 @@ namespace Lucene.Net.Search
             {
                 return false;
             }
-            if (o is ConstantScoreQuery)
+            if (o is ConstantScoreQuery other)
             {
-                ConstantScoreQuery other = (ConstantScoreQuery)o;
                 return ((this.m_filter == null) ? other.m_filter == null : this.m_filter.Equals(other.m_filter)) && ((this.m_query == null) ? other.m_query == null : this.m_query.Equals(other.m_query));
             }
             return false;
@@ -369,7 +371,7 @@ namespace Lucene.Net.Search
 
         public override int GetHashCode()
         {
-            return 31 * base.GetHashCode() + ((m_query == null) ? (object)m_filter : m_query).GetHashCode();
+            return 31 * base.GetHashCode() + (m_query ?? (object)m_filter).GetHashCode();
         }
     }
 }

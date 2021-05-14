@@ -1,11 +1,11 @@
-#if FEATURE_CONCURRENTMERGESCHEDULER
-using J2N.Threading.Atomic;
+﻿using J2N.Threading.Atomic;
 using Lucene.Net.Attributes;
 using Lucene.Net.Documents;
 using Lucene.Net.Index.Extensions;
 using Lucene.Net.Store;
 using Lucene.Net.Util;
 using NUnit.Framework;
+using RandomizedTesting.Generators;
 using System;
 using System.IO;
 using System.Threading;
@@ -131,7 +131,7 @@ namespace Lucene.Net.Index
                         }
                         extraCount++;
                     }
-                    catch (IOException ioe)
+                    catch (Exception ioe) when (ioe.IsIOException())
                     {
                         if (Verbose)
                         {
@@ -297,7 +297,7 @@ namespace Lucene.Net.Index
                 Console.WriteLine("TEST: maxMergeCount=" + maxMergeCount + " maxMergeThreads=" + maxMergeThreads);
             }
 
-            ConcurrentMergeScheduler cms = new ConcurrentMergeSchedulerAnonymousInnerClassHelper(this, maxMergeCount, enoughMergesWaiting, runningMergeCount, failed);
+            ConcurrentMergeScheduler cms = new ConcurrentMergeSchedulerAnonymousClass(this, maxMergeCount, enoughMergesWaiting, runningMergeCount, failed);
             cms.SetMaxMergesAndThreads(maxMergeCount, maxMergeThreads);
             iwc.SetMergeScheduler(cms);
             iwc.SetMaxBufferedDocs(2);
@@ -321,7 +321,7 @@ namespace Lucene.Net.Index
             dir.Dispose();
         }
 
-        private class ConcurrentMergeSchedulerAnonymousInnerClassHelper : ConcurrentMergeScheduler
+        private class ConcurrentMergeSchedulerAnonymousClass : ConcurrentMergeScheduler
         {
             private readonly TestConcurrentMergeScheduler outerInstance;
 
@@ -330,7 +330,7 @@ namespace Lucene.Net.Index
             private readonly AtomicInt32 runningMergeCount;
             private readonly AtomicBoolean failed;
 
-            public ConcurrentMergeSchedulerAnonymousInnerClassHelper(TestConcurrentMergeScheduler outerInstance, int maxMergeCount, CountdownEvent enoughMergesWaiting, AtomicInt32 runningMergeCount, AtomicBoolean failed)
+            public ConcurrentMergeSchedulerAnonymousClass(TestConcurrentMergeScheduler outerInstance, int maxMergeCount, CountdownEvent enoughMergesWaiting, AtomicInt32 runningMergeCount, AtomicBoolean failed)
             {
                 this.outerInstance = outerInstance;
                 this.maxMergeCount = maxMergeCount;
@@ -371,14 +371,12 @@ namespace Lucene.Net.Index
                         runningMergeCount.DecrementAndGet();
                     }
                 }
-                catch (Exception /*t*/)
+                catch (Exception t) when (t.IsThrowable())
                 {
                     failed.Value = (true);
                     m_writer.MergeFinish(merge);
-
-                    // LUCENENET specific - throwing an exception on a background thread causes the test
-                    // runner to crash on .NET Core 2.0.
-                    //throw new Exception(t.ToString(), t);
+                    // LUCENENET NOTE: ThreadJob takes care of propagating the exception to the calling thread
+                    throw RuntimeException.Create(t);
                 }
             }
         }
@@ -451,38 +449,33 @@ namespace Lucene.Net.Index
         [Test, LuceneNetSpecific]
         public void TestExceptionOnBackgroundThreadIsPropagatedToCallingThread()
         {
-            using (MockDirectoryWrapper dir = NewMockDirectory())
+            using MockDirectoryWrapper dir = NewMockDirectory();
+            dir.FailOn(new FailOnlyOnMerge());
+
+            Document doc = new Document();
+            Field idField = NewStringField("id", "", Field.Store.YES);
+            doc.Add(idField);
+
+            var mergeScheduler = new ConcurrentMergeScheduler();
+            using IndexWriter writer = new IndexWriter(dir, NewIndexWriterConfig(TEST_VERSION_CURRENT, new MockAnalyzer(Random)).SetMergeScheduler(mergeScheduler).SetMaxBufferedDocs(2).SetRAMBufferSizeMB(IndexWriterConfig.DISABLE_AUTO_FLUSH).SetMergePolicy(NewLogMergePolicy()));
+            LogMergePolicy logMP = (LogMergePolicy)writer.Config.MergePolicy;
+            logMP.MergeFactor = 10;
+            for (int i = 0; i < 20; i++)
             {
-                dir.FailOn(new FailOnlyOnMerge());
-
-                Document doc = new Document();
-                Field idField = NewStringField("id", "", Field.Store.YES);
-                doc.Add(idField);
-
-                var mergeScheduler = new ConcurrentMergeScheduler();
-                using (IndexWriter writer = new IndexWriter(dir, NewIndexWriterConfig(TEST_VERSION_CURRENT, new MockAnalyzer(Random)).SetMergeScheduler(mergeScheduler).SetMaxBufferedDocs(2).SetRAMBufferSizeMB(IndexWriterConfig.DISABLE_AUTO_FLUSH).SetMergePolicy(NewLogMergePolicy())))
-                {
-                    LogMergePolicy logMP = (LogMergePolicy)writer.Config.MergePolicy;
-                    logMP.MergeFactor = 10;
-                    for (int i = 0; i < 20; i++)
-                    {
-                        writer.AddDocument(doc);
-                    }
-
-                    bool exceptionHit = false;
-                    try
-                    {
-                        mergeScheduler.Sync();
-                    }
-                    catch (MergePolicy.MergeException)
-                    {
-                        exceptionHit = true;
-                    }
-
-                    assertTrue(exceptionHit);
-                }
+                writer.AddDocument(doc);
             }
+
+            bool exceptionHit = false;
+            try
+            {
+                mergeScheduler.Sync();
+            }
+            catch (MergePolicy.MergeException)
+            {
+                exceptionHit = true;
+            }
+
+            assertTrue(exceptionHit);
         }
     }
 }
-#endif

@@ -1,4 +1,4 @@
-using J2N.Text;
+﻿using J2N.Text;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
@@ -159,16 +159,14 @@ namespace Lucene.Net.Util
             byte[] buf1 = new byte[64 * 1024];
             byte[] buf2 = new byte[64 * 1024];
             int len;
-            using (Stream is1 = golden.Open(FileMode.Open, FileAccess.Read, FileShare.Delete))
-            using (Stream is2 = sorted.Open(FileMode.Open, FileAccess.Read, FileShare.Delete))
+            using Stream is1 = golden.Open(FileMode.Open, FileAccess.Read, FileShare.Delete);
+            using Stream is2 = sorted.Open(FileMode.Open, FileAccess.Read, FileShare.Delete);
+            while ((len = is1.Read(buf1, 0, buf1.Length)) > 0)
             {
-                while ((len = is1.Read(buf1, 0, buf1.Length)) > 0)
+                is2.Read(buf2, 0, len);
+                for (int i = 0; i < len; i++)
                 {
-                    is2.Read(buf2, 0, len);
-                    for (int i = 0; i < len; i++)
-                    {
-                        Assert.AreEqual(buf1[i], buf2[i]);
-                    }
+                    Assert.AreEqual(buf1[i], buf2[i]);
                 }
             }
         }
@@ -197,9 +195,10 @@ namespace Lucene.Net.Util
             OfflineSorter.BufferSize.Megabytes(2047);
             OfflineSorter.BufferSize.Megabytes(1);
 
-            Assert.Throws<ArgumentException>(() => OfflineSorter.BufferSize.Megabytes(2048), "max mb is 2047");
-            Assert.Throws<ArgumentException>(() => OfflineSorter.BufferSize.Megabytes(0), "min mb is 0.5");
-            Assert.Throws<ArgumentException>(() => OfflineSorter.BufferSize.Megabytes(-1), "min mb is 0.5");
+            // LUCENENET specific - changed from IllegalArgumentException to ArgumentOutOfRangeException (.NET convention)
+            Assert.Throws<ArgumentOutOfRangeException>(() => OfflineSorter.BufferSize.Megabytes(2048), "max mb is 2047");
+            Assert.Throws<ArgumentOutOfRangeException>(() => OfflineSorter.BufferSize.Megabytes(0), "min mb is 0.5");
+            Assert.Throws<ArgumentOutOfRangeException>(() => OfflineSorter.BufferSize.Megabytes(-1), "min mb is 0.5");
         }
     }
 }

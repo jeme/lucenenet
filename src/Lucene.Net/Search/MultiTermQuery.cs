@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 
 namespace Lucene.Net.Search
 {
@@ -92,11 +92,11 @@ namespace Lucene.Net.Search
         /// exception.
         /// </summary>
         /// <seealso cref="MultiTermRewriteMethod"/>
-        public static readonly RewriteMethod CONSTANT_SCORE_FILTER_REWRITE = new RewriteMethodAnonymousInnerClassHelper();
+        public static readonly RewriteMethod CONSTANT_SCORE_FILTER_REWRITE = new RewriteMethodAnonymousClass();
 
-        private class RewriteMethodAnonymousInnerClassHelper : RewriteMethod
+        private class RewriteMethodAnonymousClass : RewriteMethod
         {
-            public RewriteMethodAnonymousInnerClassHelper()
+            public RewriteMethodAnonymousClass()
             {
             }
 
@@ -242,24 +242,24 @@ namespace Lucene.Net.Search
         /// instance; you'll need to create a private instance
         /// instead.
         /// </summary>
-        public static readonly RewriteMethod CONSTANT_SCORE_AUTO_REWRITE_DEFAULT = new ConstantScoreAutoRewriteAnonymousInnerClassHelper();
+        public static readonly RewriteMethod CONSTANT_SCORE_AUTO_REWRITE_DEFAULT = new ConstantScoreAutoRewriteAnonymousClass();
 
-        private class ConstantScoreAutoRewriteAnonymousInnerClassHelper : ConstantScoreAutoRewrite
+        private class ConstantScoreAutoRewriteAnonymousClass : ConstantScoreAutoRewrite
         {
-            public ConstantScoreAutoRewriteAnonymousInnerClassHelper()
+            public ConstantScoreAutoRewriteAnonymousClass()
             {
             }
 
             public override int TermCountCutoff
             {
                 get => base.TermCountCutoff; // LUCENENET specific - adding getter for API consistency check
-                set => throw new NotSupportedException("Please create a private instance");
+                set => throw UnsupportedOperationException.Create("Please create a private instance");
             }
 
             public override double DocCountPercent
             {
                 get => base.DocCountPercent; // LUCENENET specific - adding getter for API consistency check
-                set => throw new NotSupportedException("Please create a private instance");
+                set => throw UnsupportedOperationException.Create("Please create a private instance");
             }
         }
 
@@ -267,9 +267,9 @@ namespace Lucene.Net.Search
         /// Constructs a query matching terms that cannot be represented with a single
         /// <see cref="Term"/>.
         /// </summary>
-        public MultiTermQuery(string field)
+        protected MultiTermQuery(string field) // LUCENENET: CA1012: Abstract types should not have constructors (marked protected)
         {
-            this.m_field = field ?? throw new ArgumentNullException(nameof(field), "field must not be null");
+            this.m_field = field ?? throw new ArgumentNullException(nameof(field), "field must not be null"); // LUCENENET specific - changed from IllegalArgumentException to ArgumentNullException (.NET convention)
         }
 
         /// <summary>

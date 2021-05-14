@@ -1,4 +1,4 @@
-using Lucene.Net.Diagnostics;
+﻿using Lucene.Net.Diagnostics;
 using Lucene.Net.Index;
 using Lucene.Net.Queries.Function;
 using Lucene.Net.Search;
@@ -33,7 +33,7 @@ namespace Lucene.Net.Expressions
         private double bottom;
         private double topValue;
 
-        private ValueSource source;
+        private readonly ValueSource source; // LUCENENET: marked readonly
         private FunctionValues scores;
         private AtomicReaderContext readerContext;
 
@@ -57,9 +57,9 @@ namespace Lucene.Net.Expressions
                 context["scorer"] = scorer;
                 scores = source.GetValues(context, readerContext);
             }
-            catch (IOException e)
+            catch (Exception e) when (e.IsIOException())
             {
-                throw new Exception(e.ToString(), e);
+                throw RuntimeException.Create(e);
             }
         }
 

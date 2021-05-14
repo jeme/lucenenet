@@ -55,7 +55,9 @@ namespace Lucene.Net.Codecs.SimpleText
     public class SimpleTextTermVectorsReader : TermVectorsReader
     {
         private long[] _offsets; // docid -> offset in .vec file
+#pragma warning disable CA2213 // Disposable fields should be disposed
         private IndexInput _input;
+#pragma warning restore CA2213 // Disposable fields should be disposed
         private readonly BytesRef _scratch = new BytesRef();
         private readonly CharsRef _scratchUtf16 = new CharsRef();
 
@@ -75,7 +77,7 @@ namespace Lucene.Net.Codecs.SimpleText
                     {
                         Dispose();
                     } 
-                    catch (Exception)
+                    catch (Exception t) when (t.IsThrowable())
                     {
                         // ensure we throw our original exception
                     }
@@ -104,7 +106,7 @@ namespace Lucene.Net.Codecs.SimpleText
                 SimpleTextUtil.ReadLine(input, _scratch);
                 if (StringHelper.StartsWith(_scratch, SimpleTextTermVectorsWriter.DOC))
                 {
-                    _offsets[upto] = input.GetFilePointer();
+                    _offsets[upto] = input.Position; // LUCENENET specific: Renamed from getFilePointer() to match FileStream
                     upto++;
                 }
             }
@@ -226,14 +228,14 @@ namespace Lucene.Net.Codecs.SimpleText
                     }
                 }
             }
-            return new SimpleTVFields(this, fields);
+            return new SimpleTVFields(fields);
         }
 
         public override object Clone()
         {
             if (_input == null)
             {
-                throw new ObjectDisposedException(this.GetType().FullName, "this TermVectorsReader is closed");
+                throw AlreadyClosedException.Create(this.GetType().FullName, "this TermVectorsReader is disposed.");
             }
             return new SimpleTextTermVectorsReader(_offsets, (IndexInput)_input.Clone());
         }
@@ -275,12 +277,10 @@ namespace Lucene.Net.Codecs.SimpleText
 
         private class SimpleTVFields : Fields
         {
-            private readonly SimpleTextTermVectorsReader _outerInstance;
             private readonly IDictionary<string, SimpleTVTerms> _fields;
 
-            internal SimpleTVFields(SimpleTextTermVectorsReader outerInstance, IDictionary<string, SimpleTVTerms> fields)
+            internal SimpleTVFields(IDictionary<string, SimpleTVTerms> fields)
             {
-                _outerInstance = outerInstance;
                 _fields = fields;
             }
 
@@ -291,8 +291,7 @@ namespace Lucene.Net.Codecs.SimpleText
 
             public override Terms GetTerms(string field)
             {
-                SimpleTVTerms result;
-                _fields.TryGetValue(field, out result);
+                _fields.TryGetValue(field, out SimpleTVTerms result);
                 return result;
             }
 
@@ -384,7 +383,7 @@ namespace Lucene.Net.Codecs.SimpleText
 
             public override void SeekExact(long ord)
             {
-                throw new NotSupportedException();
+                throw UnsupportedOperationException.Create();
             }
 
             public override bool MoveNext()
@@ -410,7 +409,7 @@ namespace Lucene.Net.Codecs.SimpleText
 
             public override BytesRef Term => _current.Key;
 
-            public override long Ord => throw new NotSupportedException();
+            public override long Ord => throw UnsupportedOperationException.Create();
 
             public override int DocFreq => 1;
 
@@ -542,7 +541,7 @@ namespace Lucene.Net.Codecs.SimpleText
 
             public override BytesRef GetPayload()
             {
-                return _payloads == null ? null : _payloads[_nextPos - 1];
+                return _payloads?[_nextPos - 1];
             }
 
             public override int NextPosition()
@@ -558,7 +557,7 @@ namespace Lucene.Net.Codecs.SimpleText
                 // IndexOutOfRangeException if we didn't, which doesn't really provide good feedback as to what the cause is.
                 // This matches the behavior of Lucene 8.x. See #267.
                 if (((_positions != null && _nextPos < _positions.Length) || _startOffsets != null && _nextPos < _startOffsets.Length) == false)
-                    throw new InvalidOperationException("Read past last position");
+                    throw IllegalStateException.Create("Read past last position");
 
                 if (_positions != null)
                 {

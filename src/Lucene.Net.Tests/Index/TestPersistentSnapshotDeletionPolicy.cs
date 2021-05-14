@@ -1,4 +1,4 @@
-using Lucene.Net.Store;
+﻿using Lucene.Net.Store;
 using Lucene.Net.Util;
 using NUnit.Framework;
 using System;
@@ -113,9 +113,7 @@ namespace Lucene.Net.Index
                 new PersistentSnapshotDeletionPolicy(new KeepOnlyLastCommitDeletionPolicy(), dir, OpenMode.APPEND);
                 Assert.Fail("did not hit expected exception");
             }
-#pragma warning disable 168
-            catch (InvalidOperationException ise)
-#pragma warning restore 168
+            catch (Exception ise) when (ise.IsIllegalStateException())
             {
                 // expected
             }
@@ -126,7 +124,7 @@ namespace Lucene.Net.Index
         public virtual void TestExceptionDuringSave()
         {
             MockDirectoryWrapper dir = NewMockDirectory();
-            dir.FailOn(new FailureAnonymousInnerClassHelper(this, dir));
+            dir.FailOn(new FailureAnonymousClass(this, dir));
             IndexWriter writer = new IndexWriter(dir, GetConfig(Random, new PersistentSnapshotDeletionPolicy(new KeepOnlyLastCommitDeletionPolicy(), dir, OpenMode.CREATE_OR_APPEND)));
             writer.AddDocument(new Document());
             writer.Commit();
@@ -136,7 +134,7 @@ namespace Lucene.Net.Index
             {
                 psdp.Snapshot();
             }
-            catch (IOException ioe)
+            catch (Exception ioe) when (ioe.IsIOException())
             {
                 if (ioe.Message.Equals("now fail on purpose", StringComparison.Ordinal))
                 {
@@ -144,7 +142,7 @@ namespace Lucene.Net.Index
                 }
                 else
                 {
-                    throw ioe;
+                    throw; // LUCENENET: CA2200: Rethrow to preserve stack details (https://docs.microsoft.com/en-us/visualstudio/code-quality/ca2200-rethrow-to-preserve-stack-details)
                 }
             }
             Assert.AreEqual(0, psdp.SnapshotCount);
@@ -153,13 +151,13 @@ namespace Lucene.Net.Index
             dir.Dispose();
         }
 
-        private class FailureAnonymousInnerClassHelper : Failure
+        private class FailureAnonymousClass : Failure
         {
             private readonly TestPersistentSnapshotDeletionPolicy outerInstance;
 
             private MockDirectoryWrapper dir;
 
-            public FailureAnonymousInnerClassHelper(TestPersistentSnapshotDeletionPolicy outerInstance, MockDirectoryWrapper dir)
+            public FailureAnonymousClass(TestPersistentSnapshotDeletionPolicy outerInstance, MockDirectoryWrapper dir)
             {
                 this.outerInstance = outerInstance;
                 this.dir = dir;

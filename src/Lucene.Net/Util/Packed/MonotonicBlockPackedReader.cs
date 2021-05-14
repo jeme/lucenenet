@@ -1,6 +1,8 @@
+﻿using J2N.Numerics;
 using Lucene.Net.Diagnostics;
 using Lucene.Net.Store;
 using System;
+using System.IO;
 
 namespace Lucene.Net.Util.Packed
 {
@@ -53,7 +55,7 @@ namespace Lucene.Net.Util.Packed
                 int bitsPerValue = @in.ReadVInt32();
                 if (bitsPerValue > 64)
                 {
-                    throw new Exception("Corrupted");
+                    throw new IOException("Corrupted");
                 }
                 if (bitsPerValue == 0)
                 {
@@ -64,7 +66,7 @@ namespace Lucene.Net.Util.Packed
                     int size = (int)Math.Min(blockSize, valueCount - (long)i * blockSize);
                     if (direct)
                     {
-                        long pointer = @in.GetFilePointer();
+                        long pointer = @in.Position; // LUCENENET specific: Renamed from getFilePointer() to match FileStream
                         subReaders[i] = PackedInt32s.GetDirectReaderNoHeader(@in, PackedInt32s.Format.PACKED, packedIntsVersion, size, bitsPerValue);
                         @in.Seek(pointer + PackedInt32s.Format.PACKED.ByteCount(packedIntsVersion, size, bitsPerValue));
                     }
@@ -79,7 +81,7 @@ namespace Lucene.Net.Util.Packed
         public override long Get(long index)
         {
             if (Debugging.AssertsEnabled) Debugging.Assert(index >= 0 && index < valueCount);
-            int block = (int)((long)((ulong)index >> blockShift));
+            int block = (int)(index.TripleShift(blockShift));
             int idx = (int)(index & blockMask);
             // LUCENENET NOTE: IMPORTANT: The cast to float is critical here for it to work in x86
             return minValues[block] + (long)(float)(idx * averages[block]) + BlockPackedReaderIterator.ZigZagDecode(subReaders[block].Get(idx));

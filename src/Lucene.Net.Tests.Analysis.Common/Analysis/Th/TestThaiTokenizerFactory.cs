@@ -1,4 +1,5 @@
-﻿#if FEATURE_BREAKITERATOR
+﻿// Lucene version compatibility level 4.8.1
+#if FEATURE_BREAKITERATOR
 using Lucene.Net.Analysis.Util;
 using NUnit.Framework;
 using System;
@@ -59,7 +60,7 @@ namespace Lucene.Net.Analysis.Th
                 TokenizerFactory("Thai", "bogusArg", "bogusValue");
                 fail();
             }
-            catch (ArgumentException expected)
+            catch (Exception expected) when (expected.IsIllegalArgumentException())
             {
                 assertTrue(expected.Message.Contains("Unknown parameters"));
             }

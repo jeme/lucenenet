@@ -1,4 +1,5 @@
-﻿using Lucene.Net.Codecs.Sep;
+﻿using J2N.Numerics;
+using Lucene.Net.Codecs.Sep;
 using Lucene.Net.Diagnostics;
 using Lucene.Net.Store;
 using Lucene.Net.Support;
@@ -118,7 +119,7 @@ namespace Lucene.Net.Codecs.IntBlock
                 // TODO: should we do this in real-time, not lazy?
                 pendingFP = fp;
                 pendingUpto = upto;
-                if (Debugging.AssertsEnabled) Debugging.Assert(pendingUpto >= 0, () => "pendingUpto=" + pendingUpto);
+                if (Debugging.AssertsEnabled) Debugging.Assert(pendingUpto >= 0, "pendingUpto={0}", pendingUpto);
                 seekPending = true;
             }
 
@@ -147,7 +148,7 @@ namespace Lucene.Net.Codecs.IntBlock
                     while (upto >= blockSize)
                     {
                         upto -= blockSize;
-                        lastBlockFP = input.GetFilePointer();
+                        lastBlockFP = input.Position; // LUCENENET specific: Renamed from getFilePointer() to match FileStream
                         blockSize = blockReader.ReadBlock();
                     }
                     seekPending = false;
@@ -159,7 +160,7 @@ namespace Lucene.Net.Codecs.IntBlock
                 this.MaybeSeek();
                 if (upto == blockSize)
                 {
-                    lastBlockFP = input.GetFilePointer();
+                    lastBlockFP = input.Position; // LUCENENET specific: Renamed from getFilePointer() to match FileStream
                     blockSize = blockReader.ReadBlock();
                     upto = 0;
                 }
@@ -193,12 +194,12 @@ namespace Lucene.Net.Codecs.IntBlock
                     if ((uptoDelta & 1) == 1)
                     {
                         // same block
-                        upto += (int)((uint)uptoDelta >> 1);
+                        upto += uptoDelta.TripleShift(1);
                     }
                     else
                     {
                         // new block
-                        upto = (int)((uint)uptoDelta >> 1);
+                        upto = uptoDelta.TripleShift(1);
                         fp += indexIn.ReadVInt64();
                     }
                 }

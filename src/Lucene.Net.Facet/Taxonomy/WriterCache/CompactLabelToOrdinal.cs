@@ -1,4 +1,6 @@
-﻿using System;
+﻿// Lucene version compatibility level 4.8.1
+using J2N.Numerics;
+using System;
 using System.IO;
 using System.Runtime.Serialization;
 
@@ -206,13 +208,11 @@ namespace Lucene.Net.Facet.Taxonomy.WriterCache
             this.collisionMap = new CollisionMap(oldCollisionMap.Capacity, this.labelRepository);
             this.threshold = (int)(this.capacity * this.loadFactor);
 
-            using (var it = oldCollisionMap.GetEnumerator())
+            using var it = oldCollisionMap.GetEnumerator();
+            while (it.MoveNext())
             {
-                while (it.MoveNext())
-                {
-                    var e = it.Current;
-                    AddLabelOffset(StringHashCode(this.labelRepository, e.offset), e.cid, e.offset);
-                }
+                var e = it.Current;
+                AddLabelOffset(StringHashCode(this.labelRepository, e.offset), e.cid, e.offset);
             }
         }
 
@@ -250,7 +250,7 @@ namespace Lucene.Net.Facet.Taxonomy.WriterCache
             }
         }
 
-        private bool AddLabelOffsetToHashArray(HashArray a, int hash, int ordinal, int knownOffset)
+        private static bool AddLabelOffsetToHashArray(HashArray a, int hash, int ordinal, int knownOffset) // LUCENENET: CA1822: Mark members as static
         {
             int index = CompactLabelToOrdinal.IndexFor(hash, a.offsets.Length);
             int offset = a.offsets[index];
@@ -313,10 +313,8 @@ namespace Lucene.Net.Facet.Taxonomy.WriterCache
         {
             int hash = label.GetHashCode();
 
-#pragma warning disable IDE0054 // Use compound assignment
-            hash = hash ^ (((int)((uint)hash >> 20)) ^ ((int)((uint)hash >> 12)));
-            hash = hash ^ ((int)((uint)hash >> 7)) ^ ((int)((uint)hash >> 4));
-#pragma warning restore IDE0054 // Use compound assignment
+            hash = hash ^ hash.TripleShift(20) ^ hash.TripleShift(12);
+            hash = hash ^ hash.TripleShift(7) ^ hash.TripleShift(4);
 
             return hash;
 
@@ -325,10 +323,8 @@ namespace Lucene.Net.Facet.Taxonomy.WriterCache
         internal static int StringHashCode(CharBlockArray labelRepository, int offset)
         {
             int hash = CategoryPathUtils.HashCodeOfSerialized(labelRepository, offset);
-#pragma warning disable IDE0054 // Use compound assignment
-            hash = hash ^ (((int)((uint)hash >> 20)) ^ ((int)((uint)hash >> 12)));
-            hash = hash ^ ((int)((uint)hash >> 7)) ^ ((int)((uint)hash >> 4));
-#pragma warning restore IDE0054 // Use compound assignment
+            hash = hash ^ hash.TripleShift(20) ^ hash.TripleShift(12);
+            hash = hash ^ hash.TripleShift(7) ^ hash.TripleShift(4);
             return hash;
         }
 
@@ -451,8 +447,8 @@ namespace Lucene.Net.Facet.Taxonomy.WriterCache
                     }
                     // Now that we've hashed the components of the label, do the
                     // final part of the hash algorithm.
-                    hash = hash ^ (((int)((uint)hash >> 20)) ^ ((int)((uint)hash >> 12)));
-                    hash = hash ^ ((int)((uint)hash >> 7)) ^ ((int)((uint)hash >> 4));
+                    hash = hash ^ hash.TripleShift(20) ^ hash.TripleShift(12);
+                    hash = hash ^ hash.TripleShift(7) ^ hash.TripleShift(4);
                     // Add the label, and let's keep going
                     l2o.AddLabelOffset(hash, cid, lastStartOffset);
                     cid++;
@@ -479,13 +475,11 @@ namespace Lucene.Net.Facet.Taxonomy.WriterCache
 
         internal virtual void Flush(Stream stream)
         {
-            using (BinaryWriter dos = new BinaryWriter(stream))
-            {
-                dos.Write(this.m_counter);
+            using BinaryWriter dos = new BinaryWriter(stream);
+            dos.Write(this.m_counter);
 
-                // write the labelRepository
-                this.labelRepository.Flush(dos.BaseStream);
-            }
+            // write the labelRepository
+            this.labelRepository.Flush(dos.BaseStream);
         }
 
         private sealed class HashArray

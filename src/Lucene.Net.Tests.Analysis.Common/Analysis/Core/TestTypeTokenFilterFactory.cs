@@ -1,4 +1,5 @@
-﻿using Lucene.Net.Analysis.Util;
+﻿// Lucene version compatibility level 4.8.1
+using Lucene.Net.Analysis.Util;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
@@ -70,7 +71,7 @@ namespace Lucene.Net.Analysis.Core
                 TokenFilterFactory("Type", "enablePositionIncrements", "false");
                 fail("not supplying 'types' parameter should cause an IllegalArgumentException");
             }
-            catch (ArgumentException)
+            catch (Exception e) when (e.IsIllegalArgumentException())
             {
                 // everything ok
             }
@@ -86,7 +87,7 @@ namespace Lucene.Net.Analysis.Core
                 TokenFilterFactory("Type", "types", "stoptypes-1.txt", "bogusArg", "bogusValue");
                 fail();
             }
-            catch (ArgumentException expected)
+            catch (Exception expected) when (expected.IsIllegalArgumentException())
             {
                 assertTrue(expected.Message.Contains("Unknown parameters"));
             }

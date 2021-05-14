@@ -36,27 +36,25 @@ namespace Lucene.Net.Codecs.Appending
 
         public override FieldsConsumer FieldsConsumer(SegmentWriteState state)
         {
-            throw new NotSupportedException("This codec can only be used for reading");
+            throw UnsupportedOperationException.Create("This codec can only be used for reading");
         }
 
         public override FieldsProducer FieldsProducer(SegmentReadState state)
         {
 #pragma warning disable 612, 618
-            using (var postings = new Lucene40PostingsReader(state.Directory, state.FieldInfos,
+            using var postings = new Lucene40PostingsReader(state.Directory, state.FieldInfos,
                 state.SegmentInfo,
-                state.Context, state.SegmentSuffix))
-            {
-                var ret = new AppendingTermsReader(
-                    state.Directory,
-                    state.FieldInfos,
-                    state.SegmentInfo,
-                    postings,
-                    state.Context,
-                    state.SegmentSuffix,
-                    state.TermsIndexDivisor);
+                state.Context, state.SegmentSuffix);
+            var ret = new AppendingTermsReader(
+                state.Directory,
+                state.FieldInfos,
+                state.SegmentInfo,
+                postings,
+                state.Context,
+                state.SegmentSuffix,
+                state.TermsIndexDivisor);
 
-                return ret;
-            }
+            return ret;
 #pragma warning restore 612, 618
         }
     }

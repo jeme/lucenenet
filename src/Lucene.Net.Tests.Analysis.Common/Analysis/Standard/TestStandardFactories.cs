@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿// Lucene version compatibility level 4.8.1
+using System.Text;
 using Lucene.Net.Analysis.Util;
 using NUnit.Framework;
 using System;
@@ -159,7 +160,7 @@ namespace Lucene.Net.Analysis.Standard
                 TokenizerFactory("Standard", "bogusArg", "bogusValue");
                 fail();
             }
-            catch (ArgumentException expected)
+            catch (Exception expected) when (expected.IsIllegalArgumentException())
             {
                 assertTrue(expected.Message.Contains("Unknown parameters"));
             }
@@ -169,7 +170,7 @@ namespace Lucene.Net.Analysis.Standard
                 TokenizerFactory("Classic", "bogusArg", "bogusValue");
                 fail();
             }
-            catch (ArgumentException expected)
+            catch (Exception expected) when (expected.IsIllegalArgumentException())
             {
                 assertTrue(expected.Message.Contains("Unknown parameters"));
             }
@@ -179,7 +180,7 @@ namespace Lucene.Net.Analysis.Standard
                 TokenizerFactory("Whitespace", "bogusArg", "bogusValue");
                 fail();
             }
-            catch (ArgumentException expected)
+            catch (Exception expected) when (expected.IsIllegalArgumentException())
             {
                 assertTrue(expected.Message.Contains("Unknown parameters"));
             }
@@ -189,7 +190,7 @@ namespace Lucene.Net.Analysis.Standard
                 TokenizerFactory("Letter", "bogusArg", "bogusValue");
                 fail();
             }
-            catch (ArgumentException expected)
+            catch (Exception expected) when (expected.IsIllegalArgumentException())
             {
                 assertTrue(expected.Message.Contains("Unknown parameters"));
             }
@@ -199,7 +200,7 @@ namespace Lucene.Net.Analysis.Standard
                 TokenizerFactory("LowerCase", "bogusArg", "bogusValue");
                 fail();
             }
-            catch (ArgumentException expected)
+            catch (Exception expected) when (expected.IsIllegalArgumentException())
             {
                 assertTrue(expected.Message.Contains("Unknown parameters"));
             }
@@ -209,7 +210,7 @@ namespace Lucene.Net.Analysis.Standard
                 TokenFilterFactory("ASCIIFolding", "bogusArg", "bogusValue");
                 fail();
             }
-            catch (ArgumentException expected)
+            catch (Exception expected) when (expected.IsIllegalArgumentException())
             {
                 assertTrue(expected.Message.Contains("Unknown parameters"));
             }
@@ -219,7 +220,7 @@ namespace Lucene.Net.Analysis.Standard
                 TokenFilterFactory("Standard", "bogusArg", "bogusValue");
                 fail();
             }
-            catch (ArgumentException expected)
+            catch (Exception expected) when (expected.IsIllegalArgumentException())
             {
                 assertTrue(expected.Message.Contains("Unknown parameters"));
             }
@@ -229,7 +230,7 @@ namespace Lucene.Net.Analysis.Standard
                 TokenFilterFactory("Classic", "bogusArg", "bogusValue");
                 fail();
             }
-            catch (ArgumentException expected)
+            catch (Exception expected) when (expected.IsIllegalArgumentException())
             {
                 assertTrue(expected.Message.Contains("Unknown parameters"));
             }

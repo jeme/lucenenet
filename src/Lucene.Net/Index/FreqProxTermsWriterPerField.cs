@@ -1,3 +1,4 @@
+﻿using J2N.Numerics;
 using J2N.Text;
 using Lucene.Net.Analysis.TokenAttributes;
 using Lucene.Net.Diagnostics;
@@ -112,9 +113,10 @@ namespace Lucene.Net.Index
             }
             else
             {
-                hasFreq = indexOptions.CompareTo(IndexOptions.DOCS_AND_FREQS) >= 0;
-                hasProx = indexOptions.CompareTo(IndexOptions.DOCS_AND_FREQS_AND_POSITIONS) >= 0;
-                hasOffsets = indexOptions.CompareTo(IndexOptions.DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS) >= 0;
+                // LUCENENET specific - to avoid boxing, changed from CompareTo() to IndexOptionsComparer.Compare()
+                hasFreq = IndexOptionsComparer.Default.Compare(indexOptions, IndexOptions.DOCS_AND_FREQS) >= 0;
+                hasProx = IndexOptionsComparer.Default.Compare(indexOptions, IndexOptions.DOCS_AND_FREQS_AND_POSITIONS) >= 0;
+                hasOffsets = IndexOptionsComparer.Default.Compare(indexOptions, IndexOptions.DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS) >= 0;
             }
         }
 
@@ -248,7 +250,7 @@ namespace Lucene.Net.Index
             }
             else if (docState.docID != postings.lastDocIDs[termID])
             {
-                if (Debugging.AssertsEnabled) Debugging.Assert(docState.docID > postings.lastDocIDs[termID], () => "id: " + docState.docID + " postings ID: " + postings.lastDocIDs[termID] + " termID: " + termID);
+                if (Debugging.AssertsEnabled) Debugging.Assert(docState.docID > postings.lastDocIDs[termID], "id: {0} postings ID: {1} termID: {2}", docState.docID, postings.lastDocIDs[termID], termID);
                 // Term not yet seen in the current doc but previously
                 // seen in other doc(s) since the last flush
 
@@ -418,9 +420,10 @@ namespace Lucene.Net.Index
             IndexOptions currentFieldIndexOptions = fieldInfo.IndexOptions;
             if (Debugging.AssertsEnabled) Debugging.Assert(currentFieldIndexOptions != IndexOptions.NONE);
 
-            bool writeTermFreq = currentFieldIndexOptions.CompareTo(IndexOptions.DOCS_AND_FREQS) >= 0;
-            bool writePositions = currentFieldIndexOptions.CompareTo(IndexOptions.DOCS_AND_FREQS_AND_POSITIONS) >= 0;
-            bool writeOffsets = currentFieldIndexOptions.CompareTo(IndexOptions.DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS) >= 0;
+            // LUCENENET specific - to avoid boxing, changed from CompareTo() to IndexOptionsComparer.Compare()
+            bool writeTermFreq = IndexOptionsComparer.Default.Compare(currentFieldIndexOptions, IndexOptions.DOCS_AND_FREQS) >= 0;
+            bool writePositions = IndexOptionsComparer.Default.Compare(currentFieldIndexOptions, IndexOptions.DOCS_AND_FREQS_AND_POSITIONS) >= 0;
+            bool writeOffsets = IndexOptionsComparer.Default.Compare(currentFieldIndexOptions, IndexOptions.DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS) >= 0;
 
             bool readTermFreq = this.hasFreq;
             bool readPositions = this.hasProx;
@@ -485,9 +488,7 @@ namespace Lucene.Net.Index
                 if (segDeletes != null)
                 {
                     protoTerm.Bytes = text;
-                    int? docIDUpto;
-                    segDeletes.TryGetValue(protoTerm, out docIDUpto);
-                    if (docIDUpto != null)
+                    if (segDeletes.TryGetValue(protoTerm, out int? docIDUpto) && docIDUpto != null)
                     {
                         delDocLimit = docIDUpto;
                     }
@@ -544,7 +545,7 @@ namespace Lucene.Net.Index
                         }
                         else
                         {
-                            docID += (int)((uint)code >> 1);
+                            docID += code.TripleShift(1);
                             if ((code & 1) != 0)
                             {
                                 termFreq = 1;
@@ -559,7 +560,7 @@ namespace Lucene.Net.Index
                     }
 
                     docFreq++;
-                    if (Debugging.AssertsEnabled) Debugging.Assert(docID < state.SegmentInfo.DocCount, () => "doc=" + docID + " maxDoc=" + state.SegmentInfo.DocCount);
+                    if (Debugging.AssertsEnabled) Debugging.Assert(docID < state.SegmentInfo.DocCount,"doc={0} maxDoc={1}", docID, state.SegmentInfo.DocCount);
 
                     // NOTE: we could check here if the docID was
                     // deleted, and skip it.  However, this is somewhat
@@ -610,7 +611,7 @@ namespace Lucene.Net.Index
                             if (readPositions)
                             {
                                 int code = prox.ReadVInt32();
-                                position += (int)((uint)code >> 1);
+                                position += code.TripleShift(1);
 
                                 if ((code & 1) != 0)
                                 {
@@ -644,7 +645,7 @@ namespace Lucene.Net.Index
                                     {
                                         if (writeOffsets)
                                         {
-                                            if (Debugging.AssertsEnabled) Debugging.Assert(startOffset >= 0 && endOffset >= startOffset, () => "startOffset=" + startOffset + ",endOffset=" + endOffset + ",offset=" + offset);
+                                            if (Debugging.AssertsEnabled) Debugging.Assert(startOffset >= 0 && endOffset >= startOffset, "startOffset={0},endOffset={1},offset={2}", startOffset, endOffset, offset);
                                             postingsConsumer.AddPosition(position, thisPayload, startOffset, endOffset);
                                         }
                                         else
@@ -668,7 +669,7 @@ namespace Lucene.Net.Index
                 sumDocFreq += docFreq;
             }
 
-            termsConsumer.Finish(writeTermFreq ? sumTotalTermFreq : -1, sumDocFreq, visitedDocs.Cardinality());
+            termsConsumer.Finish(writeTermFreq ? sumTotalTermFreq : -1, sumDocFreq, visitedDocs.Cardinality);
         }
     }
 }

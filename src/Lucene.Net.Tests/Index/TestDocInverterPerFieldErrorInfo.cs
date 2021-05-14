@@ -1,4 +1,4 @@
-using Lucene.Net.Analysis;
+﻿using Lucene.Net.Analysis;
 using Lucene.Net.Documents;
 using Lucene.Net.Support.IO;
 using NUnit.Framework;
@@ -45,7 +45,7 @@ namespace Lucene.Net.Index
     {
         private static readonly FieldType storedTextType = new FieldType(TextField.TYPE_NOT_STORED);
 
-        private class BadNews : Exception
+        private class BadNews : Exception, IRuntimeException // LUCENENET specific: Added IRuntimeException for identification of the Java superclass in .NET
         {
             internal BadNews(string message)
                 : base(message)
@@ -60,7 +60,7 @@ namespace Lucene.Net.Index
                 Tokenizer tokenizer = new MockTokenizer(input);
                 if (fieldName.Equals("distinctiveFieldName", StringComparison.Ordinal))
                 {
-                    TokenFilter tosser = new TokenFilterAnonymousInnerClassHelper(this, tokenizer);
+                    TokenFilter tosser = new TokenFilterAnonymousClass(this, tokenizer);
                     return new TokenStreamComponents(tokenizer, tosser);
                 }
                 else
@@ -69,11 +69,11 @@ namespace Lucene.Net.Index
                 }
             }
 
-            private class TokenFilterAnonymousInnerClassHelper : TokenFilter
+            private class TokenFilterAnonymousClass : TokenFilter
             {
                 private readonly ThrowingAnalyzer outerInstance;
 
-                public TokenFilterAnonymousInnerClassHelper(ThrowingAnalyzer outerInstance, Tokenizer tokenizer)
+                public TokenFilterAnonymousClass(ThrowingAnalyzer outerInstance, Tokenizer tokenizer)
                     : base(tokenizer)
                 {
                     this.outerInstance = outerInstance;

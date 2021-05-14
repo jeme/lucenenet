@@ -105,12 +105,12 @@ namespace Lucene.Net.Search
             r = DirectoryReader.Open(dir);
             atomicReader = GetOnlySegmentReader(r);
             searcher = new IndexSearcher(atomicReader);
-            searcher.Similarity = new DefaultSimilarityAnonymousInnerClassHelper();
+            searcher.Similarity = new DefaultSimilarityAnonymousClass();
         }
 
-        private class DefaultSimilarityAnonymousInnerClassHelper : DefaultSimilarity
+        private class DefaultSimilarityAnonymousClass : DefaultSimilarity
         {
-            public DefaultSimilarityAnonymousInnerClassHelper()
+            public DefaultSimilarityAnonymousClass()
             {
             }
 
@@ -384,7 +384,7 @@ namespace Lucene.Net.Search
 
             public override float GetScore()
             {
-                if (Debugging.AssertsEnabled) Debugging.Assert(score != 0, currentMatched.ToString);
+                if (Debugging.AssertsEnabled) Debugging.Assert(score != 0, currentMatched.ToString());
                 return (float)score * ((BooleanWeight)m_weight).Coord(currentMatched, ((BooleanWeight)m_weight).MaxCoord);
             }
 

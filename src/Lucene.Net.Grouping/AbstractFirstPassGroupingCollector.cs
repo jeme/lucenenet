@@ -67,11 +67,11 @@ namespace Lucene.Net.Search.Grouping
         /// </param>
         /// <param name="topNGroups">How many top groups to keep.</param>
         /// <exception cref="IOException">If I/O related errors occur</exception>
-        public AbstractFirstPassGroupingCollector(Sort groupSort, int topNGroups)
+        protected AbstractFirstPassGroupingCollector(Sort groupSort, int topNGroups) // LUCENENET: CA1012: Abstract types should not have constructors (marked protected)
         {
             if (topNGroups < 1)
             {
-                throw new ArgumentException("topNGroups must be >= 1 (got " + topNGroups + ")");
+                throw new ArgumentOutOfRangeException("topNGroups must be >= 1 (got " + topNGroups + ")"); // LUCENENET specific - changed from IllegalArgumentException to ArgumentOutOfRangeException (.NET convention)
             }
 
             // TODO: allow null groupSort to mean "by relevance",
@@ -112,7 +112,7 @@ namespace Lucene.Net.Search.Grouping
 
             if (groupOffset < 0)
             {
-                throw new ArgumentException("groupOffset must be >= 0 (got " + groupOffset + ")");
+                throw new ArgumentOutOfRangeException("groupOffset must be >= 0 (got " + groupOffset + ")"); // LUCENENET specific - changed from IllegalArgumentException to ArgumentOutOfRangeException (.NET convention)
             }
 
             if (groupMap.Count <= groupOffset)
@@ -202,8 +202,7 @@ namespace Lucene.Net.Search.Grouping
             // under null group)?
             TGroupValue groupValue = GetDocGroupValue(doc);
 
-            CollectedSearchGroup<TGroupValue> group;
-            if (!groupMap.TryGetValue(groupValue, out group))
+            if (!groupMap.TryGetValue(groupValue, out CollectedSearchGroup<TGroupValue> group))
             {
 
                 // First time we are seeing this group, or, we've seen
@@ -219,7 +218,7 @@ namespace Lucene.Net.Search.Grouping
 
                     // Add a new CollectedSearchGroup:
                     CollectedSearchGroup<TGroupValue> sg = new CollectedSearchGroup<TGroupValue>();
-                    sg.GroupValue = CopyDocGroupValue(groupValue, default(TGroupValue));
+                    sg.GroupValue = CopyDocGroupValue(groupValue, default);
                     sg.ComparerSlot = groupMap.Count;
                     sg.TopDoc = docBase + doc;
                     foreach (FieldComparer fc in comparers)

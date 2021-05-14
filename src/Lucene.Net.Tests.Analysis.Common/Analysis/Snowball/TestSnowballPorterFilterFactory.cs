@@ -1,4 +1,5 @@
-﻿using J2N.Text;
+﻿// Lucene version compatibility level 4.8.1
+using J2N.Text;
 using Lucene.Net.Analysis.Util;
 using Lucene.Net.Tartarus.Snowball.Ext;
 using NUnit.Framework;
@@ -72,7 +73,7 @@ namespace Lucene.Net.Analysis.Snowball
                 TokenFilterFactory("SnowballPorter", "bogusArg", "bogusValue");
                 fail();
             }
-            catch (ArgumentException expected)
+            catch (Exception expected) when (expected.IsIllegalArgumentException())
             {
                 assertTrue(expected.Message.Contains("Unknown parameters"));
             }

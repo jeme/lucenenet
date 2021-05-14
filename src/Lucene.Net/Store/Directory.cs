@@ -1,3 +1,4 @@
+﻿using Lucene.Net.Support;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -194,14 +195,14 @@ namespace Lucene.Net.Store
         {
             IndexOutput os = null;
             IndexInput @is = null;
-            IOException priorException = null;
+            Exception priorException = null; // LUCENENET: No need to cast to IOExcpetion
             try
             {
                 os = to.CreateOutput(dest, context);
                 @is = OpenInput(src, context);
                 os.CopyBytes(@is, @is.Length);
             }
-            catch (IOException ioe)
+            catch (Exception ioe) when (ioe.IsIOException())
             {
                 priorException = ioe;
             }
@@ -221,7 +222,7 @@ namespace Lucene.Net.Store
                         {
                             to.DeleteFile(dest);
                         }
-                        catch (Exception)
+                        catch (Exception t) when (t.IsThrowable())
                         {
                         }
                     }
@@ -246,25 +247,17 @@ namespace Lucene.Net.Store
         public virtual IndexInputSlicer CreateSlicer(string name, IOContext context)
         {
             EnsureOpen();
-            return new IndexInputSlicerAnonymousInnerClassHelper(this, name, context);
+            return new IndexInputSlicerAnonymousClass(OpenInput(name, context));
         }
 
-        private class IndexInputSlicerAnonymousInnerClassHelper : IndexInputSlicer
+        private class IndexInputSlicerAnonymousClass : IndexInputSlicer
         {
-            private readonly Directory outerInstance;
-
-            private string name;
-            private IOContext context;
-
-            public IndexInputSlicerAnonymousInnerClassHelper(Directory outerInstance, string name, IOContext context)
-            {
-                this.outerInstance = outerInstance;
-                this.name = name;
-                this.context = context;
-                @base = outerInstance.OpenInput(name, context);
-            }
-
             private readonly IndexInput @base;
+
+            public IndexInputSlicerAnonymousClass(IndexInput @base)
+            {
+                this.@base = @base;
+            }
 
             public override IndexInput OpenSlice(string sliceDescription, long offset, long length)
             {
@@ -361,10 +354,10 @@ namespace Lucene.Net.Store
             /// <param name="len"> the number of bytes to read </param>
             protected override void ReadInternal(byte[] b, int offset, int len)
             {
-                long start = GetFilePointer();
+                long start = Position; // LUCENENET specific: Renamed from getFilePointer() to match FileStream
                 if (start + len > length)
                 {
-                    throw new Exception("read past EOF: " + this);
+                    throw EOFException.Create("read past EOF: " + this);
                 }
                 @base.Seek(fileOffset + start);
                 @base.ReadBytes(b, offset, len, false);
@@ -391,6 +384,24 @@ namespace Lucene.Net.Store
             }
 
             public override long Length => length;
+        }
+
+        // LUCENENET specific - formatter to defer building the string of directory contents in string.Format().
+        // This struct is meant to wrap a directory parameter when passed as a string.Format() argument.
+        internal struct ListAllFormatter // For assert/test/debug
+        {
+#pragma warning disable IDE0044 // Add readonly modifier
+            private Directory directory;
+#pragma warning restore IDE0044 // Add readonly modifier
+            public ListAllFormatter(Directory directory)
+            {
+                this.directory = directory ?? throw new ArgumentNullException(nameof(directory));
+            }
+
+            public override string ToString()
+            {
+                return Arrays.ToString(directory.ListAll());
+            }
         }
     }
 }

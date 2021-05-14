@@ -302,9 +302,9 @@ namespace Lucene.Net.Search.Grouping
             {
                 var group = results[i];
                 object gv = group.GroupValue;
-                if (gv is BytesRef)
+                if (gv is BytesRef bytesRef)
                 {
-                    Console.WriteLine(i + ": groupValue=" + ((BytesRef)gv).Utf8ToString());
+                    Console.WriteLine(i + ": groupValue=" + bytesRef.Utf8ToString());
                 }
                 else
                 {
@@ -312,9 +312,9 @@ namespace Lucene.Net.Search.Grouping
                 }
                 foreach (object o in group.UniqueValues)
                 {
-                    if (o is BytesRef)
+                    if (o is BytesRef bytesRef2)
                     {
-                        Console.WriteLine("  " + ((BytesRef)o).Utf8ToString());
+                        Console.WriteLine("  " + bytesRef2.Utf8ToString());
                     }
                     else
                     {
@@ -424,7 +424,7 @@ namespace Lucene.Net.Search.Grouping
         {
             Random random = Random;
             IEnumerable<ISearchGroup<T>> searchGroups = firstPassGroupingCollector.GetTopGroups(0, false);
-            if (typeof(FunctionFirstPassGroupingCollector).IsAssignableFrom(firstPassGroupingCollector.GetType()))
+            if (typeof(FunctionFirstPassGroupingCollector<MutableValue>).IsAssignableFrom(firstPassGroupingCollector.GetType()))     // LUCENENET Specific type for generic must be specified.
             {
                 return (IAbstractDistinctValuesCollector<AbstractDistinctValuesCollector.IGroupCount<T>>)new FunctionDistinctValuesCollector(new Hashtable(), new BytesRefFieldSource(groupField), new BytesRefFieldSource(countField), searchGroups as IEnumerable<ISearchGroup<MutableValue>>);
             }
@@ -441,7 +441,7 @@ namespace Lucene.Net.Search.Grouping
             {
                 if (random.nextBoolean())
                 {
-                    return new FunctionFirstPassGroupingCollector(new BytesRefFieldSource(groupField), new Hashtable(), groupSort, topNGroups)
+                    return new FunctionFirstPassGroupingCollector<MutableValue>(new BytesRefFieldSource(groupField), new Hashtable(), groupSort, topNGroups)        // LUCENENET Specific type for generic must be specified.
                         as IAbstractFirstPassGroupingCollector<IComparable>;
                 }
                 else
@@ -454,7 +454,7 @@ namespace Lucene.Net.Search.Grouping
             {
                 if (random.nextBoolean())
                 {
-                    return new FunctionFirstPassGroupingCollector(new BytesRefFieldSource(groupField), new Hashtable(), groupSort, topNGroups)
+                    return new FunctionFirstPassGroupingCollector<MutableValue>(new BytesRefFieldSource(groupField), new Hashtable(), groupSort, topNGroups)        // LUCENENET Specific type for generic must be specified.
                         as IAbstractFirstPassGroupingCollector<IComparable>;
                 }
                 else
@@ -534,16 +534,14 @@ namespace Lucene.Net.Search.Grouping
                 string groupValue = random.nextInt(23) == 14 ? null : groupValues[random.nextInt(groupValues.Length)];
                 string countValue = random.nextInt(21) == 13 ? null : countValues[random.nextInt(countValues.Length)];
                 string content = "random" + random.nextInt(numDocs / 20);
-                IDictionary<string, ISet<string>> groupToCounts;
-                if (!searchTermToGroupCounts.TryGetValue(content, out groupToCounts))
+                if (!searchTermToGroupCounts.TryGetValue(content, out var groupToCounts))
                 {
                     // Groups sort always DOCID asc...
                     searchTermToGroupCounts.Add(content, groupToCounts = new JCG.LinkedDictionary<string, ISet<string>>());
                     contentStrings.Add(content);
                 }
 
-                ISet<string> countsVals;
-                if (!groupToCounts.TryGetValue(groupValue, out countsVals))
+                if (!groupToCounts.TryGetValue(groupValue, out var countsVals))
                 {
                     groupToCounts.Add(groupValue, countsVals = new JCG.HashSet<string>());
                 }

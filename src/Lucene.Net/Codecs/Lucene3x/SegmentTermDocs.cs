@@ -1,6 +1,8 @@
+﻿using J2N.Numerics;
 using Lucene.Net.Diagnostics;
 using System;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using IBits = Lucene.Net.Util.IBits;
 
 namespace Lucene.Net.Codecs.Lucene3x
@@ -45,8 +47,8 @@ namespace Lucene.Net.Codecs.Lucene3x
         internal int doc = 0;
         internal int freq;
 
-        private int skipInterval;
-        private int maxSkipLevels;
+        private readonly int skipInterval; // LUCENENET: marked readonly
+        private readonly int maxSkipLevels; // LUCENENET: marked readonly
         private Lucene3xSkipListReader skipListReader;
 
         private long freqBasePointer;
@@ -67,6 +69,7 @@ namespace Lucene.Net.Codecs.Lucene3x
             maxSkipLevels = tis.MaxSkipLevels;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public virtual void Seek(Term term)
         {
             TermInfo ti = tis.Get(term);
@@ -121,12 +124,14 @@ namespace Lucene.Net.Codecs.Lucene3x
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Dispose()
         {
             Dispose(true);
             GC.SuppressFinalize(this);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         protected virtual void Dispose(bool disposing)
         {
             if (disposing)
@@ -143,6 +148,7 @@ namespace Lucene.Net.Codecs.Lucene3x
 
         public int Freq => freq;
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         protected internal virtual void SkippingDoc()
         {
         }
@@ -163,7 +169,7 @@ namespace Lucene.Net.Codecs.Lucene3x
                 }
                 else
                 {
-                    doc += (int)((uint)docCode >> 1); // shift off low bit
+                    doc += docCode.TripleShift(1); // shift off low bit
                     if ((docCode & 1) != 0) // if low bit is set
                     {
                         freq = 1; // freq is one
@@ -202,7 +208,7 @@ namespace Lucene.Net.Codecs.Lucene3x
                 {
                     // manually inlined call to next() for speed
                     int docCode = m_freqStream.ReadVInt32();
-                    doc += (int)((uint)docCode >> 1); // shift off low bit
+                    doc += docCode.TripleShift(1); // shift off low bit
                     if ((docCode & 1) != 0) // if low bit is set
                     {
                         freq = 1; // freq is one
@@ -247,6 +253,7 @@ namespace Lucene.Net.Codecs.Lucene3x
 
         /// <summary>
         /// Overridden by <see cref="SegmentTermPositions"/> to skip in prox stream. </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         protected internal virtual void SkipProx(long proxPointer, int payloadLength)
         {
         }

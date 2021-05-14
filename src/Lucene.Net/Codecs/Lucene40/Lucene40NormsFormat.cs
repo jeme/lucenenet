@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.CompilerServices;
 
 namespace Lucene.Net.Codecs.Lucene40
 {
@@ -48,9 +49,10 @@ namespace Lucene.Net.Codecs.Lucene40
 
         public override DocValuesConsumer NormsConsumer(SegmentWriteState state)
         {
-            throw new NotSupportedException("this codec can only be used for reading");
+            throw UnsupportedOperationException.Create("this codec can only be used for reading");
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override DocValuesProducer NormsProducer(SegmentReadState state)
         {
             string filename = IndexFileNames.SegmentFileName(state.SegmentInfo.Name, "nrm", IndexFileNames.COMPOUND_FILE_EXTENSION);

@@ -1,4 +1,4 @@
-using J2N.Text;
+﻿using J2N.Text;
 using Lucene.Net.Diagnostics;
 using Lucene.Net.Index;
 using Lucene.Net.Store;
@@ -30,7 +30,9 @@ namespace Lucene.Net.Codecs.Lucene3x
     {
         private readonly Directory directory;
         private readonly string segment;
+#pragma warning disable CA2213 // Disposable fields should be disposed
         private IndexOutput tvx = null, tvd = null, tvf = null;
+#pragma warning restore CA2213 // Disposable fields should be disposed
 
         public PreFlexRWTermVectorsWriter(Directory directory, string segment, IOContext context)
         {
@@ -61,8 +63,8 @@ namespace Lucene.Net.Codecs.Lucene3x
         {
             lastFieldName = null;
             this.numVectorFields = numVectorFields;
-            tvx.WriteInt64(tvd.GetFilePointer());
-            tvx.WriteInt64(tvf.GetFilePointer());
+            tvx.WriteInt64(tvd.Position); // LUCENENET specific: Renamed from getFilePointer() to match FileStream
+            tvx.WriteInt64(tvf.Position); // LUCENENET specific: Renamed from getFilePointer() to match FileStream
             tvd.WriteVInt32(numVectorFields);
             fieldCount = 0;
             fps = ArrayUtil.Grow(fps, numVectorFields);
@@ -75,16 +77,16 @@ namespace Lucene.Net.Codecs.Lucene3x
 
         public override void StartField(FieldInfo info, int numTerms, bool positions, bool offsets, bool payloads)
         {
-            if (Debugging.AssertsEnabled) Debugging.Assert(lastFieldName == null || info.Name.CompareToOrdinal(lastFieldName) > 0, () => "fieldName=" + info.Name + " lastFieldName=" + lastFieldName);
+            if (Debugging.AssertsEnabled) Debugging.Assert(lastFieldName == null || info.Name.CompareToOrdinal(lastFieldName) > 0,"fieldName={0} lastFieldName={1}", info.Name, lastFieldName);
             lastFieldName = info.Name;
             if (payloads)
             {
-                throw new NotSupportedException("3.x codec does not support payloads on vectors!");
+                throw UnsupportedOperationException.Create("3.x codec does not support payloads on vectors!");
             }
             this.positions = positions;
             this.offsets = offsets;
             lastTerm.Length = 0;
-            fps[fieldCount++] = tvf.GetFilePointer();
+            fps[fieldCount++] = tvf.Position; // LUCENENET specific: Renamed from getFilePointer() to match FileStream
             tvd.WriteVInt32(info.Number);
             tvf.WriteVInt32(numTerms);
             sbyte bits = 0x0;
@@ -192,24 +194,24 @@ namespace Lucene.Net.Codecs.Lucene3x
             {
                 Dispose();
             }
-#pragma warning disable 168
-            catch (Exception ignored)
-#pragma warning restore 168
+            catch (Exception ignored) when (ignored.IsThrowable())
             {
             }
-            IOUtils.DeleteFilesIgnoringExceptions(directory, IndexFileNames.SegmentFileName(segment, "", Lucene3xTermVectorsReader.VECTORS_INDEX_EXTENSION), IndexFileNames.SegmentFileName(segment, "", Lucene3xTermVectorsReader.VECTORS_DOCUMENTS_EXTENSION), IndexFileNames.SegmentFileName(segment, "", Lucene3xTermVectorsReader.VECTORS_FIELDS_EXTENSION));
+            IOUtils.DeleteFilesIgnoringExceptions(directory, IndexFileNames.SegmentFileName(segment, "", Lucene3xTermVectorsReader.VECTORS_INDEX_EXTENSION),
+                IndexFileNames.SegmentFileName(segment, "", Lucene3xTermVectorsReader.VECTORS_DOCUMENTS_EXTENSION),
+                IndexFileNames.SegmentFileName(segment, "", Lucene3xTermVectorsReader.VECTORS_FIELDS_EXTENSION));
         }
 
         public override void Finish(FieldInfos fis, int numDocs)
         {
-            if (4 + ((long)numDocs) * 16 != tvx.GetFilePointer())
+            if (4 + ((long)numDocs) * 16 != tvx.Position) // LUCENENET specific: Renamed from getFilePointer() to match FileStream
             // this is most likely a bug in Sun JRE 1.6.0_04/_05;
             // we detect that the bug has struck, here, and
             // throw an exception to prevent the corruption from
             // entering the index.  See LUCENE-1282 for
             // details.
             {
-                throw new Exception("tvx size mismatch: mergedDocs is " + numDocs + " but tvx size is " + tvx.GetFilePointer() + " file=" + tvx.ToString() + "; now aborting this merge to prevent index corruption");
+                throw RuntimeException.Create("tvx size mismatch: mergedDocs is " + numDocs + " but tvx size is " + tvx.Position + " file=" + tvx.ToString() + "; now aborting this merge to prevent index corruption");
             }
         }
 
@@ -217,10 +219,13 @@ namespace Lucene.Net.Codecs.Lucene3x
         /// Close all streams. </summary>
         protected override void Dispose(bool disposing)
         {
-            // make an effort to close all streams we can but remember and re-throw
-            // the first exception encountered in this process
-            IOUtils.Dispose(tvx, tvd, tvf);
-            tvx = tvd = tvf = null;
+            if (disposing)
+            {
+                // make an effort to close all streams we can but remember and re-throw
+                // the first exception encountered in this process
+                IOUtils.Dispose(tvx, tvd, tvf);
+                tvx = tvd = tvf = null;
+            }
         }
 
         public override IComparer<BytesRef> Comparer => BytesRef.UTF8SortedAsUTF16Comparer;

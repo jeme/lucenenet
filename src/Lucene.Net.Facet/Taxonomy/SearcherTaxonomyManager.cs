@@ -1,4 +1,5 @@
-﻿using Lucene.Net.Search;
+﻿// Lucene version compatibility level 4.8.1
+using Lucene.Net.Search;
 using System;
 
 namespace Lucene.Net.Facet.Taxonomy
@@ -166,7 +167,7 @@ namespace Lucene.Net.Facet.Taxonomy
                 else if (taxoWriter != null && taxoWriter.TaxonomyEpoch != taxoEpoch)
                 {
                     IOUtils.Dispose(newReader, tr);
-                    throw new InvalidOperationException("DirectoryTaxonomyWriter.replaceTaxonomy was called, which is not allowed when using SearcherTaxonomyManager");
+                    throw IllegalStateException.Create("DirectoryTaxonomyWriter.ReplaceTaxonomy() was called, which is not allowed when using SearcherTaxonomyManager");
                 }
 
                 return new SearcherAndTaxonomy(SearcherManager.GetSearcher(searcherFactory, newReader), tr);

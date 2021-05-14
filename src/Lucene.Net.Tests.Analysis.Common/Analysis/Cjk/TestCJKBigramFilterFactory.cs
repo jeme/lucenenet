@@ -1,4 +1,5 @@
-﻿using System;
+﻿// Lucene version compatibility level 4.8.1
+using System;
 using NUnit.Framework;
 using Lucene.Net.Analysis.Util;
 using System.IO;
@@ -64,7 +65,7 @@ namespace Lucene.Net.Analysis.Cjk
                 TokenFilterFactory("CJKBigram", "bogusArg", "bogusValue");
                 fail();
             }
-            catch (ArgumentException expected)
+            catch (Exception expected) when (expected.IsIllegalArgumentException())
             {
                 assertTrue(expected.Message.Contains("Unknown parameters"));
             }

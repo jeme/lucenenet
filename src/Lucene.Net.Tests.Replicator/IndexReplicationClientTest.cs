@@ -1,4 +1,4 @@
-using J2N.Threading.Atomic;
+﻿using J2N.Threading.Atomic;
 using Lucene.Net.Attributes;
 using Lucene.Net.Diagnostics;
 using Lucene.Net.Documents;
@@ -10,6 +10,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Runtime.ExceptionServices;
 using System.Threading;
 using Console = Lucene.Net.Util.SystemConsole;
 using Directory = Lucene.Net.Store.Directory;
@@ -39,7 +40,9 @@ namespace Lucene.Net.Replicator
         private class IndexReadyCallback : IDisposable
         {
             private readonly Directory indexDir;
+#pragma warning disable CA2213 // Disposable fields should be disposed
             private DirectoryReader reader;
+#pragma warning restore CA2213 // Disposable fields should be disposed
             private long lastGeneration = -1;
 
             public IndexReadyCallback(Directory indexDir)
@@ -98,6 +101,8 @@ namespace Lucene.Net.Replicator
             {
                 // give client a chance to update
                 Thread.Sleep(100);
+                // LUCENENET NOTE: No need to catch and rethrow same excepton type ThreadInterruptedException.
+
                 try
                 {
                     DirectoryReader reader = DirectoryReader.Open(dir);
@@ -245,14 +250,14 @@ namespace Lucene.Net.Replicator
             AtomicInt32 failures = new AtomicInt32(AtLeast(10));
 
             // wrap sourceDirFactory to return a MockDirWrapper so we can simulate errors
-            sourceDirFactory = new SourceDirectoryFactoryAnonymousInnerClass(this, @in, failures);
+            sourceDirFactory = new SourceDirectoryFactoryAnonymousClass(this, @in, failures);
             handler = new IndexReplicationHandler(handlerDir, () =>
             {
                 if (Random.NextDouble() < 0.2 && failures > 0)
                     throw new Exception("random exception from callback");
                 return null;
             });
-            client = new ReplicationClientAnonymousInnerClass(this, replicator, handler, sourceDirFactory, failures);
+            client = new ReplicationClientAnonymousClass(this, replicator, handler, sourceDirFactory, failures);
             client.StartUpdateThread(10, "index");
 
             Directory baseHandlerDir = handlerDir.Delegate;
@@ -270,7 +275,7 @@ namespace Lucene.Net.Replicator
             handlerDir.RandomIOExceptionRateOnOpen = 0.0;
         }
 
-        private class SourceDirectoryFactoryAnonymousInnerClass : ISourceDirectoryFactory
+        private class SourceDirectoryFactoryAnonymousClass : ISourceDirectoryFactory
         {
             private long clientMaxSize = 100, handlerMaxSize = 100;
             private double clientExRate = 1.0, handlerExRate = 1.0;
@@ -279,7 +284,7 @@ namespace Lucene.Net.Replicator
             private readonly ISourceDirectoryFactory @in;
             private readonly AtomicInt32 failures;
 
-            public SourceDirectoryFactoryAnonymousInnerClass(IndexReplicationClientTest test, ISourceDirectoryFactory @in, AtomicInt32 failures)
+            public SourceDirectoryFactoryAnonymousClass(IndexReplicationClientTest test, ISourceDirectoryFactory @in, AtomicInt32 failures)
             {
                 this.test = test;
                 this.@in = @in;
@@ -325,12 +330,12 @@ namespace Lucene.Net.Replicator
             }
         }
 
-        private class ReplicationClientAnonymousInnerClass : ReplicationClient
+        private class ReplicationClientAnonymousClass : ReplicationClient
         {
             private readonly IndexReplicationClientTest test;
             private readonly AtomicInt32 failures;
 
-            public ReplicationClientAnonymousInnerClass(IndexReplicationClientTest test, IReplicator replicator, IReplicationHandler handler, ISourceDirectoryFactory factory, AtomicInt32 failures)
+            public ReplicationClientAnonymousClass(IndexReplicationClientTest test, IReplicator replicator, IReplicationHandler handler, ISourceDirectoryFactory factory, AtomicInt32 failures)
                 : base(replicator, handler, factory)
             {
                 this.test = test;
@@ -367,7 +372,7 @@ namespace Lucene.Net.Replicator
                     {
                         // count-down number of failures
                         failures.DecrementAndGet();
-                        if (Debugging.AssertsEnabled) Debugging.Assert(failures >= 0, () => "handler failed too many times: " + failures);
+                        if (Debugging.AssertsEnabled) Debugging.Assert(failures >= 0,"handler failed too many times: {0}", failures);
                         if (Verbose)
                         {
                             if (failures == 0)
@@ -383,7 +388,7 @@ namespace Lucene.Net.Replicator
                 }
                 else
                 {
-                    throw exception;
+                    ExceptionDispatchInfo.Capture(exception).Throw(); // LUCENENET: Rethrow to preserve stack details from the original throw
                 }
             }
         }

@@ -1,10 +1,11 @@
-using J2N.Threading;
+﻿using J2N.Threading;
 using Lucene.Net.Diagnostics;
 using Lucene.Net.Documents;
 using Lucene.Net.Index.Extensions;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
+using System.Runtime.ExceptionServices;
 using System.Threading;
 using Assert = Lucene.Net.TestFramework.Assert;
 using Console = Lucene.Net.Util.SystemConsole;
@@ -405,11 +406,11 @@ namespace Lucene.Net.Index
 
                     IndexWriter finalWriter = writer;
                     List<Exception> failure = new List<Exception>();
-                    ThreadJob t1 = new ThreadAnonymousInnerClassHelper(this, doc, finalWriter, failure);
+                    ThreadJob t1 = new ThreadAnonymousClass(this, doc, finalWriter, failure);
 
                     if (failure.Count > 0)
                     {
-                        throw failure[0];
+                        ExceptionDispatchInfo.Capture(failure[0]).Throw(); // LUCENENET: Rethrow to preserve stack details from the original throw
                     }
 
                     t1.Start();
@@ -430,7 +431,7 @@ namespace Lucene.Net.Index
             directory.Dispose();
         }
 
-        private class ThreadAnonymousInnerClassHelper : ThreadJob
+        private class ThreadAnonymousClass : ThreadJob
         {
             private readonly TestIndexWriterMerging outerInstance;
 
@@ -438,7 +439,7 @@ namespace Lucene.Net.Index
             private IndexWriter finalWriter;
             private List<Exception> failure;
 
-            public ThreadAnonymousInnerClassHelper(TestIndexWriterMerging outerInstance, Document doc, IndexWriter finalWriter, List<Exception> failure)
+            public ThreadAnonymousClass(TestIndexWriterMerging outerInstance, Document doc, IndexWriter finalWriter, List<Exception> failure)
             {
                 this.outerInstance = outerInstance;
                 this.doc = doc;
@@ -457,9 +458,7 @@ namespace Lucene.Net.Index
                         {
                             finalWriter.AddDocument(doc);
                         }
-#pragma warning disable 168
-                        catch (ObjectDisposedException e)
-#pragma warning restore 168
+                        catch (Exception e) when (e.IsAlreadyClosedException())
                         {
                             done = true;
                             break;
@@ -471,7 +470,7 @@ namespace Lucene.Net.Index
                             done = true;
                             break;
                         }
-                        catch (Exception e)
+                        catch (Exception e) when (e.IsThrowable())
                         {
                             Console.WriteLine(e.StackTrace);
                             failure.Add(e);

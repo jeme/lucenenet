@@ -1,4 +1,4 @@
-using Lucene.Net.Support;
+﻿using Lucene.Net.Support;
 using System;
 using System.Collections.Generic;
 
@@ -85,7 +85,7 @@ namespace Lucene.Net.Index
             // at the start
             if (compiled.Type != CompiledAutomaton.AUTOMATON_TYPE.NORMAL)
             {
-                throw new ArgumentException("please use CompiledAutomaton.getTermsEnum instead");
+                throw new ArgumentException("please use CompiledAutomaton.TermsEnum instead");
             }
             if (startTerm == null)
             {
@@ -93,20 +93,17 @@ namespace Lucene.Net.Index
             }
             else
             {
-                return new AutomatonTermsEnumAnonymousInnerClassHelper(this, GetEnumerator(), compiled, startTerm);
+                return new AutomatonTermsEnumAnonymousClass(GetEnumerator(), compiled, startTerm);
             }
         }
 
-        private class AutomatonTermsEnumAnonymousInnerClassHelper : AutomatonTermsEnum
+        private class AutomatonTermsEnumAnonymousClass : AutomatonTermsEnum
         {
-            private readonly Terms outerInstance;
+            private readonly BytesRef startTerm;
 
-            private BytesRef startTerm;
-
-            public AutomatonTermsEnumAnonymousInnerClassHelper(Terms outerInstance, Lucene.Net.Index.TermsEnum iterator, CompiledAutomaton compiled, BytesRef startTerm)
+            public AutomatonTermsEnumAnonymousClass(TermsEnum iterator, CompiledAutomaton compiled, BytesRef startTerm)
                 : base(iterator, compiled)
             {
-                this.outerInstance = outerInstance;
                 this.startTerm = startTerm;
             }
 

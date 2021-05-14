@@ -1,4 +1,5 @@
-﻿using Lucene.Net.Support;
+﻿// Lucene version compatibility level 4.8.1
+using Lucene.Net.Support;
 using System;
 using System.Collections.Generic;
 
@@ -103,7 +104,7 @@ namespace Lucene.Net.Facet.Range
                     bits = dis.Bits;
                     if (bits == null)
                     {
-                        throw new ArgumentException("fastMatchFilter does not implement DocIdSet.bits");
+                        throw new ArgumentException("fastMatchFilter does not implement DocIdSet.Bits");
                     }
                 }
                 else

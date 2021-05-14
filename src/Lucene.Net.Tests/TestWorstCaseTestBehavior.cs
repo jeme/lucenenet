@@ -1,4 +1,4 @@
-using J2N.Threading;
+﻿using J2N.Threading;
 using Lucene.Net.Util;
 using NUnit.Framework;
 using System;
@@ -31,7 +31,7 @@ namespace Lucene.Net
         [Test]
         public virtual void TestThreadLeak()
         {
-            ThreadJob t = new ThreadAnonymousInnerClassHelper(this);
+            ThreadJob t = new ThreadAnonymousClass(this);
             t.Start();
 
             while (!t.IsAlive)
@@ -43,31 +43,25 @@ namespace Lucene.Net
         }
 #endif
 
-        private class ThreadAnonymousInnerClassHelper : ThreadJob
+        private class ThreadAnonymousClass : ThreadJob
         {
             private readonly TestWorstCaseTestBehavior outerInstance;
 
-            public ThreadAnonymousInnerClassHelper(TestWorstCaseTestBehavior outerInstance)
+            public ThreadAnonymousClass(TestWorstCaseTestBehavior outerInstance)
             {
                 this.outerInstance = outerInstance;
             }
 
             public override void Run()
             {
-#if FEATURE_THREAD_INTERRUPT
                 try
                 {
-#endif
                     Thread.Sleep(10000);
-#if FEATURE_THREAD_INTERRUPT
                 }
-#pragma warning disable 168
-                catch (ThreadInterruptedException e)
-#pragma warning restore 168
+                catch (Exception e) when (e.IsInterruptedException())
                 {
                     // Ignore.
                 }
-#endif
             }
         }
 
@@ -108,23 +102,23 @@ namespace Lucene.Net
         [Test]
         public virtual void TestUncaughtException()
         {
-            ThreadJob t = new ThreadAnonymousInnerClassHelper2(this);
+            ThreadJob t = new ThreadAnonymousClass2(this);
             t.Start();
             t.Join();
         }
 
-        private class ThreadAnonymousInnerClassHelper2 : ThreadJob
+        private class ThreadAnonymousClass2 : ThreadJob
         {
             private readonly TestWorstCaseTestBehavior outerInstance;
 
-            public ThreadAnonymousInnerClassHelper2(TestWorstCaseTestBehavior outerInstance)
+            public ThreadAnonymousClass2(TestWorstCaseTestBehavior outerInstance)
             {
                 this.outerInstance = outerInstance;
             }
 
             public override void Run()
             {
-                throw new Exception("foobar");
+                throw RuntimeException.Create("foobar");
             }
         }
 
@@ -142,19 +136,13 @@ namespace Lucene.Net
         {
             while (true)
             {
-#if FEATURE_THREAD_INTERRUPT
                 try
                 {
-#endif
                     Thread.Sleep(1000);
-#if FEATURE_THREAD_INTERRUPT
                 }
-#pragma warning disable 168
-                catch (ThreadInterruptedException e)
-#pragma warning restore 168
+                catch (Exception e) when (e.IsInterruptedException())
                 {
                 }
-#endif
             }
         }
     }

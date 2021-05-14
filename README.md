@@ -1,4 +1,4 @@
-# Apache Lucene.NET
+﻿# Apache Lucene.NET
 
 [![Nuget](https://img.shields.io/nuget/dt/Lucene.Net)](https://www.nuget.org/packages/Lucene.Net)
 [![Azure DevOps builds (master)](https://img.shields.io/azure-devops/build/lucene-net/6ba240c9-9598-47e7-a793-0ed8a4ba2f8b/3/master)](https://dev.azure.com/lucene-net/Lucene.NET/_build?definitionId=3&_a=summary)
@@ -30,6 +30,13 @@ The Apache Lucene.NET web site is at:
 Latest Stable Version: Lucene.NET 3.0.3
 
 Working toward Lucene.NET 4.8.0 (currently in BETA)
+
+* The beta version is extremely stable
+* Has more than 7800+ passing unit tests
+* Integrates well with .NET 5.0 and .NET Core 2+
+* Supports .NET Standard 2.1 and .NET Standard 2.0 
+* Supports .NET Framework 4.5+
+* Some developers already use it in production environments
 
 ## Download
 
@@ -117,8 +124,10 @@ There is also a dotnet command line tool available on NuGet. It contains all of 
 - [Prerequisite: .NET Core 3.1.0 Runtime](https://www.microsoft.com/net/download/core#/runtime)
 
 ```
-dotnet tool install lucene-cli -g --version 4.8.0-beta00012
+dotnet tool install lucene-cli -g --version 4.8.0-beta00014
 ```
+
+> NOTE: The version of the CLI you install should match the version of Lucene.NET you use.
 
 Once installed, you can explore the commands and options that are available by entering the command `lucene`.
 
@@ -167,7 +176,7 @@ Building on the Command Line is currently only supported on Windows.
 ##### Prerequisites
 
 1. [Powershell](https://msdn.microsoft.com/en-us/powershell/scripting/setup/installing-windows-powershell) 3.0 or higher (see [this question](http://stackoverflow.com/questions/1825585/determine-installed-powershell-version) to check your Powershell version)
-2. [.NET Core SDK 3.1 or higher](https://dotnet.microsoft.com/download/visual-studio-sdks)
+2. [.NET 5.0 SDK or higher](https://dotnet.microsoft.com/download/visual-studio-sdks)
 3. [.NET Framework 4.8 Developer Pack](https://dotnet.microsoft.com/download/visual-studio-sdks)
 
 ##### Execution
@@ -237,13 +246,13 @@ Then all you need to do is choose the `Lucene.Net Local Packages` feed from the 
 #### Prerequisites
 
 1. Visual Studio 2019 or higher
-2. [.NET Core SDK 3.1 or higher](https://dotnet.microsoft.com/download/visual-studio-sdks)
+2. [.NET 5.0 SDK or higher](https://dotnet.microsoft.com/download/visual-studio-sdks)
 3. [.NET Framework 4.8 Developer Pack](https://dotnet.microsoft.com/download/visual-studio-sdks)
 
 #### Execution
 
 1. Open `Lucene.Net.sln` in Visual Studio.
-2. Choose the target framework to test by opening `build/TestTargetFramework.proj` and uncommenting the corresponding `<TargetFramework>`.
+2. Choose the target framework to test by opening `build/TestTargetFramework.props` and uncommenting the corresponding `<TargetFramework>` (and commenting all others).
 3. Build a project or the entire solution, and wait for Visual Studio to discover the tests - this may take several minutes.
 4. Run or debug the tests in Test Explorer, optionally using the desired filters.
 
@@ -251,7 +260,7 @@ Then all you need to do is choose the `Lucene.Net Local Packages` feed from the 
 
 ### Azure DevOps
 
-We have setup our `azure-pipelines.yml` file with logical defaults so anyone with an Azure DevOps account can build Lucene.Net and run the tests with minimal effort. Even a free Azure DevOps account will work, but tests will run much faster if the account is setup as public, which enables up to 10 parallel jobs to run simultaneously.
+We have setup our `azure-pipelines.yml` file with logical defaults so anyone with an Azure DevOps account can build Lucene.NET and run the tests with minimal effort. Even a free Azure DevOps account will work, but tests will run much faster if the account is setup as public, which enables up to 10 parallel jobs to run simultaneously.
 
 #### Prerequisites
 

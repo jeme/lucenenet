@@ -86,7 +86,7 @@ namespace Lucene.Net.Index
         /// <summary>
         /// Creates a filtered <see cref="TermsEnum"/> on a terms enum. </summary>
         /// <param name="tenum"> the terms enumeration to filter. </param>
-        public FilteredTermsEnum(TermsEnum tenum)
+        protected FilteredTermsEnum(TermsEnum tenum) // LUCENENET: CA1012: Abstract types should not have constructors (marked protected)
             : this(tenum, true)
         {
         }
@@ -95,7 +95,7 @@ namespace Lucene.Net.Index
         /// Creates a filtered <see cref="TermsEnum"/> on a terms enum. </summary>
         /// <param name="tenum"> the terms enumeration to filter. </param>
         /// <param name="startWithSeek"> start with seek </param>
-        public FilteredTermsEnum(TermsEnum tenum, bool startWithSeek)
+        protected FilteredTermsEnum(TermsEnum tenum, bool startWithSeek) // LUCENENET: CA1012: Abstract types should not have constructors (marked protected)
         {
             if (Debugging.AssertsEnabled) Debugging.Assert(tenum != null);
             this.tenum = tenum;
@@ -160,7 +160,7 @@ namespace Lucene.Net.Index
         ///         support seeking. </exception>
         public override bool SeekExact(BytesRef term)
         {
-            throw new NotSupportedException(this.GetType().Name + " does not support seeking");
+            throw UnsupportedOperationException.Create(this.GetType().Name + " does not support seeking");
         }
 
         /// <summary>
@@ -169,7 +169,7 @@ namespace Lucene.Net.Index
         ///         support seeking. </exception>
         public override SeekStatus SeekCeil(BytesRef term)
         {
-            throw new NotSupportedException(this.GetType().Name + " does not support seeking");
+            throw UnsupportedOperationException.Create(this.GetType().Name + " does not support seeking");
         }
 
         /// <summary>
@@ -178,7 +178,7 @@ namespace Lucene.Net.Index
         ///         support seeking. </exception>
         public override void SeekExact(long ord)
         {
-            throw new NotSupportedException(this.GetType().Name + " does not support seeking");
+            throw UnsupportedOperationException.Create(this.GetType().Name + " does not support seeking");
         }
 
         public override long Ord => tenum.Ord;
@@ -199,7 +199,7 @@ namespace Lucene.Net.Index
         ///         support seeking. </exception>
         public override void SeekExact(BytesRef term, TermState state)
         {
-            throw new NotSupportedException(this.GetType().Name + " does not support seeking");
+            throw UnsupportedOperationException.Create(this.GetType().Name + " does not support seeking");
         }
 
         /// <summary>
@@ -224,7 +224,7 @@ namespace Lucene.Net.Index
                     BytesRef t = NextSeekTerm(actualTerm);
                     //System.out.println("  seek to t=" + (t == null ? "null" : t.utf8ToString()) + " tenum=" + tenum);
                     // Make sure we always seek forward:
-                    if (Debugging.AssertsEnabled) Debugging.Assert(actualTerm == null || t == null || Comparer.Compare(t, actualTerm) > 0, () => "curTerm=" + actualTerm + " seekTerm=" + t);
+                    if (Debugging.AssertsEnabled) Debugging.Assert(actualTerm == null || t == null || Comparer.Compare(t, actualTerm) > 0, "curTerm={0} seekTerm={1}", actualTerm, t);
                     if (t == null || tenum.SeekCeil(t) == SeekStatus.END)
                     {
                         // no more terms to seek to or enum exhausted

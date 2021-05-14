@@ -85,8 +85,8 @@ namespace Lucene.Net.Index.Sorter
                 int oldID = docMap.NewToOld(newID);
                 if (Debugging.AssertsEnabled)
                 {
-                    Debugging.Assert(newID >= 0 && newID < maxDoc, () => "doc IDs must be in [0-" + maxDoc + "[, got " + newID);
-                    Debugging.Assert(i == oldID, () => "mapping is inconsistent: " + i + " --oldToNew--> " + newID + " --newToOld--> " + oldID);
+                    Debugging.Assert(newID >= 0 && newID < maxDoc, "doc IDs must be in [0-{0}[, got {1}", maxDoc, newID);
+                    Debugging.Assert(i == oldID, "mapping is inconsistent: {0} --oldToNew--> {1} --newToOld--> {2}", i, newID, oldID);
                 }
                 if (i != oldID || newID < 0 || newID >= maxDoc)
                 {
@@ -209,16 +209,16 @@ namespace Lucene.Net.Index.Sorter
             }
             oldToNew.Freeze();
 
-            return new DocMapAnonymousInnerClassHelper(maxDoc, newToOld, oldToNew);
+            return new DocMapAnonymousClass(maxDoc, newToOld, oldToNew);
         }
 
-        private class DocMapAnonymousInnerClassHelper : Sorter.DocMap
+        private class DocMapAnonymousClass : Sorter.DocMap
         {
-            private int maxDoc;
-            private MonotonicAppendingInt64Buffer newToOld;
-            private MonotonicAppendingInt64Buffer oldToNew;
+            private readonly int maxDoc;
+            private readonly MonotonicAppendingInt64Buffer newToOld;
+            private readonly MonotonicAppendingInt64Buffer oldToNew;
 
-            public DocMapAnonymousInnerClassHelper(int maxDoc, MonotonicAppendingInt64Buffer newToOld, MonotonicAppendingInt64Buffer oldToNew)
+            public DocMapAnonymousClass(int maxDoc, MonotonicAppendingInt64Buffer newToOld, MonotonicAppendingInt64Buffer oldToNew)
             {
                 this.maxDoc = maxDoc;
                 this.newToOld = newToOld;
@@ -266,20 +266,17 @@ namespace Lucene.Net.Index.Sorter
                 comparers[i].SetNextReader(reader.AtomicContext);
                 comparers[i].SetScorer(FAKESCORER);
             }
-            DocComparer comparer = new DocComparerAnonymousInnerClassHelper(this, reverseMul, comparers);
+            DocComparer comparer = new DocComparerAnonymousClass(reverseMul, comparers);
             return Sort(reader.MaxDoc, comparer);
         }
 
-        private class DocComparerAnonymousInnerClassHelper : DocComparer
+        private class DocComparerAnonymousClass : DocComparer
         {
-            private readonly Sorter outerInstance;
+            private readonly int[] reverseMul;
+            private readonly FieldComparer[] comparers;
 
-            private int[] reverseMul;
-            private FieldComparer[] comparers;
-
-            public DocComparerAnonymousInnerClassHelper(Sorter outerInstance, int[] reverseMul, FieldComparer[] comparers)
+            public DocComparerAnonymousClass(int[] reverseMul, FieldComparer[] comparers)
             {
-                this.outerInstance = outerInstance;
                 this.reverseMul = reverseMul;
                 this.comparers = comparers;
             }
@@ -302,9 +299,9 @@ namespace Lucene.Net.Index.Sorter
                     }
                     return docID1.CompareTo(docID2); // docid order tiebreak
                 }
-                catch (IOException e)
+                catch (Exception e) when (e.IsIOException())
                 {
-                    throw new Exception(e.ToString(), e);
+                    throw RuntimeException.Create(e);
                 }
             }
         }
@@ -324,36 +321,36 @@ namespace Lucene.Net.Index.Sorter
             return ID;
         }
 
-        internal static readonly Scorer FAKESCORER = new ScorerAnonymousInnerClassHelper();
+        internal static readonly Scorer FAKESCORER = new ScorerAnonymousClass();
 
-        private class ScorerAnonymousInnerClassHelper : Scorer
+        private class ScorerAnonymousClass : Scorer
         {
-            public ScorerAnonymousInnerClassHelper() 
+            public ScorerAnonymousClass() 
                 : base(null)
             {
             }
 
             public override float GetScore()
             {
-                throw new NotSupportedException();
+                throw UnsupportedOperationException.Create();
             }
 
-            public override int Freq => throw new NotSupportedException();
+            public override int Freq => throw UnsupportedOperationException.Create();
 
-            public override int DocID => throw new NotSupportedException();
+            public override int DocID => throw UnsupportedOperationException.Create();
 
             public override int NextDoc()
             {
-                throw new NotSupportedException();
+                throw UnsupportedOperationException.Create();
             }
 
             public override int Advance(int target)
             {
-                throw new NotSupportedException();
+                throw UnsupportedOperationException.Create();
             }
             public override long GetCost()
             {
-                throw new NotSupportedException();
+                throw UnsupportedOperationException.Create();
             }
         }
     }

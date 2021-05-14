@@ -1,4 +1,5 @@
-﻿using J2N.Text;
+// Lucene version compatibility level 4.8.1
+using J2N.Text;
 using Lucene.Net.Analysis.Core;
 using Lucene.Net.Analysis.Synonym;
 using Lucene.Net.Analysis.TokenAttributes;
@@ -45,16 +46,16 @@ namespace Lucene.Net.Analysis.Miscellaneous
         public virtual void TestDups(string expected, params Token[] tokens)
         {
             IEnumerator<Token> toks = ((IEnumerable<Token>)tokens).GetEnumerator();
-            TokenStream ts = new RemoveDuplicatesTokenFilter((new TokenStreamAnonymousInnerClassHelper(toks)));
+            TokenStream ts = new RemoveDuplicatesTokenFilter((new TokenStreamAnonymousClass(toks)));
 
             AssertTokenStreamContents(ts, Regex.Split(expected, "\\s").TrimEnd());
         }
 
-        private sealed class TokenStreamAnonymousInnerClassHelper : TokenStream
+        private sealed class TokenStreamAnonymousClass : TokenStream
         {
             private readonly IEnumerator<Token> toks;
 
-            public TokenStreamAnonymousInnerClassHelper(IEnumerator<Token> toks)
+            public TokenStreamAnonymousClass(IEnumerator<Token> toks)
             {
                 this.toks = toks;
                 termAtt = AddAttribute<ICharTermAttribute>();

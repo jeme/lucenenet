@@ -1,4 +1,5 @@
-﻿using System;
+﻿// Lucene version compatibility level 4.8.1
+using System;
 
 namespace Lucene.Net.Facet.Range
 {
@@ -37,7 +38,7 @@ namespace Lucene.Net.Facet.Range
         /// Sole constructor. </summary>
         protected Range(string label)
         {
-            this.Label = label ?? throw new ArgumentNullException(nameof(label));
+            this.Label = label ?? throw new ArgumentNullException(nameof(label)); // LUCENENET specific - changed from IllegalArgumentException to ArgumentNullException (.NET convention)
         }
 
         /// <summary>

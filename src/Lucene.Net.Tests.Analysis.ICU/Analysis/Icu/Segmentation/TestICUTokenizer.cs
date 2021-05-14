@@ -338,26 +338,24 @@ namespace Lucene.Net.Analysis.Icu.Segmentation
         [Test]
         public void TestTokenAttributes()
         {
-            using (TokenStream ts = a.GetTokenStream("dummy", "This is a test"))
+            using TokenStream ts = a.GetTokenStream("dummy", "This is a test");
+            IScriptAttribute scriptAtt = ts.AddAttribute<IScriptAttribute>();
+            ts.Reset();
+            while (ts.IncrementToken())
             {
-                IScriptAttribute scriptAtt = ts.AddAttribute<IScriptAttribute>();
-                ts.Reset();
-                while (ts.IncrementToken())
-                {
-                    assertEquals(UScript.Latin, scriptAtt.Code);
-                    assertEquals(UScript.GetName(UScript.Latin), scriptAtt.GetName());
-                    assertEquals(UScript.GetShortName(UScript.Latin), scriptAtt.GetShortName());
-                    assertTrue(ts.ReflectAsString(false).Contains("script=Latin"));
-                }
-                ts.End();
+                assertEquals(UScript.Latin, scriptAtt.Code);
+                assertEquals(UScript.GetName(UScript.Latin), scriptAtt.GetName());
+                assertEquals(UScript.GetShortName(UScript.Latin), scriptAtt.GetShortName());
+                assertTrue(ts.ReflectAsString(false).Contains("script=Latin"));
             }
+            ts.End();
         }
 
-        private class ThreadAnonymousHelper : ThreadJob
+        private class ThreadAnonymousClass : ThreadJob
         {
             private readonly CountdownEvent startingGun;
 
-            public ThreadAnonymousHelper(CountdownEvent startingGun)
+            public ThreadAnonymousClass(CountdownEvent startingGun)
             {
                 this.startingGun = startingGun;
             }
@@ -388,9 +386,9 @@ namespace Lucene.Net.Analysis.Icu.Segmentation
                         }
                     }
                 }
-                catch (Exception e)
+                catch (Exception e) when (e.IsException())
                 {
-                    throw new Exception(e.Message, e);
+                    throw RuntimeException.Create(e);
                 }
             }
         }
@@ -401,10 +399,10 @@ namespace Lucene.Net.Analysis.Icu.Segmentation
         {
             int numThreads = 8;
             CountdownEvent startingGun = new CountdownEvent(1);
-            ThreadAnonymousHelper[] threads = new ThreadAnonymousHelper[numThreads];
+            ThreadAnonymousClass[] threads = new ThreadAnonymousClass[numThreads];
             for (int i = 0; i < threads.Length; i++)
             {
-                threads[i] = new ThreadAnonymousHelper(startingGun);
+                threads[i] = new ThreadAnonymousClass(startingGun);
 
                 threads[i].Start();
             }

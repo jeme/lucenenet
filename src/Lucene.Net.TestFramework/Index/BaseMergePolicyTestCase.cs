@@ -1,9 +1,11 @@
-using J2N.Threading.Atomic;
+﻿using J2N.Threading.Atomic;
 using Lucene.Net.Analysis;
+using Lucene.Net.Diagnostics;
 using Lucene.Net.Documents;
 using Lucene.Net.Index.Extensions;
 using Lucene.Net.Store;
 using Lucene.Net.Util;
+using RandomizedTesting.Generators;
 using System;
 
 #if TESTFRAMEWORK_MSTEST
@@ -54,43 +56,36 @@ namespace Lucene.Net.Index
         [Test]
         public virtual void TestForceMergeNotNeeded()
         {
-            using (Directory dir = NewDirectory())
+            using Directory dir = NewDirectory();
+            AtomicBoolean mayMerge = new AtomicBoolean(true);
+            MergeScheduler mergeScheduler = new SerialMergeSchedulerAnonymousClass(mayMerge);
+            using IndexWriter writer = new IndexWriter(dir, NewIndexWriterConfig(TEST_VERSION_CURRENT, new MockAnalyzer(Random)).SetMergeScheduler(mergeScheduler).SetMergePolicy(NewMergePolicy()));
+            writer.Config.MergePolicy.NoCFSRatio = Random.NextBoolean() ? 0 : 1;
+            int numSegments = TestUtil.NextInt32(Random, 2, 20);
+            for (int i = 0; i < numSegments; ++i)
             {
-                AtomicBoolean mayMerge = new AtomicBoolean(true);
-                MergeScheduler mergeScheduler = new SerialMergeSchedulerAnonymousInnerClassHelper(this, mayMerge);
-                using (IndexWriter writer = new IndexWriter(dir, NewIndexWriterConfig(TEST_VERSION_CURRENT, new MockAnalyzer(Random)).SetMergeScheduler(mergeScheduler).SetMergePolicy(NewMergePolicy())))
+                int numDocs = TestUtil.NextInt32(Random, 1, 5);
+                for (int j = 0; j < numDocs; ++j)
                 {
-                    writer.Config.MergePolicy.NoCFSRatio = Random.NextBoolean() ? 0 : 1;
-                    int numSegments = TestUtil.NextInt32(Random, 2, 20);
-                    for (int i = 0; i < numSegments; ++i)
-                    {
-                        int numDocs = TestUtil.NextInt32(Random, 1, 5);
-                        for (int j = 0; j < numDocs; ++j)
-                        {
-                            writer.AddDocument(new Document());
-                        }
-                        writer.GetReader().Dispose();
-                    }
-                    for (int i = 5; i >= 0; --i)
-                    {
-                        int segmentCount = writer.SegmentCount;
-                        int maxNumSegments = i == 0 ? 1 : TestUtil.NextInt32(Random, 1, 10);
-                        mayMerge.Value = (segmentCount > maxNumSegments);
-                        writer.ForceMerge(maxNumSegments);
-                    }
-                } // writer.Dispose();
-            } // dir.Dispose();
+                    writer.AddDocument(new Document());
+                }
+                writer.GetReader().Dispose();
+            }
+            for (int i = 5; i >= 0; --i)
+            {
+                int segmentCount = writer.SegmentCount;
+                int maxNumSegments = i == 0 ? 1 : TestUtil.NextInt32(Random, 1, 10);
+                mayMerge.Value = (segmentCount > maxNumSegments);
+                writer.ForceMerge(maxNumSegments);
+            }
         }
 
-        private class SerialMergeSchedulerAnonymousInnerClassHelper : SerialMergeScheduler
+        private class SerialMergeSchedulerAnonymousClass : SerialMergeScheduler
         {
-            private readonly BaseMergePolicyTestCase outerInstance;
+            private readonly AtomicBoolean mayMerge;
 
-            private AtomicBoolean mayMerge;
-
-            public SerialMergeSchedulerAnonymousInnerClassHelper(BaseMergePolicyTestCase outerInstance, AtomicBoolean mayMerge)
+            public SerialMergeSchedulerAnonymousClass(AtomicBoolean mayMerge)
             {
-                this.outerInstance = outerInstance;
                 this.mayMerge = mayMerge;
             }
 
@@ -100,7 +95,7 @@ namespace Lucene.Net.Index
                 {
                     if (!mayMerge.Value && writer.NextMerge() != null)
                     {
-                        throw new InvalidOperationException();
+                        throw AssertionError.Create();
                     }
                     base.Merge(writer, trigger, newMergesFound);
                 }

@@ -368,13 +368,12 @@ namespace Lucene.Net.Benchmarks.ByTask.Tasks
                 br.Dispose();
             }
         }
-        private class ThreadAnonymousHelper : ThreadJob
+        private class ThreadAnonymousClass : ThreadJob
         {
             private readonly WriteLineDocTask wldt;
-            public ThreadAnonymousHelper(string name, WriteLineDocTask wldt)
+            public ThreadAnonymousClass(string name, WriteLineDocTask wldt)
                 : base(name)
             {
-                this.IsDebug = true;
                 this.wldt = wldt;
             }
 
@@ -384,9 +383,9 @@ namespace Lucene.Net.Benchmarks.ByTask.Tasks
                 {
                     wldt.DoLogic();
                 }
-                catch (Exception e)
+                catch (Exception e) when (e.IsException())
                 {
-                    throw new Exception(e.ToString(), e);
+                    throw RuntimeException.Create(e);
                 }
             }
         }
@@ -401,7 +400,7 @@ namespace Lucene.Net.Benchmarks.ByTask.Tasks
             {
                 for (int i = 0; i < threads.Length; i++)
                 {
-                    threads[i] = new ThreadAnonymousHelper("t" + i, wldt);
+                    threads[i] = new ThreadAnonymousClass("t" + i, wldt);
                 }
 
                 foreach (ThreadJob t in threads) t.Start();
@@ -418,7 +417,7 @@ namespace Lucene.Net.Benchmarks.ByTask.Tasks
                 for (int i = 0; i < threads.Length; i++)
                 {
                     line = br.ReadLine();
-                    assertNotNull($"line for index {i.ToString()} is missing", line); // LUCENENET specific - ensure the line is there before splitting
+                    assertNotNull($"line for index {i} is missing", line); // LUCENENET specific - ensure the line is there before splitting
                     String[] parts = line.Split(WriteLineDocTask.SEP).TrimEnd();
                     assertEquals(line, 3, parts.Length);
                     // check that all thread names written are the same in the same line

@@ -6,6 +6,7 @@ using Lucene.Net.Spatial.Prefix.Tree;
 using Spatial4n.Core.Context;
 using Spatial4n.Core.Shapes;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using Console = Lucene.Net.Util.SystemConsole;
 
@@ -43,7 +44,7 @@ namespace Lucene.Net.Benchmarks.ByTask.Feeds
         public static readonly string SPATIAL_FIELD = "spatial";
 
         //cache spatialStrategy by round number
-        private static IDictionary<int, SpatialStrategy> spatialStrategyCache = new Dictionary<int, SpatialStrategy>();
+        private static readonly IDictionary<int, SpatialStrategy> spatialStrategyCache = new Dictionary<int, SpatialStrategy>(); // LUCENENET: marked readonly
 
         private SpatialStrategy strategy;
         private IShapeConverter shapeConverter;
@@ -55,10 +56,9 @@ namespace Lucene.Net.Benchmarks.ByTask.Feeds
         /// </summary>
         public static SpatialStrategy GetSpatialStrategy(int roundNumber)
         {
-            SpatialStrategy result;
-            if (!spatialStrategyCache.TryGetValue(roundNumber, out result) || result == null)
+            if (!spatialStrategyCache.TryGetValue(roundNumber, out SpatialStrategy result) || result == null)
             {
-                throw new InvalidOperationException("Strategy should have been init'ed by SpatialDocMaker by now");
+                throw IllegalStateException.Create("Strategy should have been init'ed by SpatialDocMaker by now");
             }
             return result;
         }
@@ -69,35 +69,86 @@ namespace Lucene.Net.Benchmarks.ByTask.Feeds
         protected virtual SpatialStrategy MakeSpatialStrategy(Config config)
         {
             //A Map view of Config that prefixes keys with "spatial."
-            var configMap = new DictionaryAnonymousHelper(config);
+            var configMap = new DictionaryAnonymousClass(config);
 
-            SpatialContext ctx = SpatialContextFactory.MakeSpatialContext(configMap /*, null*/); // LUCENENET TODO: What is this extra param?
+            // LUCENENET: The second argument was ClassLoader in Java, which should be made into
+            // Assembly in .NET. However, Spatial4n currently doesn't support it.
+            // In .NET it makes more logical sense to make 2 overloads and throw ArgumentNullException
+            // if the second argument is null, anyway. So no need to change this once support has been added.
+            // See: https://github.com/NightOwl888/Spatial4n/issues/1
+            SpatialContext ctx = SpatialContextFactory.MakeSpatialContext(configMap /*, assembly: null*/);
 
             //Some day the strategy might be initialized with a factory but such a factory
             // is non-existent.
             return MakeSpatialStrategy(config, configMap, ctx);
         }
 
-        private class DictionaryAnonymousHelper : Dictionary<string, string>
+        // LUCENENET specific: since this[string] is not virtual in .NET, this full implementation
+        // of IDictionary<string, string> is required to override methods to get a value by key
+        private class DictionaryAnonymousClass : IDictionary<string, string>
         {
             private readonly Config config;
-            public DictionaryAnonymousHelper(Config config)
+            public DictionaryAnonymousClass(Config config)
             {
                 this.config = config;
             }
 
-            // LUCENENET TODO: EntrySet not supported. Should we throw on GetEnumerator()?
+            public string this[string key]
+            {
+                get => config.Get("spatial." + key, null);
+                set => throw UnsupportedOperationException.Create();
+            }
 
-            new public string this[string key] => config.Get("spatial." + key, null);
+            public bool TryGetValue(string key, out string value)
+            {
+                value = config.Get("spatial." + key, null);
+                return value != null;
+            }
+
+            public bool ContainsKey(string key)
+            {
+                const string notSupported = "notsupported";
+                var value = config.Get("spatial." + key, notSupported);
+                return !value.Equals(notSupported, StringComparison.Ordinal);
+            }
+
+            #region IDictionary<string, string> members
+
+            ICollection<string> IDictionary<string, string>.Keys => throw UnsupportedOperationException.Create();
+
+            ICollection<string> IDictionary<string, string>.Values => throw UnsupportedOperationException.Create();
+
+            int ICollection<KeyValuePair<string, string>>.Count => throw UnsupportedOperationException.Create();
+
+            public bool IsReadOnly => true;
+
+            void IDictionary<string, string>.Add(string key, string value) => throw UnsupportedOperationException.Create();
+            void ICollection<KeyValuePair<string, string>>.Add(KeyValuePair<string, string> item) => throw UnsupportedOperationException.Create();
+            void ICollection<KeyValuePair<string, string>>.Clear() => throw UnsupportedOperationException.Create();
+            bool ICollection<KeyValuePair<string, string>>.Contains(KeyValuePair<string, string> item) => throw UnsupportedOperationException.Create();
+            
+            void ICollection<KeyValuePair<string, string>>.CopyTo(KeyValuePair<string, string>[] array, int arrayIndex) => throw UnsupportedOperationException.Create();
+            IEnumerator<KeyValuePair<string, string>> IEnumerable<KeyValuePair<string, string>>.GetEnumerator() => throw UnsupportedOperationException.Create();
+            bool IDictionary<string, string>.Remove(string key) => throw UnsupportedOperationException.Create();
+            bool ICollection<KeyValuePair<string, string>>.Remove(KeyValuePair<string, string> item) => throw UnsupportedOperationException.Create();
+            
+            IEnumerator IEnumerable.GetEnumerator() => throw UnsupportedOperationException.Create();
+
+            #endregion IDictionary<string, string> members
         }
 
         protected virtual SpatialStrategy MakeSpatialStrategy(Config config, IDictionary<string, string> configMap,
                                                       SpatialContext ctx)
         {
             //A factory for the prefix tree grid
-            SpatialPrefixTree grid = SpatialPrefixTreeFactory.MakeSPT(configMap, /*null,*/ ctx); // LUCENENET TODO: What is this extra param?
+            // LUCENENET: The second argument was ClassLoader in Java, which should be made into
+            // Assembly in .NET. However, Spatial4n currently doesn't support it.
+            // In .NET it makes more logical sense to make 2 overloads and throw ArgumentNullException
+            // if the second argument is null, anyway. So no need to change this once support has been added.
+            // See: https://github.com/NightOwl888/Spatial4n/issues/1
+            SpatialPrefixTree grid = SpatialPrefixTreeFactory.MakeSPT(configMap/*, assembly: null*/, ctx);
 
-            RecursivePrefixTreeStrategy strategy = new RecursivePrefixTreeStrategyAnonymousHelper(grid, SPATIAL_FIELD, config);
+            RecursivePrefixTreeStrategy strategy = new RecursivePrefixTreeStrategyAnonymousClass(grid, SPATIAL_FIELD, config);
 
             int prefixGridScanLevel = config.Get("query.spatial.prefixGridScanLevel", -4);
             if (prefixGridScanLevel < 0)
@@ -109,9 +160,9 @@ namespace Lucene.Net.Benchmarks.ByTask.Feeds
             return strategy;
         }
 
-        private class RecursivePrefixTreeStrategyAnonymousHelper : RecursivePrefixTreeStrategy
+        private class RecursivePrefixTreeStrategyAnonymousClass : RecursivePrefixTreeStrategy
         {
-            public RecursivePrefixTreeStrategyAnonymousHelper(SpatialPrefixTree grid, string fieldName, Config config)
+            public RecursivePrefixTreeStrategyAnonymousClass(SpatialPrefixTree grid, string fieldName, Config config)
                 : base(grid, fieldName)
             {
                 this.m_pointsOnly = config.Get("spatial.docPointsOnly", false);
@@ -121,8 +172,7 @@ namespace Lucene.Net.Benchmarks.ByTask.Feeds
         public override void SetConfig(Config config, ContentSource source)
         {
             base.SetConfig(config, source);
-            SpatialStrategy existing;
-            if (!spatialStrategyCache.TryGetValue(config.RoundNumber, out existing) || existing == null)
+            if (!spatialStrategyCache.TryGetValue(config.RoundNumber, out SpatialStrategy existing) || existing == null)
             {
                 //new round; we need to re-initialize
                 strategy = MakeSpatialStrategy(config);
@@ -144,17 +194,17 @@ namespace Lucene.Net.Benchmarks.ByTask.Feeds
             double plusMinus = config.Get(configKeyPrefix + "radiusDegreesRandPlusMinus", 0.0);
             bool bbox = config.Get(configKeyPrefix + "bbox", false);
 
-            return new ShapeConverterAnonymousHelper(spatialStrategy, radiusDegrees, plusMinus, bbox);
+            return new ShapeConverterAnonymousClass(spatialStrategy, radiusDegrees, plusMinus, bbox);
         }
 
-        private class ShapeConverterAnonymousHelper : IShapeConverter
+        private class ShapeConverterAnonymousClass : IShapeConverter
         {
             private readonly SpatialStrategy spatialStrategy;
             private readonly double radiusDegrees;
             private readonly double plusMinus;
             private readonly bool bbox;
 
-            public ShapeConverterAnonymousHelper(SpatialStrategy spatialStrategy, double radiusDegrees, double plusMinus, bool bbox)
+            public ShapeConverterAnonymousClass(SpatialStrategy spatialStrategy, double radiusDegrees, double plusMinus, bool bbox)
             {
                 this.spatialStrategy = spatialStrategy;
                 this.radiusDegrees = radiusDegrees;
@@ -164,9 +214,8 @@ namespace Lucene.Net.Benchmarks.ByTask.Feeds
 
             public IShape Convert(IShape shape)
             {
-                if (shape is IPoint && (radiusDegrees != 0.0 || plusMinus != 0.0))
+                if ((radiusDegrees != 0.0 || plusMinus != 0.0) && shape is IPoint point)
                 {
-                    IPoint point = (IPoint)shape;
                     double radius = radiusDegrees;
                     if (plusMinus > 0.0)
                     {
@@ -219,7 +268,7 @@ namespace Lucene.Net.Benchmarks.ByTask.Feeds
                 {
                     return strategy.SpatialContext.ReadShapeFromWkt(shapeStr);
                 }
-                catch (Exception e)
+                catch (Exception e) when (e.IsException())
                 {//InvalidShapeException TODO
                     Console.Error.WriteLine("Shape " + name + " wasn't parseable: " + e + "  (skipping it)");
                     return null;
@@ -231,7 +280,7 @@ namespace Lucene.Net.Benchmarks.ByTask.Feeds
         public override Document MakeDocument(int size)
         {
             //TODO consider abusing the 'size' notion to number of shapes per document
-            throw new NotSupportedException();
+            throw UnsupportedOperationException.Create();
         }
     }
 

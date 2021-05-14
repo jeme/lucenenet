@@ -1,4 +1,5 @@
-﻿using Lucene.Net.Index;
+﻿// Lucene version compatibility level 4.8.1
+using Lucene.Net.Index;
 using Lucene.Net.Search;
 using Lucene.Net.Util;
 using System.Collections;
@@ -45,16 +46,16 @@ namespace Lucene.Net.Queries.Function.ValueSources
             FunctionValues trueVals = trueSource.GetValues(context, readerContext);
             FunctionValues falseVals = falseSource.GetValues(context, readerContext);
 
-            return new FunctionValuesAnonymousInnerClassHelper(ifVals, trueVals, falseVals);
+            return new FunctionValuesAnonymousClass(ifVals, trueVals, falseVals);
         }
 
-        private class FunctionValuesAnonymousInnerClassHelper : FunctionValues
+        private class FunctionValuesAnonymousClass : FunctionValues
         {
             private readonly FunctionValues ifVals;
             private readonly FunctionValues trueVals;
             private readonly FunctionValues falseVals;
 
-            public FunctionValuesAnonymousInnerClassHelper(FunctionValues ifVals, FunctionValues trueVals, FunctionValues falseVals)
+            public FunctionValuesAnonymousClass(FunctionValues ifVals, FunctionValues trueVals, FunctionValues falseVals)
             {
                 this.ifVals = ifVals;
                 this.trueVals = trueVals;

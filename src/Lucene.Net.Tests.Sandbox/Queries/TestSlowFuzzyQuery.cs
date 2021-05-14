@@ -308,9 +308,7 @@ namespace Lucene.Net.Sandbox.Queries
                 query = new SlowFuzzyQuery(new Term("field", "student"), 1.1f);
                 fail("Expected IllegalArgumentException");
             }
-#pragma warning disable 168
-            catch (ArgumentException e)
-#pragma warning restore 168
+            catch (Exception e) when (e.IsIllegalArgumentException())
             {
                 // expecting exception
             }
@@ -319,9 +317,7 @@ namespace Lucene.Net.Sandbox.Queries
                 query = new SlowFuzzyQuery(new Term("field", "student"), -0.1f);
                 fail("Expected IllegalArgumentException");
             }
-#pragma warning disable 168
-            catch (ArgumentException e)
-#pragma warning restore 168
+            catch (ArgumentOutOfRangeException) // LUCENENET specific - changed from IllegalArgumentException to ArgumentOutOfRangeException (.NET convention)
             {
                 // expecting exception
             }
@@ -338,6 +334,9 @@ namespace Lucene.Net.Sandbox.Queries
          * is not implemented correctly, there will be problems!
          */
         [Test]
+#if NETFRAMEWORK
+        [AwaitsFix(BugUrl = "https://github.com/apache/lucenenet/issues/269")] // LUCENENET TODO: this test fails on x86 on .NET Framework in Release mode only
+#endif
         public void TestTieBreaker()
         {
             Directory directory = NewDirectory();

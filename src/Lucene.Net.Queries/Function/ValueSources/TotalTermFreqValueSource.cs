@@ -1,4 +1,5 @@
-﻿using Lucene.Net.Index;
+﻿// Lucene version compatibility level 4.8.1
+using Lucene.Net.Index;
 using Lucene.Net.Queries.Function.DocValues;
 using Lucene.Net.Search;
 using Lucene.Net.Util;
@@ -75,19 +76,16 @@ namespace Lucene.Net.Queries.Function.ValueSources
                 }
             }
             var ttf = totalTermFreq;
-            context[this] = new Int64DocValuesAnonymousInnerClassHelper(this, this, ttf);
+            context[this] = new Int64DocValuesAnonymousClass(this, ttf);
         }
 
-        private class Int64DocValuesAnonymousInnerClassHelper : Int64DocValues
+        private class Int64DocValuesAnonymousClass : Int64DocValues
         {
-            private readonly TotalTermFreqValueSource outerInstance;
-
             private readonly long ttf;
 
-            public Int64DocValuesAnonymousInnerClassHelper(TotalTermFreqValueSource outerInstance, TotalTermFreqValueSource @this, long ttf)
+            public Int64DocValuesAnonymousClass(TotalTermFreqValueSource @this, long ttf)
                 : base(@this)
             {
-                this.outerInstance = outerInstance;
                 this.ttf = ttf;
             }
 

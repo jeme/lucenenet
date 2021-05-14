@@ -1,7 +1,8 @@
-using J2N.Threading;
+﻿using J2N.Threading;
 using J2N.Threading.Atomic;
 using Lucene.Net.Documents;
 using NUnit.Framework;
+using RandomizedTesting.Generators;
 using System;
 using System.Text;
 using Assert = Lucene.Net.TestFramework.Assert;
@@ -97,7 +98,7 @@ namespace Lucene.Net.Search
             ThreadJob[] threads = new ThreadJob[NUM_SEARCH_THREADS];
             for (int threadID = 0; threadID < NUM_SEARCH_THREADS; threadID++)
             {
-                threads[threadID] = new ThreadAnonymousInnerClassHelper(this, s, failed, netSearch);
+                threads[threadID] = new ThreadAnonymousClass(this, s, failed, netSearch);
                 threads[threadID].IsBackground = (true);
             }
 
@@ -120,7 +121,7 @@ namespace Lucene.Net.Search
             dir.Dispose();
         }
 
-        private class ThreadAnonymousInnerClassHelper : ThreadJob
+        private class ThreadAnonymousClass : ThreadJob
         {
             private readonly TestSearchWithThreads outerInstance;
 
@@ -128,7 +129,7 @@ namespace Lucene.Net.Search
             private readonly AtomicBoolean failed;
             private readonly AtomicInt64 netSearch;
 
-            public ThreadAnonymousInnerClassHelper(TestSearchWithThreads outerInstance, IndexSearcher s, AtomicBoolean failed, AtomicInt64 netSearch)
+            public ThreadAnonymousClass(TestSearchWithThreads outerInstance, IndexSearcher s, AtomicBoolean failed, AtomicInt64 netSearch)
             {
                 this.outerInstance = outerInstance;
                 this.s = s;
@@ -157,10 +158,10 @@ namespace Lucene.Net.Search
                     Assert.IsTrue(totSearch > 0 && totHits > 0);
                     netSearch.AddAndGet(totSearch);
                 }
-                catch (Exception exc)
+                catch (Exception exc) when (exc.IsException())
                 {
                     failed.Value = (true);
-                    throw new Exception(exc.Message, exc);
+                    throw RuntimeException.Create(exc);
                 }
             }
         }

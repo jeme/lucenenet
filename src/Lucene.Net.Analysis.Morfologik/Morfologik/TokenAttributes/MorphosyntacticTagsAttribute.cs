@@ -26,10 +26,7 @@ namespace Lucene.Net.Analysis.Morfologik.TokenAttributes
     /// Morphosyntactic annotations for surface forms.
     /// </summary>
     /// <seealso cref="IMorphosyntacticTagsAttribute"/>
-    public class MorphosyntacticTagsAttribute : Attribute, IMorphosyntacticTagsAttribute
-#if FEATURE_CLONEABLE
-        , ICloneable
-#endif
+    public class MorphosyntacticTagsAttribute : Attribute, IMorphosyntacticTagsAttribute // LUCENENET specific: Not implementing ICloneable per Microsoft's recommendation
     {
         /// <summary>Initializes this attribute with no tags</summary>
         public MorphosyntacticTagsAttribute() { }
@@ -59,9 +56,10 @@ namespace Lucene.Net.Analysis.Morfologik.TokenAttributes
 
         public override bool Equals(object other)
         {
-            if (other is IMorphosyntacticTagsAttribute)
+            if (other is null) return false;
+            if (other is IMorphosyntacticTagsAttribute morphosyntacticTagsAttribute)
             {
-                return Equal(this.Tags, ((IMorphosyntacticTagsAttribute)other).Tags);
+                return Equal(this.Tags, morphosyntacticTagsAttribute.Tags);
             }
             return false;
         }

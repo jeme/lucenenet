@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace Lucene.Net.Search
@@ -47,10 +47,7 @@ namespace Lucene.Net.Search
 #if FEATURE_SERIALIZABLE
     [Serializable]
 #endif
-    public abstract class Query
-#if FEATURE_CLONEABLE
-        : System.ICloneable
-#endif
+    public abstract class Query // LUCENENET specific: Not implementing ICloneable per Microsoft's recommendation
     {
         // LUCENENET NOTE: We can't set the default boost in the constructor because the
         // Boost property can be overridden by subclasses (and possibly throw exceptions).
@@ -89,7 +86,7 @@ namespace Lucene.Net.Search
         /// </summary>
         public virtual Weight CreateWeight(IndexSearcher searcher)
         {
-            throw new NotSupportedException("Query " + this + " does not implement createWeight");
+            throw UnsupportedOperationException.Create("Query " + this + " does not implement createWeight");
         }
 
         /// <summary>
@@ -110,21 +107,14 @@ namespace Lucene.Net.Search
         public virtual void ExtractTerms(ISet<Term> terms)
         {
             // needs to be implemented by query subclasses
-            throw new NotSupportedException();
+            throw UnsupportedOperationException.Create();
         }
 
         /// <summary>
         /// Returns a clone of this query. </summary>
         public virtual object Clone()
         {
-            try
-            {
-                return (Query)base.MemberwiseClone();
-            }
-            catch (Exception e)
-            {
-                throw new Exception("Clone not supported: " + e.Message);
-            }
+            return MemberwiseClone(); // LUCENENET: MemberwiseClone() never throws in .NET and there is no need to cast the result here.
         }
 
         public override int GetHashCode()

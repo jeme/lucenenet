@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿// Lucene version compatibility level 4.8.1
+using System.Collections.Generic;
 
 namespace Lucene.Net.Facet
 {
@@ -29,7 +30,7 @@ namespace Lucene.Net.Facet
         /// <summary>
         /// Default constructor.
         /// </summary>
-        public Facets()
+        protected Facets() // LUCENENET: CA1012: Abstract types should not have constructors (marked protected)
         {
         }
 

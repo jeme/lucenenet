@@ -6,7 +6,7 @@ using Lucene.Net.Analysis.Util;
 using Lucene.Net.Util;
 using NUnit.Framework;
 using System;
-//using Assert = Lucene.Net.TestFramework.Assert;
+using Assert = Lucene.Net.TestFramework.Assert;
 
 namespace Lucene.Net.Analysis.OpenNlp
 {
@@ -36,8 +36,8 @@ namespace Lucene.Net.Analysis.OpenNlp
             = "Sentence number 1 has 6 words. Sentence number 2, 5 words. And finally, sentence number 3 has 8 words.";
         private static readonly String[] SENTENCES = new String[] {
             "Sentence number 1 has 6 words. ", "Sentence number 2, 5 words. ", "And finally, sentence number 3 has 8 words." };
-        private static readonly String PADDING = " Word. Word. ";
-        private static readonly String sentenceModelFile = "en-test-sent.bin";
+        private const String PADDING = " Word. Word. ";
+        private const String sentenceModelFile = "en-test-sent.bin";
 
         public override void BeforeClass()
         {
@@ -239,16 +239,5 @@ namespace Lucene.Net.Analysis.OpenNlp
             assertEquals(BreakIterator.Done, bi.Next(13));
             assertEquals(BreakIterator.Done, bi.Next(-8));
         }
-
-        internal static void assertEquals(object expected, object actual)
-        {
-            Assert.AreEqual(expected, actual);
-        }
-
-        internal static void assertEquals(long expected, long actual)
-        {
-            Assert.AreEqual(expected, actual);
-        }
-
     }
 }

@@ -1,4 +1,4 @@
-using J2N.Collections.Generic.Extensions;
+﻿using J2N.Collections.Generic.Extensions;
 using Lucene.Net.Documents;
 using Lucene.Net.Expressions.JS;
 using Lucene.Net.Index;
@@ -7,6 +7,7 @@ using Lucene.Net.Store;
 using Lucene.Net.Support;
 using Lucene.Net.Util;
 using NUnit.Framework;
+using RandomizedTesting.Generators;
 using System.Globalization;
 
 namespace Lucene.Net.Expressions
@@ -32,10 +33,8 @@ namespace Lucene.Net.Expressions
     /// Tests some basic expressions against different queries,
     /// and fieldcache/docvalues fields against an equivalent sort.
     /// </summary>
-    /// <remarks>
-    /// Tests some basic expressions against different queries,
-    /// and fieldcache/docvalues fields against an equivalent sort.
-    /// </remarks>
+
+
     [SuppressCodecs("Lucene3x")]
     public class TestExpressionSorts : LuceneTestCase
     {
@@ -86,8 +85,10 @@ namespace Lucene.Net.Expressions
             base.TearDown();
         }
 
-        // LUCENENET TODO: Fails on x86, Release, net45 (but doesn't fail if any of these 3 parameters are changed)
         [Test]
+#if NETFRAMEWORK
+        [AwaitsFix(BugUrl = "https://github.com/apache/lucenenet/issues/269")] // LUCENENET TODO: this test fails on x86 on .NET Framework in Release mode only
+#endif
         public virtual void TestQueries()
         {
             int n = AtLeast(4);

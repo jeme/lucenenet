@@ -1,4 +1,5 @@
-﻿using J2N;
+﻿// Lucene version compatibility level 4.8.1
+using J2N;
 using Lucene.Net.Util;
 using NUnit.Framework;
 using System;
@@ -34,16 +35,16 @@ namespace Lucene.Net.Analysis.Util
                 IOUtils.DisposeWhileHandlingException(rl.OpenResource("/this-directory-really-really-really-should-not-exist/foo/bar.txt"));
                 fail("The resource does not exist, should fail!");
             }
-            catch (IOException)
+            catch (Exception ioe) when (ioe.IsIOException())
             {
                 // pass
             }
             try
             {
-                rl.NewInstance<TokenFilterFactory>("org.apache.lucene.analysis.FooBarFilterFactory");
+                rl.NewInstance<TokenFilterFactory>("org.apache.lucene.analysis.FooBarFilterFactory"); // LUCENENET TODO: This test is invalid because this type name doesn't work in .NET
                 fail("The class does not exist, should fail!");
             }
-            catch (Exception)
+            catch (Exception iae) when (iae.IsRuntimeException())
             {
                 // pass
             }
@@ -58,14 +59,12 @@ namespace Lucene.Net.Analysis.Util
             string englishStopFile = "english_stop.txt";
             var file = CreateTempFile(System.IO.Path.GetFileNameWithoutExtension(englishStopFile), System.IO.Path.GetExtension(englishStopFile));
             using (var stream = typeof(Snowball.SnowballFilter).FindAndGetManifestResourceStream(englishStopFile))
+            using (var outputStream = new FileStream(file.FullName, FileMode.OpenOrCreate, FileAccess.Write))
             {
-                using (var outputStream = new FileStream(file.FullName, FileMode.OpenOrCreate, FileAccess.Write))
-                {
-                    stream.CopyTo(outputStream);
-                }
+                stream.CopyTo(outputStream);
             }
             // try a stopwords file from classpath
-            CharArraySet set = WordlistLoader.GetSnowballWordSet(new System.IO.StreamReader(rl.OpenResource(file.FullName), Encoding.UTF8), TEST_VERSION_CURRENT);
+            CharArraySet set = WordlistLoader.GetSnowballWordSet(new StreamReader(rl.OpenResource(file.FullName), Encoding.UTF8), TEST_VERSION_CURRENT);
             assertTrue(set.contains("you"));
             // try to load a class; we use string comparison because classloader may be different...
             assertEquals("Lucene.Net.Analysis.Util.RollingCharBuffer", rl.NewInstance<object>("Lucene.Net.Analysis.Util.RollingCharBuffer").ToString());
@@ -79,7 +78,7 @@ namespace Lucene.Net.Analysis.Util
             DirectoryInfo @base = CreateTempDir("fsResourceLoaderBase");
             try
             {
-                TextWriter os = new System.IO.StreamWriter(new System.IO.FileStream(System.IO.Path.Combine(@base.FullName, "template.txt"), System.IO.FileMode.Create, System.IO.FileAccess.Write), Encoding.UTF8);
+                TextWriter os = new StreamWriter(new FileStream(System.IO.Path.Combine(@base.FullName, "template.txt"), FileMode.Create, FileAccess.Write), Encoding.UTF8);
                 try
                 {
                     os.Write("foobar\n");

@@ -1,4 +1,4 @@
-using J2N.Threading.Atomic;
+﻿using J2N.Threading.Atomic;
 using Lucene.Net.Documents;
 using NUnit.Framework;
 using Assert = Lucene.Net.TestFramework.Assert;
@@ -208,7 +208,7 @@ namespace Lucene.Net.Search
 
             FixedBitSet hits = new FixedBitSet(docCount);
             AtomicInt32 end = new AtomicInt32();
-            ICollector c = new CollectorAnonymousInnerClassHelper(this, scorer, hits, end);
+            ICollector c = new CollectorAnonymousClass(this, scorer, hits, end);
 
             while (end < docCount)
             {
@@ -217,12 +217,12 @@ namespace Lucene.Net.Search
                 scorer.Score(c, end);
             }
 
-            Assert.AreEqual(docCount, hits.Cardinality());
+            Assert.AreEqual(docCount, hits.Cardinality);
             r.Dispose();
             dir.Dispose();
         }
 
-        private class CollectorAnonymousInnerClassHelper : ICollector
+        private class CollectorAnonymousClass : ICollector
         {
             private readonly TestBooleanOr outerInstance;
 
@@ -230,7 +230,7 @@ namespace Lucene.Net.Search
             private readonly FixedBitSet hits;
             private readonly AtomicInt32 end;
 
-            public CollectorAnonymousInnerClassHelper(TestBooleanOr outerInstance, BulkScorer scorer, FixedBitSet hits, AtomicInt32 end)
+            public CollectorAnonymousClass(TestBooleanOr outerInstance, BulkScorer scorer, FixedBitSet hits, AtomicInt32 end)
             {
                 this.outerInstance = outerInstance;
                 this.scorer = scorer;

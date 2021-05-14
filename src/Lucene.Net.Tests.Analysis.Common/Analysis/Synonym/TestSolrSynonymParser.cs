@@ -1,4 +1,5 @@
-﻿using Lucene.Net.Analysis.En;
+﻿// Lucene version compatibility level 4.8.1
+using Lucene.Net.Analysis.En;
 using NUnit.Framework;
 using System;
 using System.IO;
@@ -62,7 +63,15 @@ namespace Lucene.Net.Analysis.Synonym
         {
             string testFile = "a => b => c";
             SolrSynonymParser parser = new SolrSynonymParser(true, true, new MockAnalyzer(Random));
-            Assert.Throws<Exception>(() => parser.Parse(new StringReader(testFile)));
+            try
+            {
+                parser.Parse(new StringReader(testFile));
+                fail();
+            }
+            catch (Exception pe) when (pe.IsParseException())
+            {
+                // expected
+            }
         }
 
         /// <summary>
@@ -72,7 +81,15 @@ namespace Lucene.Net.Analysis.Synonym
         {
             string testFile = "a => 1";
             SolrSynonymParser parser = new SolrSynonymParser(true, true, new MockAnalyzer(Random, MockTokenizer.SIMPLE, false));
-            Assert.Throws<Exception>(() => parser.Parse(new StringReader(testFile)));
+            try
+            {
+                parser.Parse(new StringReader(testFile));
+                fail();
+            }
+            catch (Exception pe) when (pe.IsParseException())
+            {
+                // expected
+            }
         }
 
         /// <summary>
@@ -82,7 +99,15 @@ namespace Lucene.Net.Analysis.Synonym
         {
             string testFile = "1 => a";
             SolrSynonymParser parser = new SolrSynonymParser(true, true, new MockAnalyzer(Random, MockTokenizer.SIMPLE, false));
-            Assert.Throws<Exception>(() => parser.Parse(new StringReader(testFile)));
+            try
+            {
+                parser.Parse(new StringReader(testFile));
+                fail();
+            }
+            catch (Exception pe) when (pe.IsParseException())
+            {
+                // expected
+            }
         }
 
         /// <summary>
@@ -92,7 +117,15 @@ namespace Lucene.Net.Analysis.Synonym
         {
             string testFile = "testola => the test";
             SolrSynonymParser parser = new SolrSynonymParser(true, true, new EnglishAnalyzer(TEST_VERSION_CURRENT));
-            Assert.Throws<Exception>(() => parser.Parse(new StringReader(testFile)));
+            try
+            {
+                parser.Parse(new StringReader(testFile));
+                fail();
+            }
+            catch (Exception pe) when (pe.IsParseException())
+            {
+                // expected
+            }
         }
 
         /// <summary>
@@ -102,7 +135,15 @@ namespace Lucene.Net.Analysis.Synonym
         {
             string testFile = "the test => testola";
             SolrSynonymParser parser = new SolrSynonymParser(true, true, new EnglishAnalyzer(TEST_VERSION_CURRENT));
-            Assert.Throws<Exception>(() => parser.Parse(new StringReader(testFile)));
+            try
+            {
+                parser.Parse(new StringReader(testFile));
+                fail();
+            }
+            catch (Exception pe) when (pe.IsParseException())
+            {
+                // expected
+            }
         }
 
         /// <summary>

@@ -1,4 +1,4 @@
-using J2N.Numerics;
+﻿using J2N.Numerics;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -33,10 +33,7 @@ namespace Lucene.Net.Search.Spans
     /// Removes matches which overlap with another <see cref="SpanQuery"/> or
     /// within a x tokens before or y tokens after another <see cref="SpanQuery"/>.
     /// </summary>
-    public class SpanNotQuery : SpanQuery
-#if FEATURE_CLONEABLE
-        , System.ICloneable
-#endif
+    public class SpanNotQuery : SpanQuery // LUCENENET specific: Not implementing ICloneable per Microsoft's recommendation
     {
         private SpanQuery include;
         private SpanQuery exclude;
@@ -120,33 +117,26 @@ namespace Lucene.Net.Search.Spans
 
         public override Spans GetSpans(AtomicReaderContext context, IBits acceptDocs, IDictionary<Term, TermContext> termContexts)
         {
-            return new SpansAnonymousInnerClassHelper(this, context, acceptDocs, termContexts);
+            return new SpansAnonymousClass(this, context, acceptDocs, termContexts);
         }
 
-        private class SpansAnonymousInnerClassHelper : Spans
+        private class SpansAnonymousClass : Spans
         {
             private readonly SpanNotQuery outerInstance;
 
-            private AtomicReaderContext context;
-            private IBits acceptDocs;
-            private IDictionary<Term, TermContext> termContexts;
-
-            public SpansAnonymousInnerClassHelper(SpanNotQuery outerInstance, AtomicReaderContext context, IBits acceptDocs, IDictionary<Term, TermContext> termContexts)
+            public SpansAnonymousClass(SpanNotQuery outerInstance, AtomicReaderContext context, IBits acceptDocs, IDictionary<Term, TermContext> termContexts)
             {
                 this.outerInstance = outerInstance;
-                this.context = context;
-                this.acceptDocs = acceptDocs;
-                this.termContexts = termContexts;
                 includeSpans = outerInstance.include.GetSpans(context, acceptDocs, termContexts);
                 moreInclude = true;
                 excludeSpans = outerInstance.exclude.GetSpans(context, acceptDocs, termContexts);
                 moreExclude = excludeSpans.MoveNext();
             }
 
-            private Spans includeSpans;
+            private readonly Spans includeSpans; // LUCENENET: marked readonly
             private bool moreInclude;
 
-            private Spans excludeSpans;
+            private readonly Spans excludeSpans; // LUCENENET: marked readonly
             private bool moreExclude;
 
             public override bool MoveNext()

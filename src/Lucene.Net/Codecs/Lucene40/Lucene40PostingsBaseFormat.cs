@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.CompilerServices;
 
 namespace Lucene.Net.Codecs.Lucene40
 {
@@ -37,6 +38,7 @@ namespace Lucene.Net.Codecs.Lucene40
         {
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override PostingsReaderBase PostingsReaderBase(SegmentReadState state)
         {
             return new Lucene40PostingsReader(state.Directory, state.FieldInfos, state.SegmentInfo, state.Context, state.SegmentSuffix);
@@ -44,7 +46,7 @@ namespace Lucene.Net.Codecs.Lucene40
 
         public override PostingsWriterBase PostingsWriterBase(SegmentWriteState state)
         {
-            throw new NotSupportedException("this codec can only be used for reading");
+            throw UnsupportedOperationException.Create("this codec can only be used for reading");
         }
     }
 }

@@ -1,4 +1,4 @@
-using Lucene.Net.Diagnostics;
+﻿using Lucene.Net.Diagnostics;
 using Lucene.Net.Index;
 using Lucene.Net.Store;
 using Lucene.Net.Support;
@@ -235,8 +235,7 @@ namespace Lucene.Net.Codecs.BlockTerms
         {
             if (Debugging.AssertsEnabled) Debugging.Assert(field != null);
 
-            FieldReader result;
-            fields.TryGetValue(field, out result);
+            fields.TryGetValue(field, out FieldReader result);
             return result;
         }
 
@@ -277,11 +276,12 @@ namespace Lucene.Net.Codecs.BlockTerms
                 return new SegmentTermsEnum(this);
             }
 
-            public override bool HasFreqs => fieldInfo.IndexOptions.CompareTo(IndexOptions.DOCS_AND_FREQS) >= 0;
+            // LUCENENET specific - to avoid boxing, changed from CompareTo() to IndexOptionsComparer.Compare()
+            public override bool HasFreqs => IndexOptionsComparer.Default.Compare(fieldInfo.IndexOptions, IndexOptions.DOCS_AND_FREQS) >= 0;
 
-            public override bool HasOffsets => fieldInfo.IndexOptions.CompareTo(IndexOptions.DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS) >= 0;
+            public override bool HasOffsets => IndexOptionsComparer.Default.Compare(fieldInfo.IndexOptions, IndexOptions.DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS) >= 0;
 
-            public override bool HasPositions => fieldInfo.IndexOptions.CompareTo(IndexOptions.DOCS_AND_FREQS_AND_POSITIONS) >= 0;
+            public override bool HasPositions => IndexOptionsComparer.Default.Compare(fieldInfo.IndexOptions, IndexOptions.DOCS_AND_FREQS_AND_POSITIONS) >= 0;
 
             public override bool HasPayloads => fieldInfo.HasPayloads;
 
@@ -378,7 +378,7 @@ namespace Lucene.Net.Codecs.BlockTerms
                 {
                     if (indexEnum == null)
                     {
-                        throw new InvalidOperationException("terms index was not loaded");
+                        throw IllegalStateException.Create("terms index was not loaded");
                     }
 
                     //System.out.println("BTR.seek seg=" + segment + " target=" + fieldInfo.name + ":" + target.utf8ToString() + " " + target + " current=" + term().utf8ToString() + " " + term() + " indexIsCurrent=" + indexIsCurrent + " didIndexNext=" + didIndexNext + " seekPending=" + seekPending + " divisor=" + indexReader.getDivisor() + " this="  + this);
@@ -724,7 +724,9 @@ namespace Lucene.Net.Codecs.BlockTerms
                 /// decode all metadata up to the current term
                 /// </summary>
                 /// <returns></returns>
+#pragma warning disable IDE1006 // Naming Styles
                 private BytesRef _next()
+#pragma warning restore IDE1006 // Naming Styles
                 {
                     //System.out.println("BTR._next seg=" + segment + " this=" + this + " termCount=" + state.termBlockOrd + " (vs " + blockTermCount + ")");
                     if (state.TermBlockOrd == blockTermCount && !NextBlock())
@@ -786,7 +788,8 @@ namespace Lucene.Net.Codecs.BlockTerms
                 public override DocsAndPositionsEnum DocsAndPositions(IBits liveDocs, DocsAndPositionsEnum reuse,
                     DocsAndPositionsFlags flags)
                 {
-                    if (outerInstance.fieldInfo.IndexOptions.CompareTo(IndexOptions.DOCS_AND_FREQS_AND_POSITIONS) < 0)
+                    // LUCENENET specific - to avoid boxing, changed from CompareTo() to IndexOptionsComparer.Compare()
+                    if (IndexOptionsComparer.Default.Compare(outerInstance.fieldInfo.IndexOptions, IndexOptions.DOCS_AND_FREQS_AND_POSITIONS) < 0)
                     {
                         // Positions were not indexed:
                         return null;
@@ -824,7 +827,7 @@ namespace Lucene.Net.Codecs.BlockTerms
                     //System.out.println("BTR.seek by ord ord=" + ord);
                     if (indexEnum == null)
                     {
-                        throw new InvalidOperationException("terms index was not loaded");
+                        throw IllegalStateException.Create("terms index was not loaded");
                     }
 
                     if (Debugging.AssertsEnabled) Debugging.Assert(ord < outerInstance.numTerms);
@@ -844,7 +847,7 @@ namespace Lucene.Net.Codecs.BlockTerms
                     seekPending = false;
 
                     state.Ord = indexEnum.Ord - 1;
-                    if (Debugging.AssertsEnabled) Debugging.Assert(state.Ord >= -1, () => "Ord=" + state.Ord);
+                    if (Debugging.AssertsEnabled) Debugging.Assert(state.Ord >= -1, "Ord={0}", state.Ord);
                     term.CopyBytes(indexEnum.Term);
 
                     // Now, scan:
@@ -864,7 +867,7 @@ namespace Lucene.Net.Codecs.BlockTerms
                     {
                         if (!doOrd)
                         {
-                            throw new NotSupportedException();
+                            throw UnsupportedOperationException.Create();
                         }
                         return state.Ord;
                     }
@@ -888,7 +891,7 @@ namespace Lucene.Net.Codecs.BlockTerms
                     // bsearch w/in the block...
 
                     //System.out.println("BTR.nextBlock() fp=" + in.getFilePointer() + " this=" + this);
-                    state.BlockFilePointer = input.GetFilePointer();
+                    state.BlockFilePointer = input.Position; // LUCENENET specific: Renamed from getFilePointer() to match FileStream
                     blockTermCount = input.ReadVInt32();
                     //System.out.println("  blockTermCount=" + blockTermCount);
                     if (blockTermCount == 0)

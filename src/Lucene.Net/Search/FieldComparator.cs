@@ -1,4 +1,4 @@
-using Lucene.Net.Diagnostics;
+﻿using Lucene.Net.Diagnostics;
 using Lucene.Net.Support;
 using System;
 using System.IO;
@@ -182,11 +182,11 @@ namespace Lucene.Net.Search
         /// </summary>
         public virtual int CompareValues(T first, T second)
         {
-            if (object.ReferenceEquals(first, default(T)))
+            if (object.ReferenceEquals(first, default))
             {
-                return object.ReferenceEquals(second, default(T)) ? 0 : -1;
+                return object.ReferenceEquals(second, default) ? 0 : -1;
             }
-            else if (object.ReferenceEquals(second, default(T)))
+            else if (object.ReferenceEquals(second, default))
             {
                 return 1;
             }
@@ -330,7 +330,7 @@ namespace Lucene.Net.Search
             protected readonly string m_field;
             protected IBits m_docsWithField;
 
-            public NumericComparer(string field, T? missingValue)
+            protected NumericComparer(string field, T? missingValue) // LUCENENET: CA1012: Abstract types should not have constructors (marked protected)
             {
                 this.m_field = field;
                 this.m_missingValue = missingValue;
@@ -1413,7 +1413,7 @@ namespace Lucene.Net.Search
 
             private static readonly byte[] NON_MISSING_BYTES = Arrays.Empty<byte>();
 
-            private BytesRef[] values;
+            private readonly BytesRef[] values; // LUCENENET: marked readonly
             private BinaryDocValues docTerms;
             private IBits docsWithField;
             private readonly string field;
@@ -1482,9 +1482,9 @@ namespace Lucene.Net.Search
 
             public override void SetTopValue(object value)
             {
-                if (value == null)
+                if (value is null)
                 {
-                    throw new ArgumentException("value cannot be null");
+                    throw new ArgumentNullException(nameof(value), "value cannot be null"); // LUCENENET specific - changed from IllegalArgumentException to ArgumentNullException (.NET convention)
                 }
                 topValue = (BytesRef)value;
             }

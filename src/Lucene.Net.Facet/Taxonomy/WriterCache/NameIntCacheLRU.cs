@@ -1,4 +1,5 @@
-﻿using J2N.Collections.Concurrent;
+﻿// Lucene version compatibility level 4.8.1
+using J2N.Collections.Concurrent;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -136,8 +137,8 @@ namespace Lucene.Net.Facet.Taxonomy.WriterCache
 
         internal NameCacheLru(int limit, Func<FacetLabel, TName> getKey, Func<FacetLabel, int, TName> getKeyWithPrefixLength)
         {
-            this.getKey = getKey ?? throw new ArgumentNullException(nameof(getKey));
-            this.getKeyWithPrefixLength = getKeyWithPrefixLength ?? throw new ArgumentNullException(nameof(getKeyWithPrefixLength));
+            this.getKey = getKey ?? throw new ArgumentNullException(nameof(getKey)); // LUCENENET specific - changed from IllegalArgumentException to ArgumentNullException (.NET convention)
+            this.getKeyWithPrefixLength = getKeyWithPrefixLength ?? throw new ArgumentNullException(nameof(getKeyWithPrefixLength)); // LUCENENET specific - changed from IllegalArgumentException to ArgumentNullException (.NET convention)
             this.maxCacheSize = limit;
             CreateCache(limit);
         }
@@ -160,9 +161,13 @@ namespace Lucene.Net.Facet.Taxonomy.WriterCache
             }
             else
             {
+#if FEATURE_DICTIONARY_REMOVE_CONTINUEENUMERATION
+                cache = new Dictionary<TName, int>(capacity: 1000);
+#else
                 // LUCENENET specific - we use ConcurrentDictionary here because it supports deleting while
                 // iterating through the collection, but Dictionary does not.
                 cache = new ConcurrentDictionary<TName, int>(concurrencyLevel: 3, capacity: 1000); //no need for LRU
+#endif
             }
         }
 
@@ -233,14 +238,12 @@ namespace Lucene.Net.Facet.Taxonomy.WriterCache
                 }
 
                 //System.Diagnostics.Debug.WriteLine("Removing cache entries in MakeRoomLRU");
-                using (var it = cache.GetEnumerator())
+                using var it = cache.GetEnumerator();
+                int i = 0;
+                while (i < n && it.MoveNext())
                 {
-                    int i = 0;
-                    while (i < n && it.MoveNext())
-                    {
-                        cache.Remove(it.Current.Key);
-                        i++;
-                    }
+                    cache.Remove(it.Current.Key);
+                    i++;
                 }
             }
             return true;

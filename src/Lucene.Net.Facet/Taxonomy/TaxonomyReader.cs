@@ -1,4 +1,5 @@
-﻿using J2N.Threading.Atomic;
+﻿// Lucene version compatibility level 4.8.1
+using J2N.Threading.Atomic;
 using Lucene.Net.Diagnostics;
 using System;
 using System.Collections.Generic;
@@ -170,7 +171,7 @@ namespace Lucene.Net.Facet.Taxonomy
         {
             if (RefCount <= 0)
             {
-                throw new ObjectDisposedException(this.GetType().FullName, "this TaxonomyReader is closed");
+                throw AlreadyClosedException.Create(this.GetType().FullName, "this TaxonomyReader is disposed.");
             }
         }
 
@@ -224,7 +225,7 @@ namespace Lucene.Net.Facet.Taxonomy
             }
             else if (rc < 0)
             {
-                throw new ThreadStateException("too many decRef calls: refCount is " + rc + " after decrement");
+                throw IllegalStateException.Create("too many decRef calls: refCount is " + rc + " after decrement");
             }
         }
 

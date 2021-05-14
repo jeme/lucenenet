@@ -1,6 +1,8 @@
-﻿using Lucene.Net.Analysis.Core;
+﻿// Lucene version compatibility level 4.8.1
+using Lucene.Net.Analysis.Core;
 using Lucene.Net.Analysis.TokenAttributes;
 using NUnit.Framework;
+using RandomizedTesting.Generators;
 using System;
 using System.Collections.Generic;
 using System.IO;

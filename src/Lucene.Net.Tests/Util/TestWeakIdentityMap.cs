@@ -1,4 +1,4 @@
-// LUCENENET specific - factored out this WeakIdentityMap<TKey, TValue> and replaced it with ConditionalWeakTable<TKey, TValue>.
+﻿// LUCENENET specific - factored out this WeakIdentityMap<TKey, TValue> and replaced it with ConditionalWeakTable<TKey, TValue>.
 // ConditionalWeakTable<TKey, TValue> is thread-safe and internally uses RuntimeHelpers.GetHashCode()
 // to lookup the key, so it can be used as a direct replacement for WeakIdentityMap<TKey, TValue>
 // in most cases.
@@ -140,10 +140,8 @@
 //            int size = map.Count;
 //            for (int i = 0; size > 0 && i < 10; i++)
 //            {
-//#if FEATURE_THREAD_INTERRUPT
 //                try
 //                {
-//#endif
 //                    GC.Collect();
 //                    int newSize = map.Count;
 //                    Assert.IsTrue(size >= newSize, "previousSize(" + size + ")>=newSize(" + newSize + ")");
@@ -159,14 +157,10 @@
 //                    Assert.IsTrue(size >= c, "previousSize(" + size + ")>=iteratorSize(" + c + ")");
 //                    Assert.IsTrue(c >= newSize, "iteratorSize(" + c + ")>=newSize(" + newSize + ")");
 //                    size = newSize;
-//#if FEATURE_THREAD_INTERRUPT
 //                }
-//#pragma warning disable 168
-//                catch (ThreadInterruptedException ie)
-//#pragma warning restore 168
+//                catch (Exception ie) when (ie.IsInterruptedException())
 //                {
 //                }
-//#endif
 //            }
 
 //            map.Clear();
@@ -207,7 +201,7 @@
 //            // don't make threadCount and keyCount random, otherwise easily OOMs or fails otherwise:
 //            const int threadCount = 8, keyCount = 1024;
 
-//            RunnableAnonymousInnerClassHelper[] workers = new RunnableAnonymousInnerClassHelper[threadCount];
+//            RunnableAnonymousClass[] workers = new RunnableAnonymousClass[threadCount];
 //            WeakIdentityMap<object, int?> map = WeakIdentityMap<object, int?>.NewConcurrentHashMap(Random.NextBoolean());
 //            // we keep strong references to the keys,
 //            // so WeakIdentityMap will not forget about them:
@@ -222,7 +216,7 @@
 //                for (int t = 0; t < threadCount; t++)
 //                {
 //                    Random rnd = new Random(Random.Next());
-//                    var worker = new RunnableAnonymousInnerClassHelper(this, keyCount, map, keys, rnd);
+//                    var worker = new RunnableAnonymousClass(this, keyCount, map, keys, rnd);
 //                    workers[t] = worker;
 //                    worker.Start();
 //                }
@@ -255,10 +249,8 @@
 //            int size = map.Count;
 //            for (int i = 0; size > 0 && i < 10; i++)
 //            {
-//#if FEATURE_THREAD_INTERRUPT
 //                try
 //                {
-//#endif
 //                    GC.Collect();
 //                    int newSize = map.Count;
 //                    Assert.IsTrue(size >= newSize, "previousSize(" + size + ")>=newSize(" + newSize + ")");
@@ -274,18 +266,14 @@
 //                    Assert.IsTrue(size >= c, "previousSize(" + size + ")>=iteratorSize(" + c + ")");
 //                    Assert.IsTrue(c >= newSize, "iteratorSize(" + c + ")>=newSize(" + newSize + ")");
 //                    size = newSize;
-//#if FEATURE_THREAD_INTERRUPT
 //                }
-//#pragma warning disable 168
-//                catch (ThreadInterruptedException ie)
-//#pragma warning restore 168
+//                catch (Exception ie) when (ie.IsInterruptedException())
 //                {
 //                }
-//#endif
 //            }
 //        }
 
-//        private class RunnableAnonymousInnerClassHelper : ThreadJob
+//        private class RunnableAnonymousClass : ThreadJob
 //        {
 //            private readonly TestWeakIdentityMap outerInstance;
 
@@ -295,7 +283,7 @@
 //            private readonly Random rnd;
 //            private volatile Exception error;
 
-//            public RunnableAnonymousInnerClassHelper(TestWeakIdentityMap outerInstance, int keyCount, WeakIdentityMap<object, int?> map, AtomicReferenceArray<object> keys, Random rnd)
+//            public RunnableAnonymousClass(TestWeakIdentityMap outerInstance, int keyCount, WeakIdentityMap<object, int?> map, AtomicReferenceArray<object> keys, Random rnd)
 //            {
 //                this.outerInstance = outerInstance;
 //                this.keyCount = keyCount;

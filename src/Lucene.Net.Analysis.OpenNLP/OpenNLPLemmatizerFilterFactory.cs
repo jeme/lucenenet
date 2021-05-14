@@ -62,7 +62,7 @@ namespace Lucene.Net.Analysis.OpenNlp
 
             if (args.Count > 0)
             {
-                throw new ArgumentException("Unknown parameters: " + args);
+                throw new ArgumentException(string.Format(J2N.Text.StringFormatter.CurrentCulture, "Unknown parameters: {0}", args));
             }
         }
 
@@ -73,9 +73,9 @@ namespace Lucene.Net.Analysis.OpenNlp
                 NLPLemmatizerOp lemmatizerOp = OpenNLPOpsFactory.GetLemmatizer(dictionaryFile, lemmatizerModelFile);
                 return new OpenNLPLemmatizerFilter(input, lemmatizerOp);
             }
-            catch (IOException e)
+            catch (Exception e) when (e.IsIOException())
             {
-                throw new Exception(e.ToString(), e);
+                throw RuntimeException.Create(e);
             }
         }
 

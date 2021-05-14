@@ -1,4 +1,5 @@
-﻿using Lucene.Net.Analysis.Util;
+﻿// Lucene version compatibility level 4.8.1
+using Lucene.Net.Analysis.Util;
 using NUnit.Framework;
 using System;
 using System.IO;
@@ -46,7 +47,7 @@ namespace Lucene.Net.Analysis.Hu
                 TokenFilterFactory("HungarianLightStem", "bogusArg", "bogusValue");
                 fail();
             }
-            catch (ArgumentException expected)
+            catch (Exception expected) when (expected.IsIllegalArgumentException())
             {
                 assertTrue(expected.Message.Contains("Unknown parameters"));
             }

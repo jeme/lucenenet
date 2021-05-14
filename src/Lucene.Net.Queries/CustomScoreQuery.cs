@@ -1,4 +1,5 @@
-﻿using Lucene.Net.Index;
+﻿// Lucene version compatibility level 4.8.1
+using Lucene.Net.Index;
 using Lucene.Net.Queries.Function;
 using Lucene.Net.Search;
 using Lucene.Net.Support;
@@ -71,9 +72,9 @@ namespace Lucene.Net.Queries
         {
             this.subQuery = subQuery;
             this.scoringQueries = scoringQueries ?? Arrays.Empty<Query>();
-            if (subQuery == null)
+            if (subQuery is null)
             {
-                throw new ArgumentException("<subquery> must not be null!");
+                throw new ArgumentNullException(nameof(subQuery), "<subquery> must not be null!"); // LUCENENET specific - changed from IllegalArgumentException to ArgumentNullException (.NET convention)
             }
         }
 
@@ -277,7 +278,7 @@ namespace Lucene.Net.Queries
                 {
                     valSrcScorers[i] = valSrcWeights[i].GetScorer(context, acceptDocs);
                 }
-                return new CustomScorer(outerInstance, outerInstance.GetCustomScoreProvider(context), this, queryWeight,
+                return new CustomScorer(outerInstance.GetCustomScoreProvider(context), this, queryWeight,
                     subQueryScorer, valSrcScorers);
             }
 
@@ -320,8 +321,6 @@ namespace Lucene.Net.Queries
         /// </summary>
         private class CustomScorer : Scorer
         {
-            private readonly CustomScoreQuery outerInstance;
-
             private readonly float qWeight;
             private readonly Scorer subQueryScorer;
             private readonly Scorer[] valSrcScorers;
@@ -329,11 +328,10 @@ namespace Lucene.Net.Queries
             private readonly float[] vScores; // reused in score() to avoid allocating this array for each doc
 
             // constructor
-            internal CustomScorer(CustomScoreQuery outerInstance, CustomScoreProvider provider, CustomWeight w,
+            internal CustomScorer(CustomScoreProvider provider, CustomWeight w,
                 float qWeight, Scorer subQueryScorer, Scorer[] valSrcScorers)
                 : base(w)
             {
-                this.outerInstance = outerInstance;
                 this.qWeight = qWeight;
                 this.subQueryScorer = subQueryScorer;
                 this.valSrcScorers = valSrcScorers;

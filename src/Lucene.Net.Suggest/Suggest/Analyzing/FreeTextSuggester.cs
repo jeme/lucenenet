@@ -182,11 +182,11 @@ namespace Lucene.Net.Search.Suggest.Analyzing
             this.queryAnalyzer = AddShingles(queryAnalyzer);
             if (grams < 1)
             {
-                throw new ArgumentException("grams must be >= 1");
+                throw new ArgumentOutOfRangeException(nameof(grams), "grams must be >= 1"); // LUCENENET specific - changed from IllegalArgumentException to ArgumentOutOfRangeException (.NET convention)
             }
             if ((separator & 0x80) != 0)
             {
-                throw new ArgumentException("separator must be simple ascii character");
+                throw new ArgumentOutOfRangeException(nameof(separator), "separator must be simple ascii character"); // LUCENENET specific - changed from IllegalArgumentException to ArgumentOutOfRangeException (.NET convention)
             }
             this.separator = separator;
         }
@@ -258,16 +258,16 @@ namespace Lucene.Net.Search.Suggest.Analyzing
             {
                 // TODO: use ShingleAnalyzerWrapper?
                 // Tack on ShingleFilter to the end, to generate token ngrams:
-                return new AnalyzerWrapperAnonymousInnerClassHelper(this, other.Strategy, other);
+                return new AnalyzerWrapperAnonymousClass(this, other.Strategy, other);
             }
         }
 
-        private class AnalyzerWrapperAnonymousInnerClassHelper : AnalyzerWrapper
+        private class AnalyzerWrapperAnonymousClass : AnalyzerWrapper
         {
             private readonly FreeTextSuggester outerInstance;
             private readonly Analyzer other;
 
-            public AnalyzerWrapperAnonymousInnerClassHelper(FreeTextSuggester outerInstance, ReuseStrategy reuseStrategy, Analyzer other)
+            public AnalyzerWrapperAnonymousClass(FreeTextSuggester outerInstance, ReuseStrategy reuseStrategy, Analyzer other)
                 : base(reuseStrategy)
             {
                 this.outerInstance = outerInstance;
@@ -299,6 +299,10 @@ namespace Lucene.Net.Search.Suggest.Analyzing
         /// </summary>
         public virtual void Build(IInputEnumerator enumerator, double ramBufferSizeMB)
         {
+            // LUCENENET: Added guard clause for null
+            if (enumerator is null)
+                throw new ArgumentNullException(nameof(enumerator));
+
             if (enumerator.HasPayloads)
             {
                 throw new ArgumentException("this suggester doesn't support payloads");
@@ -312,7 +316,7 @@ namespace Lucene.Net.Search.Suggest.Analyzing
             var directory = OfflineSorter.DefaultTempDir();
 
             // LUCENENET specific - using GetRandomFileName() instead of picking a random int
-            DirectoryInfo tempIndexPath = null;
+            DirectoryInfo tempIndexPath; // LUCENENET: IDE0059: Remove unnecessary value assignment
             while (true)
             {
                 tempIndexPath = new DirectoryInfo(Path.Combine(directory.FullName, prefix + ".index." + Path.GetFileNameWithoutExtension(Path.GetRandomFileName())));
@@ -361,7 +365,7 @@ namespace Lucene.Net.Search.Suggest.Analyzing
                     reader = DirectoryReader.Open(writer, false);
 
                     Terms terms = MultiFields.GetTerms(reader, "body");
-                    if (terms == null)
+                    if (terms is null)
                     {
                         throw new ArgumentException("need at least one suggestion");
                     }
@@ -390,7 +394,7 @@ namespace Lucene.Net.Search.Suggest.Analyzing
                     }
 
                     fst = builder.Finish();
-                    if (fst == null)
+                    if (fst is null)
                     {
                         throw new ArgumentException("need at least one suggestion");
                     }
@@ -434,7 +438,7 @@ namespace Lucene.Net.Search.Suggest.Analyzing
                     }
                     catch (Exception e)
                     {
-                        throw new InvalidOperationException("failed to remove " + tempIndexPath, e);
+                        throw IllegalStateException.Create("failed to remove " + tempIndexPath, e);
                     }
                 }
             }
@@ -458,12 +462,12 @@ namespace Lucene.Net.Search.Suggest.Analyzing
             var separatorOrig = (sbyte)input.ReadByte();
             if (separatorOrig != separator)
             {
-                throw new InvalidOperationException("separator=" + separator + " is incorrect: original model was built with separator=" + separatorOrig);
+                throw IllegalStateException.Create("separator=" + separator + " is incorrect: original model was built with separator=" + separatorOrig);
             }
             int gramsOrig = input.ReadVInt32();
             if (gramsOrig != grams)
             {
-                throw new InvalidOperationException("grams=" + grams + " is incorrect: original model was built with grams=" + gramsOrig);
+                throw IllegalStateException.Create("grams=" + grams + " is incorrect: original model was built with grams=" + gramsOrig);
             }
             totTokens = input.ReadVInt64();
 
@@ -490,10 +494,10 @@ namespace Lucene.Net.Search.Suggest.Analyzing
             {
                 return DoLookup(key, contexts, num);
             }
-            catch (IOException ioe)
+            catch (Exception ioe) when (ioe.IsIOException())
             {
                 // bogus:
-                throw new Exception(ioe.ToString(), ioe);
+                throw RuntimeException.Create(ioe);
             }
         }
 
@@ -518,12 +522,16 @@ namespace Lucene.Net.Search.Suggest.Analyzing
         /// </summary>
         public virtual IList<LookupResult> DoLookup(string key, IEnumerable<BytesRef> contexts, int num)
         {
+            // LUCENENET: Added guard clause for null
+            if (key is null)
+                throw new ArgumentNullException(nameof(key));
+
             if (contexts != null)
             {
                 throw new ArgumentException("this suggester doesn't support contexts");
             }
 
-            TokenStream ts = queryAnalyzer.GetTokenStream("", key.ToString());
+            TokenStream ts = queryAnalyzer.GetTokenStream("", key);
             try
             {
                 ITermToBytesRefAttribute termBytesAtt = ts.AddAttribute<ITermToBytesRefAttribute>();
@@ -646,9 +654,9 @@ namespace Lucene.Net.Search.Suggest.Analyzing
                     {
                         prefixOutput = LookupPrefix(fst, bytesReader, token, arc);
                     }
-                    catch (IOException bogus)
+                    catch (Exception bogus) when (bogus.IsIOException())
                     {
-                        throw new Exception(bogus.ToString(), bogus);
+                        throw RuntimeException.Create(bogus);
                     }
                     //System.out.println("  prefixOutput=" + prefixOutput);
 
@@ -712,7 +720,7 @@ namespace Lucene.Net.Search.Suggest.Analyzing
 
                         // Must do num+seen.size() for queue depth because we may
                         // reject up to seen.size() paths in acceptResult():
-                        Util.Fst.Util.TopNSearcher<long?> searcher = new TopNSearcherAnonymousInnerClassHelper(this, fst, num, num + seen.Count, weightComparer, seen, finalLastToken);
+                        Util.Fst.Util.TopNSearcher<long?> searcher = new TopNSearcherAnonymousClass(this, fst, num, num + seen.Count, weightComparer, seen, finalLastToken);
 
                         // since this search is initialized with a single start node 
                         // it is okay to start with an empty input path here
@@ -721,9 +729,9 @@ namespace Lucene.Net.Search.Suggest.Analyzing
                         completions = searcher.Search();
                         if (Debugging.AssertsEnabled) Debugging.Assert(completions.IsComplete);
                     }
-                    catch (IOException bogus)
+                    catch (Exception bogus) when (bogus.IsIOException())
                     {
-                        throw new Exception(bogus.ToString(), bogus);
+                        throw RuntimeException.Create(bogus);
                     }
 
                     int prefixLength = token.Length;
@@ -802,14 +810,14 @@ namespace Lucene.Net.Search.Suggest.Analyzing
             }
         }
 
-        private class TopNSearcherAnonymousInnerClassHelper : Util.Fst.Util.TopNSearcher<long?>
+        private class TopNSearcherAnonymousClass : Util.Fst.Util.TopNSearcher<long?>
         {
             private readonly FreeTextSuggester outerInstance;
 
             private readonly ISet<BytesRef> seen;
             private readonly BytesRef finalLastToken;
 
-            public TopNSearcherAnonymousInnerClassHelper(
+            public TopNSearcherAnonymousClass(
                 FreeTextSuggester outerInstance,
                 FST<long?> fst,
                 int num,
@@ -826,7 +834,7 @@ namespace Lucene.Net.Search.Suggest.Analyzing
             }
 
 
-            private BytesRef scratchBytes;
+            private readonly BytesRef scratchBytes;
 
             protected override void AddIfCompetitive(Util.Fst.Util.FSTPath<long?> path)
             {
@@ -905,7 +913,7 @@ namespace Lucene.Net.Search.Suggest.Analyzing
         /// </summary>
         public virtual object Get(string key)
         {
-            throw new NotSupportedException();
+            throw UnsupportedOperationException.Create();
         }
     }
 }

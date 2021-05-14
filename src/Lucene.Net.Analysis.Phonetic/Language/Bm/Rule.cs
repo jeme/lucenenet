@@ -140,7 +140,7 @@ namespace Lucene.Net.Analysis.Phonetic.Language.Bm
                         {
                             rs[l] = ParseRules(CreateScanner(s, rt, l), CreateResourceName(s, rt, l));
                         }
-                        catch (InvalidOperationException e)
+                        catch (Exception e) when (e.IsIllegalStateException())
                         {
                             throw new InvalidOperationException("Problem processing " + CreateResourceName(s, rt, l), e);
                         }
@@ -158,7 +158,9 @@ namespace Lucene.Net.Analysis.Phonetic.Language.Bm
             return rules;
         }
 
+#pragma warning disable IDE0051 // Remove unused private members
         private static bool Contains(ICharSequence chars, char input)
+#pragma warning restore IDE0051 // Remove unused private members
         {
             for (int i = 0; i < chars.Length; i++)
             {
@@ -180,7 +182,9 @@ namespace Lucene.Net.Analysis.Phonetic.Language.Bm
             }
             return false;
         }
+#pragma warning disable IDE0051 // Remove unused private members
         private static bool Contains(StringBuilder chars, char input)
+#pragma warning restore IDE0051 // Remove unused private members
         {
             for (int i = 0; i < chars.Length; i++)
             {
@@ -331,13 +335,9 @@ namespace Lucene.Net.Analysis.Phonetic.Language.Bm
         public static IDictionary<string, IList<Rule>> GetInstanceMap(NameType nameType, RuleType rt,
                                                              string lang)
         {
-            IDictionary<RuleType, IDictionary<string, IDictionary<string, IList<Rule>>>> nameTypes;
-            IDictionary<string, IDictionary<string, IList<Rule>>> ruleTypes;
-            IDictionary<string, IList<Rule>> rules = null;
-
-            if (RULES.TryGetValue(nameType, out nameTypes) && nameTypes != null &&
-                nameTypes.TryGetValue(rt, out ruleTypes) && ruleTypes != null &&
-                ruleTypes.TryGetValue(lang, out rules) && rules != null)
+            if (RULES.TryGetValue(nameType, out var nameTypes) && nameTypes != null &&
+                nameTypes.TryGetValue(rt, out var ruleTypes) && ruleTypes != null &&
+                ruleTypes.TryGetValue(lang, out var rules) && rules != null)
             {
             }
             else
@@ -398,12 +398,12 @@ namespace Lucene.Net.Analysis.Phonetic.Language.Bm
             }
         }
 
-        private class RuleAnonymousHelper : Rule
+        private class RuleAnonymousClass : Rule
         {
             private readonly int myLine;
             private readonly string loc;
 
-            public RuleAnonymousHelper(string pat, string lCon, string rCon, IPhonemeExpr ph, int cLine, string location)
+            public RuleAnonymousClass(string pat, string lCon, string rCon, IPhonemeExpr ph, int cLine, string location)
                 : base(pat, lCon, rCon, ph)
             {
                 this.myLine = cLine;
@@ -497,18 +497,17 @@ namespace Lucene.Net.Analysis.Phonetic.Language.Bm
                                         string rCon = StripQuotes(parts[2]);
                                         IPhonemeExpr ph = ParsePhonemeExpr(StripQuotes(parts[3]));
                                         int cLine = currentLine;
-                                        Rule r = new RuleAnonymousHelper(pat, lCon, rCon, ph, cLine, location);
+                                        Rule r = new RuleAnonymousClass(pat, lCon, rCon, ph, cLine, location);
 
                                         string patternKey = r.pattern.Substring(0, 1 - 0);
-                                        IList<Rule> rules;
-                                        if (!lines.TryGetValue(patternKey, out rules) || rules == null)
+                                        if (!lines.TryGetValue(patternKey, out IList<Rule> rules) || rules == null)
                                         {
                                             rules = new List<Rule>();
                                             lines[patternKey] = rules;
                                         }
                                         rules.Add(r);
                                     }
-                                    catch (ArgumentException e)
+                                    catch (Exception e) when (e.IsIllegalArgumentException())
                                     {
                                         throw new InvalidOperationException("Problem parsing line '" + currentLine + "' in " +
                                                                         location, e);
@@ -836,7 +835,7 @@ namespace Lucene.Net.Analysis.Phonetic.Language.Bm
         {
             if (i < 0)
             {
-                throw new ArgumentOutOfRangeException("Can not match pattern at negative indexes");
+                throw new ArgumentOutOfRangeException(nameof(i), "Can not match pattern at negative indexes");// LUCENENET specific - changed from IllegalArgumentException to ArgumentOutOfRangeException (.NET convention)
             }
 
             int patternLength = this.pattern.Length;
@@ -874,7 +873,7 @@ namespace Lucene.Net.Analysis.Phonetic.Language.Bm
         {
             if (i < 0)
             {
-                throw new ArgumentOutOfRangeException("Can not match pattern at negative indexes");
+                throw new ArgumentOutOfRangeException(nameof(i), "Can not match pattern at negative indexes");// LUCENENET specific - changed from IllegalArgumentException to ArgumentOutOfRangeException (.NET convention)
             }
 
             int patternLength = this.pattern.Length;
@@ -912,7 +911,7 @@ namespace Lucene.Net.Analysis.Phonetic.Language.Bm
         {
             if (i < 0)
             {
-                throw new ArgumentOutOfRangeException("Can not match pattern at negative indexes");
+                throw new ArgumentOutOfRangeException(nameof(i), "Can not match pattern at negative indexes");// LUCENENET specific - changed from IllegalArgumentException to ArgumentOutOfRangeException (.NET convention)
             }
 
             int patternLength = this.pattern.Length;

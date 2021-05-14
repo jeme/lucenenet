@@ -42,7 +42,7 @@ namespace Lucene.Net.Analysis.OpenNlp
         private int termNum = 0;
         private int sentenceStart = 0;
 
-        private readonly NLPSentenceDetectorOp sentenceOp = null;
+        //private readonly NLPSentenceDetectorOp sentenceOp = null; // LUCENENET: Never read
         private readonly NLPTokenizerOp tokenizerOp = null;
 
         /// <summary>
@@ -55,11 +55,12 @@ namespace Lucene.Net.Analysis.OpenNlp
         public OpenNLPTokenizer(AttributeFactory factory, TextReader reader, NLPSentenceDetectorOp sentenceOp, NLPTokenizerOp tokenizerOp) // LUCENENET: Added reader param for compatibility with 4.8 - remove when upgrading
             : base(factory, reader, new OpenNLPSentenceBreakIterator(sentenceOp))
         {
-            if (sentenceOp == null || tokenizerOp == null)
-            {
-                throw new ArgumentException("OpenNLPTokenizer: both a Sentence Detector and a Tokenizer are required");
-            }
-            this.sentenceOp = sentenceOp;
+            // LUCENENET specific - changed from IllegalArgumentException to ArgumentNullException (.NET convention) and refactored to throw on each one separately
+            if (sentenceOp is null)
+                throw new ArgumentNullException(nameof(sentenceOp), "OpenNLPTokenizer: both a Sentence Detector and a Tokenizer are required");
+            if (tokenizerOp is null)
+                throw new ArgumentNullException(nameof(tokenizerOp), "OpenNLPTokenizer: both a Sentence Detector and a Tokenizer are required");
+            //this.sentenceOp = sentenceOp; // LUCENENET: Never read
             this.tokenizerOp = tokenizerOp;
             this.termAtt = AddAttribute<ICharTermAttribute>();
             this.flagsAtt = AddAttribute<IFlagsAttribute>();

@@ -43,7 +43,9 @@ namespace Lucene.Net.Codecs.SimpleText
         private int _numDocsWritten;
         private readonly Directory _directory;
         private readonly string _segment;
+#pragma warning disable CA2213 // Disposable fields should be disposed
         private IndexOutput _output;
+#pragma warning restore CA2213 // Disposable fields should be disposed
 
         internal const string FIELDS_EXTENSION = "fld";
 
@@ -190,18 +192,18 @@ namespace Lucene.Net.Codecs.SimpleText
             {
                 Dispose();
             }
-            finally
+            catch (Exception ignored) when (ignored.IsThrowable())
             {
-                IOUtils.DeleteFilesIgnoringExceptions(_directory,
-                    IndexFileNames.SegmentFileName(_segment, "", FIELDS_EXTENSION));
             }
+            IOUtils.DeleteFilesIgnoringExceptions(_directory,
+                    IndexFileNames.SegmentFileName(_segment, "", FIELDS_EXTENSION));
         }
 
         public override void Finish(FieldInfos fis, int numDocs)
         {
             if (_numDocsWritten != numDocs)
             {
-                throw new Exception("mergeFields produced an invalid result: docCount is " + numDocs + " but only saw " +
+                throw RuntimeException.Create("mergeFields produced an invalid result: docCount is " + numDocs + " but only saw " +
                                     _numDocsWritten + " file=" + _output +
                                     "; now aborting this merge to prevent index corruption");
             }

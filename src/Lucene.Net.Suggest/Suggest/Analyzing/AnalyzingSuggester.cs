@@ -160,7 +160,7 @@ namespace Lucene.Net.Search.Suggest.Analyzing
 
         /// <summary>
         /// Whether position holes should appear in the automaton. </summary>
-        private bool preservePositionIncrements;
+        private readonly bool preservePositionIncrements; // LUCENENET: marked readonly
 
         /// <summary>
         /// Number of entries the lookup was built with </summary>
@@ -243,7 +243,7 @@ namespace Lucene.Net.Search.Suggest.Analyzing
             return fst == null ? 0 : fst.GetSizeInBytes();
         }
 
-        private void CopyDestTransitions(State from, State to, IList<Transition> transitions)
+        private static void CopyDestTransitions(State from, State to, IList<Transition> transitions) // LUCENENET: CA1822: Mark members as static
         {
             if (to.Accept)
             {
@@ -395,6 +395,10 @@ namespace Lucene.Net.Search.Suggest.Analyzing
 
         public override void Build(IInputEnumerator enumerator)
         {
+            // LUCENENET: Added guard clause for null
+            if (enumerator is null)
+                throw new ArgumentNullException(nameof(enumerator));
+
             if (enumerator.HasContexts)
             {
                 throw new ArgumentException("this suggester doesn't support contexts");
@@ -491,7 +495,7 @@ namespace Lucene.Net.Search.Suggest.Analyzing
                             output.WriteBytes(surfaceForm.Bytes, surfaceForm.Offset, surfaceForm.Length);
                         }
 
-                        if (Debugging.AssertsEnabled) Debugging.Assert(output.Position == requiredLength, () => output.Position + " vs " + requiredLength);
+                        if (Debugging.AssertsEnabled) Debugging.Assert(output.Position == requiredLength, "{0} vs {1}", output.Position, requiredLength);
 
                         writer.Write(buffer, 0, output.Position);
                     }
@@ -713,6 +717,10 @@ namespace Lucene.Net.Search.Suggest.Analyzing
         {
             if (Debugging.AssertsEnabled) Debugging.Assert(num > 0);
 
+            // LUCENENET: Added guard clause for null
+            if (key is null)
+                throw new ArgumentNullException(nameof(key));
+
             if (onlyMorePopular)
             {
                 throw new ArgumentException("this suggester only works with onlyMorePopular=false");
@@ -835,7 +843,7 @@ namespace Lucene.Net.Search.Suggest.Analyzing
                 }
 
                 Util.Fst.Util.TopNSearcher<PairOutputs<long?, BytesRef>.Pair> searcher2;
-                searcher2 = new TopNSearcherAnonymousInnerClassHelper(this, fst, num - results.Count,
+                searcher2 = new TopNSearcherAnonymousClass(this, fst, num - results.Count,
                     num * maxAnalyzedPathsForOneInput, weightComparer, utf8Key, results);
 
                 prefixPaths = GetFullPrefixPaths(prefixPaths, lookupAutomaton, fst);
@@ -869,20 +877,20 @@ namespace Lucene.Net.Search.Suggest.Analyzing
 
                 return results;
             }
-            catch (IOException bogus)
+            catch (Exception bogus) when (bogus.IsIOException())
             {
-                throw new Exception(bogus.ToString(), bogus);
+                throw RuntimeException.Create(bogus);
             }
         }
 
-        private class TopNSearcherAnonymousInnerClassHelper : Util.Fst.Util.TopNSearcher<PairOutputs<long?, BytesRef>.Pair>
+        private class TopNSearcherAnonymousClass : Util.Fst.Util.TopNSearcher<PairOutputs<long?, BytesRef>.Pair>
         {
             private readonly AnalyzingSuggester outerInstance;
 
             private readonly BytesRef utf8Key;
             private readonly IList<LookupResult> results;
 
-            public TopNSearcherAnonymousInnerClassHelper(
+            public TopNSearcherAnonymousClass(
                 AnalyzingSuggester outerInstance,
                 FST<PairOutputs<long?, BytesRef>.Pair> fst,
                 int topN,
@@ -1015,7 +1023,7 @@ namespace Lucene.Net.Search.Suggest.Analyzing
         /// </summary>
         public virtual object Get(string key)
         {
-            throw new NotSupportedException();
+            throw UnsupportedOperationException.Create();
         }
 
         /// <summary>
@@ -1031,7 +1039,7 @@ namespace Lucene.Net.Search.Suggest.Analyzing
         {
             if (value < 0 || value > int.MaxValue)
             {
-                throw new NotSupportedException("cannot encode value: " + value);
+                throw UnsupportedOperationException.Create("cannot encode value: " + value);
             }
             return int.MaxValue - (int)value;
         }

@@ -1,4 +1,4 @@
-using Lucene.Net.Support.IO;
+﻿using Lucene.Net.Support.IO;
 using Lucene.Net.Util;
 using System;
 using System.IO;
@@ -115,17 +115,13 @@ namespace Lucene.Net.Store
             {
                 return FileSupport.GetFileIOExceptionHResult(provokeException: (fileName) =>
                 {
-                    using (var lockStream = new FileStream(fileName, FileMode.OpenOrCreate, FileAccess.Write, FileShare.ReadWrite))
-                    {
-                        lockStream.Lock(0, 1); // Create an exclusive lock
-                        using (var stream = new FileStream(fileName, FileMode.Open, FileAccess.Write, FileShare.ReadWrite))
-                        {
-                            // try to find out if the file is locked by writing a byte. Note that we need to flush the stream to find out.
-                            stream.WriteByte(0);
-                            stream.Flush();   // this *may* throw an IOException if the file is locked, but...
-                                              // ... closing the stream is the real test
-                        }
-                    }
+                    using var lockStream = new FileStream(fileName, FileMode.OpenOrCreate, FileAccess.Write, FileShare.ReadWrite);
+                    lockStream.Lock(0, 1); // Create an exclusive lock
+                    using var stream = new FileStream(fileName, FileMode.Open, FileAccess.Write, FileShare.ReadWrite);
+                    // try to find out if the file is locked by writing a byte. Note that we need to flush the stream to find out.
+                    stream.WriteByte(0);
+                    stream.Flush();   // this *may* throw an IOException if the file is locked, but...
+                                      // ... closing the stream is the real test
                 });
             }
 
@@ -139,11 +135,9 @@ namespace Lucene.Net.Store
 
             return FileSupport.GetFileIOExceptionHResult(provokeException: (fileName) =>
             {
-                using (var lockStream = new FileStream(fileName, FileMode.OpenOrCreate, FileAccess.Write, FileShare.Read, 1, FileOptions.None))
+                using var lockStream = new FileStream(fileName, FileMode.OpenOrCreate, FileAccess.Write, FileShare.Read, 1, FileOptions.None);
                 // Try to get an exclusive lock on the file - this should throw an IOException with the current platform's HResult value for FileShare violation
-                using (var stream = new FileStream(fileName, FileMode.Open, FileAccess.Write, FileShare.None, 1, FileOptions.None))
-                {
-                }
+                using var stream = new FileStream(fileName, FileMode.Open, FileAccess.Write, FileShare.None, 1, FileOptions.None);
             });
         }
 
@@ -247,7 +241,9 @@ namespace Lucene.Net.Store
     // Reference: https://stackoverflow.com/q/46380483
     internal class FallbackNativeFSLock : Lock
     {
+#pragma warning disable CA2213 // Disposable fields should be disposed
         private FileStream channel;
+#pragma warning restore CA2213 // Disposable fields should be disposed
         private readonly string path;
         private readonly DirectoryInfo lockDir;
 
@@ -293,12 +289,7 @@ namespace Lucene.Net.Store
 
                     success = true;
                 }
-                catch (IOException e)
-                {
-                    FailureReason = e;
-                }
-                // LUCENENET: UnauthorizedAccessException does not derive from IOException like in java
-                catch (UnauthorizedAccessException e)
+                catch (Exception e) when (e.IsIOException())
                 {
                     // At least on OS X, we will sometimes get an
                     // intermittent "Permission Denied" Exception,
@@ -400,7 +391,7 @@ namespace Lucene.Net.Store
                     }
                     return !obtained;
                 }
-                catch (IOException)
+                catch (Exception ioe) when (ioe.IsIOException())
                 {
                     return false;
                 }
@@ -416,7 +407,9 @@ namespace Lucene.Net.Store
     // Locks the entire file. macOS requires this approach.
     internal class SharingNativeFSLock : Lock
     {
+#pragma warning disable CA2213 // Disposable fields should be disposed
         private FileStream channel;
+#pragma warning restore CA2213 // Disposable fields should be disposed
         private readonly string path;
         private readonly DirectoryInfo lockDir;
 
@@ -485,12 +478,7 @@ namespace Lucene.Net.Store
                 {
                     // no failure reason to be recorded, since this is the expected error if a lock exists
                 }
-                catch (IOException e)
-                {
-                    FailureReason = e;
-                }
-                // LUCENENET: UnauthorizedAccessException does not derive from IOException like in java
-                catch (UnauthorizedAccessException e)
+                catch (Exception e) when (e.IsIOException())
                 {
                     // At least on OS X, we will sometimes get an
                     // intermittent "Permission Denied" Exception,
@@ -576,7 +564,9 @@ namespace Lucene.Net.Store
     // Uses FileStream locking of file pages.
     internal class NativeFSLock : Lock
     {
+#pragma warning disable CA2213 // Disposable fields should be disposed
         private FileStream channel;
+#pragma warning restore CA2213 // Disposable fields should be disposed
         private readonly string path;
         private readonly DirectoryInfo lockDir;
 
@@ -635,12 +625,7 @@ namespace Lucene.Net.Store
                 {
                     stream = GetLockFileStream(FileMode.OpenOrCreate);
                 }
-                catch (IOException e)
-                {
-                    FailureReason = e;
-                }
-                // LUCENENET: UnauthorizedAccessException does not derive from IOException like in java
-                catch (UnauthorizedAccessException e)
+                catch (Exception e) when (e.IsIOException())
                 {
                     // At least on OS X, we will sometimes get an
                     // intermittent "Permission Denied" Exception,

@@ -13,7 +13,7 @@
 // OF ANY KIND, either express or implied; not even the implied warranty
 // of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
-
+using Lucene;
 using Sax;
 using Sax.Ext;
 using Sax.Helpers;
@@ -581,7 +581,7 @@ namespace TagSoup
             {
                 Flush();
             }
-            catch (IOException e)
+            catch (Exception e) when (e.IsIOException())
             {
                 throw new SAXException(e.Message, e);
             }
@@ -667,7 +667,7 @@ namespace TagSoup
         public override void EndElement(string uri, string localName, string qName)
         {
             if (
-              !(htmlMode && (uri.Equals("http://www.w3.org/1999/xhtml", StringComparison.Ordinal) || uri.Equals("", StringComparison.Ordinal))
+              !(htmlMode && (uri.Equals("http://www.w3.org/1999/xhtml", StringComparison.Ordinal) || uri.Length == 0) // LUCENENET: CA1820: Test for empty strings using string length
                 && (qName.Equals("area", StringComparison.Ordinal) || qName.Equals("base", StringComparison.Ordinal) || qName.Equals("basefont", StringComparison.Ordinal) || qName.Equals("br", StringComparison.Ordinal)
                     || qName.Equals("col", StringComparison.Ordinal) || qName.Equals("frame", StringComparison.Ordinal) || qName.Equals("hr", StringComparison.Ordinal) || qName.Equals("img", StringComparison.Ordinal)
                     || qName.Equals("input", StringComparison.Ordinal) || qName.Equals("isindex", StringComparison.Ordinal) || qName.Equals("link", StringComparison.Ordinal) || qName.Equals("meta", StringComparison.Ordinal)
@@ -1229,7 +1229,7 @@ namespace TagSoup
             {
                 output.Write(c);
             }
-            catch (IOException e)
+            catch (Exception e) when (e.IsIOException())
             {
                 throw new SAXException(e.ToString(), e);
             }
@@ -1249,7 +1249,7 @@ namespace TagSoup
             {
                 output.Write(s);
             }
-            catch (IOException e)
+            catch (Exception e) when (e.IsIOException())
             {
                 throw new SAXException(e.ToString(), e);
             }

@@ -1,6 +1,7 @@
-using J2N.Threading;
+﻿using J2N.Threading;
 using J2N.Threading.Atomic;
 using NUnit.Framework;
+using RandomizedTesting.Generators;
 using System;
 using System.Collections.Generic;
 using System.Threading;
@@ -69,7 +70,7 @@ namespace Lucene.Net.Index
             for (int i = 0; i < stallThreads.Length; i++)
             {
                 int stallProbability = 1 + Random.Next(10);
-                stallThreads[i] = new ThreadAnonymousInnerClassHelper(ctrl, stallProbability);
+                stallThreads[i] = new ThreadAnonymousClass(ctrl, stallProbability);
             }
             Start(stallThreads);
             long time = Environment.TickCount;
@@ -92,12 +93,12 @@ namespace Lucene.Net.Index
             Join(stallThreads);
         }
 
-        private class ThreadAnonymousInnerClassHelper : ThreadJob
+        private class ThreadAnonymousClass : ThreadJob
         {
             private readonly DocumentsWriterStallControl ctrl;
             private readonly int stallProbability;
 
-            public ThreadAnonymousInnerClassHelper(DocumentsWriterStallControl ctrl, int stallProbability)
+            public ThreadAnonymousClass(DocumentsWriterStallControl ctrl, int stallProbability)
             {
                 this.ctrl = ctrl;
                 this.stallProbability = stallProbability;
@@ -267,24 +268,19 @@ namespace Lucene.Net.Index
                         ctrl.WaitIfStalled();
                         if (checkPoint)
                         {
-#if FEATURE_THREAD_INTERRUPT
                             try
                             {
-#endif
                                 Assert.IsTrue(sync.await());
-#if FEATURE_THREAD_INTERRUPT
                             }
-                            catch (ThreadInterruptedException /*e*/)
+                            catch (Exception e) when (e.IsInterruptedException())
                             {
                                 Console.WriteLine("[Waiter] got interrupted - wait count: " + sync.waiter.CurrentCount);
-                                //throw new ThreadInterruptedException("Thread Interrupted Exception", e);
                                 throw; // LUCENENET: CA2200: Rethrow to preserve stack details (https://docs.microsoft.com/en-us/visualstudio/code-quality/ca2200-rethrow-to-preserve-stack-details)
                             }
-#endif
                         }
                     }
                 }
-                catch (Exception e)
+                catch (Exception e) when (e.IsThrowable())
                 {
                     Console.WriteLine(e.ToString());
                     Console.Write(e.StackTrace);
@@ -331,19 +327,18 @@ namespace Lucene.Net.Index
                             {
                                 Assert.IsTrue(sync.await());
                             }
-#if FEATURE_THREAD_INTERRUPT
-                            catch (ThreadInterruptedException /*e*/)
+                            catch (Exception e) when (e.IsInterruptedException())
                             {
                                 Console.WriteLine("[Updater] got interrupted - wait count: " + sync.waiter.CurrentCount);
-                                //throw new ThreadInterruptedException("Thread Interrupted Exception", e);
                                 throw; // LUCENENET: CA2200: Rethrow to preserve stack details (https://docs.microsoft.com/en-us/visualstudio/code-quality/ca2200-rethrow-to-preserve-stack-details)
                             }
-#endif
-                            catch (Exception e)
-                            {
-                                Console.Write("signal failed with : " + e);
-                                throw; // LUCENENET: CA2200: Rethrow to preserve stack details (https://docs.microsoft.com/en-us/visualstudio/code-quality/ca2200-rethrow-to-preserve-stack-details)
-                            }
+                            // LUCENENET: Not sure why this catch block was added, but I suspect it was for debugging purposes. Commented it rather than removing it because
+                            // there may be some value to debugging this way.
+                            //catch (Exception e)
+                            //{
+                            //    Console.Write("signal failed with : " + e);
+                            //    throw; // LUCENENET: CA2200: Rethrow to preserve stack details (https://docs.microsoft.com/en-us/visualstudio/code-quality/ca2200-rethrow-to-preserve-stack-details)
+                            //}
 
                             sync.leftCheckpoint.Signal();
                         }
@@ -353,7 +348,7 @@ namespace Lucene.Net.Index
                         }
                     }
                 }
-                catch (Exception e)
+                catch (Exception e) when (e.IsThrowable())
                 {
                     Console.WriteLine(e.ToString());
                     Console.Write(e.StackTrace);
@@ -401,16 +396,16 @@ namespace Lucene.Net.Index
             ThreadJob[] array = new ThreadJob[num];
             for (int i = 0; i < array.Length; i++)
             {
-                array[i] = new ThreadAnonymousInnerClassHelper2(ctrl);
+                array[i] = new ThreadAnonymousClass2(ctrl);
             }
             return array;
         }
 
-        private class ThreadAnonymousInnerClassHelper2 : ThreadJob
+        private class ThreadAnonymousClass2 : ThreadJob
         {
             private readonly DocumentsWriterStallControl ctrl;
 
-            public ThreadAnonymousInnerClassHelper2(DocumentsWriterStallControl ctrl)
+            public ThreadAnonymousClass2(DocumentsWriterStallControl ctrl)
             {
                 this.ctrl = ctrl;
             }

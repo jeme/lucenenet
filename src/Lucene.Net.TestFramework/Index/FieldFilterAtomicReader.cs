@@ -65,22 +65,22 @@ namespace Lucene.Net.Index
             f = new FieldFilterFields(this, f);
             // we need to check for emptyness, so we can return
             // null:
-            using (var iter = f.GetEnumerator())
-                return iter.MoveNext() ? f : null;
+            using var iter = f.GetEnumerator();
+            return iter.MoveNext() ? f : null;
         }
 
         public override void Document(int docID, StoredFieldVisitor visitor)
         {
-            base.Document(docID, new StoredFieldVisitorAnonymousInnerClassHelper(this, visitor));
+            base.Document(docID, new StoredFieldVisitorAnonymousClass(this, visitor));
         }
 
-        private class StoredFieldVisitorAnonymousInnerClassHelper : StoredFieldVisitor
+        private class StoredFieldVisitorAnonymousClass : StoredFieldVisitor
         {
             private readonly FieldFilterAtomicReader outerInstance;
 
             private readonly StoredFieldVisitor visitor;
 
-            public StoredFieldVisitorAnonymousInnerClassHelper(FieldFilterAtomicReader outerInstance, StoredFieldVisitor visitor)
+            public StoredFieldVisitorAnonymousClass(FieldFilterAtomicReader outerInstance, StoredFieldVisitor visitor)
             {
                 this.outerInstance = outerInstance;
                 this.visitor = visitor;

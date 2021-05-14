@@ -1,4 +1,4 @@
-# Licensed to the Apache Software Foundation (ASF) under one
+﻿# Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
 # regarding copyright ownership.  The ASF licenses this file
@@ -19,10 +19,13 @@
 # runs the tests for each project on a background job in parallel,
 # then uploads the results to Azure DevOps pipelines
 
+# NOTE: Depends on environment variables $(IsNightly) and $(IsWeekly)
+
 parameters:
   osName: 'Windows' # The name of the operating system for display purposes.
   framework: '' # The target framework indicating which framework tests will be run on. See: https://docs.microsoft.com/en-us/dotnet/standard/frameworks.
   binaryArtifactName: 'testbinaries' # The name of the Azure DevOps build artifact where the test assemblies will be downloaded from. Default 'testbinaries'.
+  nugetArtifactName: 'nuget' # The name of the Azure DevOps build artifact where the NuGet packages will be downloaded from. Default 'nuget'.
   testResultsArtifactName: 'testresults' # The name of the Azure DevOps build artifact where the test results will be published. Default 'testresults'.
   vsTestPlatform: 'x64' # Target platform architecture used for test execution. Valid values are x86, x64, and ARM.
   testBinaryFilesPattern: '\.*\.Tests\.?[^\\/]*?\.?[^\\/]*?.dll$' # The regex pattern (within $(System.DefaultWorkingDirectory)/**/<TargetFramework>/) where to look for test .dll files, so they can be distinguished from other .dll file types.
@@ -34,7 +37,7 @@ parameters:
 steps:
 - checkout: none # self represents the repo where the initial Pipelines YAML file was found
 
-- powershell: |
+- pwsh: |
     function EnsureNotNullOrEmpty([string]$param, [string]$nameOfParam) {
         if ([string]::IsNullOrEmpty($param)) {
             Write-Host "##vso[task.logissue type=error;]Missing template parameter \"$nameOfParam\""
@@ -44,6 +47,7 @@ steps:
     EnsureNotNullOrEmpty('${{ parameters.osName }}', 'osName')
     EnsureNotNullOrEmpty('${{ parameters.framework }}', 'framework')
     EnsureNotNullOrEmpty('${{ parameters.binaryArtifactName }}', 'binaryArtifactName')
+    EnsureNotNullOrEmpty('${{ parameters.nugetArtifactName }}', 'nugetArtifactName')
     EnsureNotNullOrEmpty('${{ parameters.testResultsArtifactName }}', 'testResultsArtifactName')
     EnsureNotNullOrEmpty('${{ parameters.vsTestPlatform }}', 'vsTestPlatform')
     EnsureNotNullOrEmpty('${{ parameters.testBinaryFilesPattern }}', 'testBinaryFilesPattern')
@@ -54,18 +58,20 @@ steps:
 
 
 - task:  DownloadPipelineArtifact@2
-  displayName: 'Download Build Artifacts: ${{ parameters.binaryArtifactName }} to $(System.DefaultWorkingDirectory)\$(parameters.framework)'
+  displayName: 'Download Build Artifacts: ${{ parameters.binaryArtifactName }} to $(System.DefaultWorkingDirectory)/$(parameters.framework)'
   inputs:
     artifactName: '${{ parameters.binaryArtifactName }}_${{ parameters.framework }}'
     targetPath: '$(System.DefaultWorkingDirectory)/${{ parameters.framework }}'
 
-- powershell: | 
-    Get-ChildItem -Path $(System.DefaultWorkingDirectory)
-- task: UseDotNet@2
-  displayName: 'Use .NET Core sdk 3.1.301'
+# Tests for lucene-cli depend on the NuGet package for testing, so we do an extra download for that file
+- task:  DownloadPipelineArtifact@2
+  displayName: 'Download Build Artifacts: ${{ parameters.nugetArtifactName }} to $(System.DefaultWorkingDirectory)'
   inputs:
-    version: 3.1.301
-  condition: and(succeeded(), contains('${{ parameters.framework }}', 'netcoreapp3.'))
+    artifactName: '${{ parameters.nugetArtifactName }}'
+    targetPath: '$(System.DefaultWorkingDirectory)'
+    patterns: 'lucene-cli.*'
+
+#- pwsh: Get-ChildItem -Path $(System.DefaultWorkingDirectory) # Uncomment for debugging
 
 - task: UseDotNet@2
   displayName: 'Use .NET Core sdk 2.1.807'
@@ -73,9 +79,19 @@ steps:
     version: 2.1.807
   condition: and(succeeded(), contains('${{ parameters.framework }}', 'netcoreapp2.'))
 
-#- template: 'show-all-files.yml' # Uncomment for debugging
+- task: UseDotNet@2
+  displayName: 'Use .NET Core sdk 3.1.301'
+  inputs:
+    version: 3.1.301
+  condition: and(succeeded(), contains('${{ parameters.framework }}', 'netcoreapp3.'))
 
-- powershell: |
+- task: UseDotNet@2
+  displayName: 'Use .NET sdk 5.0.100'
+  inputs:
+    version: 5.0.100
+
+#- template: 'show-all-files.yml' # Uncomment for debugging
+- pwsh: |
     $framework = '${{ parameters.framework }}'
     $testBinaryRootDirectory = "$(System.DefaultWorkingDirectory)"
     $testResultsArtifactDirectory = "${{ format('$(Build.ArtifactStagingDirectory)/{0}',parameters.testResultsArtifactName) }}"
@@ -85,37 +101,15 @@ steps:
     $testResultsFileName = '${{ parameters.testResultsFileName }}'
     $maximumParalellJobs = '${{ parameters.maximumParallelJobs }}'
     $where = '${{ parameters.where }}'
-    
-    function SeparateVersionDigits([string]$digits) {
-        return (&{ for ($i = 0;$i -lt $digits.Length;$i++) { $digits.Substring($i,1) }}) -join '.'
-    }
-    
-    # Convert $framework (i.e. net461) into format for dotnet vstest (i.e. .NETFramework,Version=4.6.1)
-    function ConvertFrameworkName([string]$framework) {
-        $match = [regex]::Match($framework, '^net(\d+)$') # .NET Framework
-        if ($match.Success) {
-            $ver = SeparateVersionDigits($match.Groups[1].Value)
-            return ".NETFramework,Version=v$($ver)"
-        }
-        $match = [regex]::Match($framework, '^netcoreapp(\d+\.\d+(?:\.\d+)?)$') # .NET Core
-        if ($match.Success) {
-            $ver = $match.Groups[1].Value
-            return ".NETCoreApp,Version=v$($ver)"
-        } 
-        $match = [regex]::Match($framework, '^uap(\d+\.\d+)?$') # Universal Windows Platform
-        if ($match.Success) {
-            $ver = $match.Groups[1].Value
-            $ver = if ([string]::IsNullOrEmpty($ver)) { '10' } else { $ver.Replace('.0','').Replace('.','') }
-            return "FrameworkUap$($ver)"
-        }
-        return $framework
-    }
+    $tempDirectory = "$(Agent.TempDirectory)"
+    $isNightly = if ($env:ISNIGHTLY -eq 'true') { 'true' } else { 'false' }
+    $isWeekly = if ($env:ISWEEKLY -eq 'true') { 'true' } else { 'false' }
     
     function IsSupportedFramework([string]$framework) {
         if ($IsWindows -eq $null) {
             $IsWindows = $env:OS.StartsWith('Win')
         }
-        if (!$IsWindows -and !$framework.StartsWith('netcoreapp')) {
+        if (!$IsWindows -and $framework.StartsWith('net4')) {
             return $false
         }
         return $true
@@ -124,14 +118,10 @@ steps:
     function RunTests([string]$framework, [string]$fileRegexPattern) {
         if (!(IsSupportedFramework($framework))) { continue }
     
-        $testBinaries = Get-ChildItem -Path "$testBinaryRootDirectory" -File -Recurse | Where-Object {$_.FullName -match "$framework"} | Where-Object {$_.FullName -match "$fileRegexPattern"} | Sort-Object -Property FullName
+        $testBinaries = Get-ChildItem -Path "$testBinaryRootDirectory" -File -Recurse | Where-Object {$_.FullName -match "$framework" -and $_.FullName -match "$fileRegexPattern" -and !$_.Name.EndsWith('.resources.dll') } | Sort-Object -Property FullName
         Write-Host $testBinaries
         foreach ($testBinary in $testBinaries) {
             $testName = [System.IO.Path]::GetFileNameWithoutExtension($testBinary.FullName)
-            $testDirectory = $testBinary.Directory.Name
-    
-            # Safety check - only run tests for the DLL that matches the directory name so we don't run the same one twice
-            if (!($testName -eq $testDirectory)) { continue }
     
             if ($maximumParalellJobs -gt 1) {
                 # Pause if we have queued too many parallel jobs
@@ -144,21 +134,40 @@ steps:
                 }
             }
     
-            $fwork = ConvertFrameworkName($framework)
             $testResultDirectory = "$testResultsArtifactDirectory/$testOSName/$framework/$testPlatform/$testName"
             if (!(Test-Path "$testResultDirectory")) {
                 New-Item "$testResultDirectory" -ItemType Directory -Force
             }
-    
-            $testExpression = "dotnet vstest ""$($testBinary.FullName)"" --Framework:""$fwork"" --Platform:""$testPlatform""" + `
+            # Test binaries are copied to a temp directory so locking behavior of other processes doesn't interfere with this test run
+            $tempTestDirectory = "$tempDirectory/$framework/$testName"
+            if (!(Test-Path "$tempTestDirectory")) {
+                New-Item "$tempTestDirectory" -ItemType Directory -Force
+            }
+            $testTarget = "$tempTestDirectory/$($testBinary.Name)"
+            $sourceDirectory = $testBinary.Directory.FullName
+
+            Copy-Item -Path "$sourceDirectory/*" -Destination "$tempTestDirectory" -Recurse -Force
+
+            if ($isNightly -ne 'true' -and $isWeekly -ne 'true') {
+                $blameHangTimeout = "--blame-hang-timeout 15minutes"
+            } else {
+                $blameHangTimeout = "--blame-hang-timeout 40minutes"
+            }
+
+            Write-Host "Running with $blameHangTimeout"
+
+            $testExpression = "dotnet test ""$testTarget"" --framework ""$framework"" --blame --no-build --no-restore" + `
                 " --logger:""console;verbosity=normal"" --logger:""trx;LogFileName=$testResultsFileName""" + `
-                " --ResultsDirectory:""$testResultDirectory"" --Blame"
-    
+                " --results-directory:""$testResultDirectory""" + `
+                " --blame-hang --blame-hang-dump-type mini $blameHangTimeout"
+
             if (![string]::IsNullOrEmpty($where)) {
-                $testExpression = "$testExpression --TestCaseFilter:""$where"""
+                $testExpression = "$testExpression --filter ""$where"""
             }
     
-            Write-Host "Testing '$($testBinary.FullName)' on framework '$fwork' and outputting test results to '$testResultDirectory/$testResultsFileName'..."
+            $testExpression = "$testExpression -- RunConfiguration.TargetPlatform=$testPlatform"
+    
+            Write-Host "Testing '$($testBinary.FullName)' on framework '$framework' and outputting test results to '$testResultDirectory/$testResultsFileName'..."
             Write-Host $testExpression -ForegroundColor Magenta
             if ($maximumParalellJobs -le 1) {
                 Invoke-Expression $testExpression # For running in the foreground
@@ -226,8 +235,16 @@ steps:
     vsTestPlatform: '${{ parameters.vsTestPlatform }}'
 
 - pwsh: |
+    $failed = $false
+    if ($env:HOSTCRASHED -eq 'true') {
+        Write-Host "##vso[task.logissue type=error;]Test host process(es) crashed:  $($env:CRASHEDRUNS)."
+        $failed = $true
+    }
     $maximumAllowedFailures = '${{ parameters.maximumAllowedFailures }}'
-    if ([int]$Env:TOTALFAILURES -gt [int]$maximumAllowedFailures) {
-        Write-Host "##vso[task.logissue type=error;]Test run failed due to too many failed tests. Maximum failures allowed: $maximumAllowedFailures, total failures: $($Env:TOTALFAILURES)."
+    if ([int]$env:TOTALFAILURES -gt [int]$maximumAllowedFailures) {
+        Write-Host "##vso[task.logissue type=error;]Test run failed due to too many failed tests. Maximum failures allowed: $maximumAllowedFailures, total failures: $($env:TOTALFAILURES)."
+        $failed = $true
+    }
+    if ($failed) {
         Write-Host "##vso[task.complete result=Failed;]"
     }

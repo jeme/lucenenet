@@ -1,4 +1,4 @@
-using Lucene.Net.Analysis.TokenAttributes;
+﻿using Lucene.Net.Analysis.TokenAttributes;
 using System;
 using System.Collections.Generic;
 
@@ -44,10 +44,10 @@ namespace Lucene.Net.Analysis
 
         private readonly IDictionary<int, int> posToEndOffset = new Dictionary<int, int>();
 
-        private PositionIncrementAttribute posIncAtt;
-        private PositionLengthAttribute posLenAtt;
-        private OffsetAttribute offsetAtt;
-        private CharTermAttribute termAtt;
+        private readonly PositionIncrementAttribute posIncAtt;
+        private readonly PositionLengthAttribute posLenAtt;
+        private readonly OffsetAttribute offsetAtt;
+        private readonly CharTermAttribute termAtt;
         private readonly bool offsetsAreCorrect;
 
         private readonly string name;
@@ -90,14 +90,14 @@ namespace Lucene.Net.Analysis
 
             int startOffset = 0;
             int endOffset = 0;
-            int posLen = 0;
+            int posLen; // LUCENENET: IDE0059: Remove unnecessary value assignment
 
             if (posIncAtt != null)
             {
                 pos += posIncAtt.PositionIncrement;
                 if (pos == -1)
                 {
-                    throw new Exception("first posInc must be > 0");
+                    throw IllegalStateException.Create("first posInc must be > 0");
                 }
             }
 
@@ -110,7 +110,7 @@ namespace Lucene.Net.Analysis
 
                 if (offsetsAreCorrect && offsetAtt.StartOffset < lastStartOffset)
                 {
-                    throw new Exception(name + ": offsets must not go backwards startOffset=" + startOffset + " is < lastStartOffset=" + lastStartOffset);
+                    throw IllegalStateException.Create(name + ": offsets must not go backwards startOffset=" + startOffset + " is < lastStartOffset=" + lastStartOffset);
                 }
                 lastStartOffset = offsetAtt.StartOffset;
             }
@@ -132,7 +132,7 @@ namespace Lucene.Net.Analysis
                     //System.out.println("  + vs " + pos + " -> " + startOffset);
                     if (oldStartOffset != startOffset)
                     {
-                        throw new Exception(name + ": inconsistent startOffset at pos=" + pos + ": " + oldStartOffset + " vs " + startOffset + "; token=" + termAtt);
+                        throw IllegalStateException.Create(name + ": inconsistent startOffset at pos=" + pos + ": " + oldStartOffset + " vs " + startOffset + "; token=" + termAtt);
                     }
                 }
 
@@ -151,7 +151,7 @@ namespace Lucene.Net.Analysis
                     //System.out.println("  + ve " + endPos + " -> " + endOffset);
                     if (oldEndOffset != endOffset)
                     {
-                        throw new Exception(name + ": inconsistent endOffset at pos=" + endPos + ": " + oldEndOffset + " vs " + endOffset + "; token=" + termAtt);
+                        throw IllegalStateException.Create(name + ": inconsistent endOffset at pos=" + endPos + ": " + oldEndOffset + " vs " + endOffset + "; token=" + termAtt);
                     }
                 }
             }

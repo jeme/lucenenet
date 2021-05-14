@@ -1,4 +1,5 @@
-﻿using Lucene.Net.Search;
+﻿// Lucene version compatibility level 4.8.1
+using Lucene.Net.Search;
 using Lucene.Net.Support;
 using System;
 
@@ -74,7 +75,7 @@ namespace Lucene.Net.Facet.Range
 
             if (double.IsNaN(Min))
             {
-                throw new ArgumentException("min cannot be NaN");
+                throw new ArgumentOutOfRangeException(nameof(minIn), "min cannot be NaN"); // LUCENENET specific - changed from IllegalArgumentException to ArgumentOutOfRangeException (.NET convention)
             }
             if (!minInclusive)
             {
@@ -83,7 +84,7 @@ namespace Lucene.Net.Facet.Range
 
             if (double.IsNaN(Max))
             {
-                throw new ArgumentException("max cannot be NaN");
+                throw new ArgumentOutOfRangeException(nameof(maxIn), "max cannot be NaN"); // LUCENENET specific - changed from IllegalArgumentException to ArgumentOutOfRangeException (.NET convention)
             }
             if (!maxInclusive)
             {
@@ -122,17 +123,17 @@ namespace Lucene.Net.Facet.Range
 
         public override Filter GetFilter(Filter fastMatchFilter, ValueSource valueSource)
         {
-            return new FilterAnonymousInnerClassHelper(this, fastMatchFilter, valueSource);
+            return new FilterAnonymousClass(this, fastMatchFilter, valueSource);
         }
 
-        private class FilterAnonymousInnerClassHelper : Filter
+        private class FilterAnonymousClass : Filter
         {
             private readonly DoubleRange outerInstance;
 
             private readonly Filter fastMatchFilter;
             private readonly ValueSource valueSource;
 
-            public FilterAnonymousInnerClassHelper(DoubleRange outerInstance, Filter fastMatchFilter, ValueSource valueSource)
+            public FilterAnonymousClass(DoubleRange outerInstance, Filter fastMatchFilter, ValueSource valueSource)
             {
                 this.outerInstance = outerInstance;
                 this.fastMatchFilter = fastMatchFilter;
@@ -168,7 +169,7 @@ namespace Lucene.Net.Facet.Range
                     fastMatchBits = dis.Bits;
                     if (fastMatchBits == null)
                     {
-                        throw new ArgumentException("fastMatchFilter does not implement DocIdSet.bits");
+                        throw new ArgumentException("fastMatchFilter does not implement DocIdSet.Bits");
                     }
                 }
                 else
@@ -176,19 +177,19 @@ namespace Lucene.Net.Facet.Range
                     fastMatchBits = null;
                 }
 
-                return new DocIdSetAnonymousInnerClassHelper(this, acceptDocs, values, maxDoc, fastMatchBits);
+                return new DocIdSetAnonymousClass(this, acceptDocs, values, maxDoc, fastMatchBits);
             }
 
-            private class DocIdSetAnonymousInnerClassHelper : DocIdSet
+            private class DocIdSetAnonymousClass : DocIdSet
             {
-                private readonly FilterAnonymousInnerClassHelper outerInstance;
+                private readonly FilterAnonymousClass outerInstance;
 
                 private readonly IBits acceptDocs;
                 private readonly FunctionValues values;
                 private readonly int maxDoc;
                 private readonly IBits fastMatchBits;
 
-                public DocIdSetAnonymousInnerClassHelper(FilterAnonymousInnerClassHelper outerInstance, IBits acceptDocs, FunctionValues values, int maxDoc, IBits fastMatchBits)
+                public DocIdSetAnonymousClass(FilterAnonymousClass outerInstance, IBits acceptDocs, FunctionValues values, int maxDoc, IBits fastMatchBits)
                 {
                     this.outerInstance = outerInstance;
                     this.acceptDocs = acceptDocs;
@@ -197,13 +198,13 @@ namespace Lucene.Net.Facet.Range
                     this.fastMatchBits = fastMatchBits;
                 }
 
-                public override IBits Bits => new BitsAnonymousInnerClassHelper(this);
+                public override IBits Bits => new BitsAnonymousClass(this);
 
-                private class BitsAnonymousInnerClassHelper : IBits
+                private class BitsAnonymousClass : IBits
                 {
-                    private readonly DocIdSetAnonymousInnerClassHelper outerInstance;
+                    private readonly DocIdSetAnonymousClass outerInstance;
 
-                    public BitsAnonymousInnerClassHelper(DocIdSetAnonymousInnerClassHelper outerInstance)
+                    public BitsAnonymousClass(DocIdSetAnonymousClass outerInstance)
                     {
                         this.outerInstance = outerInstance;
                     }
@@ -226,7 +227,7 @@ namespace Lucene.Net.Facet.Range
 
                 public override DocIdSetIterator GetIterator()
                 {
-                    throw new NotSupportedException("this filter can only be accessed via bits()");
+                    throw UnsupportedOperationException.Create("this filter can only be accessed via Bits");
                 }
             }
         }

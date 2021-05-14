@@ -1,10 +1,12 @@
-﻿using J2N.Text;
+﻿// Lucene version compatibility level 4.8.1
+using J2N.Text;
 using Lucene.Net.Analysis.Core;
 using Lucene.Net.Analysis.TokenAttributes;
 using Lucene.Net.Diagnostics;
 using Lucene.Net.Support;
 using Lucene.Net.Util;
 using NUnit.Framework;
+using RandomizedTesting.Generators;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -959,10 +961,10 @@ namespace Lucene.Net.Analysis.Synonym
                 new SynonymFilter(tokenizer, (new SynonymMap.Builder(true)).Build(), true);
                 fail("did not hit expected exception");
             }
-            catch (ArgumentException iae)
+            catch (ArgumentNullException iae) // LUCENENET specific - changed from IllegalArgumentException to ArgumentNullException (.NET convention)
             {
                 // expected
-                assertEquals("fst must be non-null", iae.Message);
+                assertTrue(iae.Message.Contains("fst must be non-null")); // LUCENENET: .NET Adds the parameter name to the message
             }
         }
     }

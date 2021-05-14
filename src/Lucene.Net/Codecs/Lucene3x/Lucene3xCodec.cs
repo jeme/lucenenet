@@ -58,18 +58,18 @@ namespace Lucene.Net.Codecs.Lucene3x
         private readonly LiveDocsFormat liveDocsFormat = new Lucene40LiveDocsFormat();
 
         // 3.x doesn't support docvalues
-        private readonly DocValuesFormat docValuesFormat = new DocValuesFormatAnonymousInnerClassHelper();
+        private readonly DocValuesFormat docValuesFormat = new DocValuesFormatAnonymousClass();
 
-        private class DocValuesFormatAnonymousInnerClassHelper : DocValuesFormat
+        private class DocValuesFormatAnonymousClass : DocValuesFormat
         {
-            public DocValuesFormatAnonymousInnerClassHelper()
+            public DocValuesFormatAnonymousClass()
                 : base()
             {
             }
 
             public override DocValuesConsumer FieldsConsumer(SegmentWriteState state)
             {
-                throw new NotSupportedException("this codec cannot write docvalues");
+                throw UnsupportedOperationException.Create("this codec cannot write docvalues");
             }
 
             public override DocValuesProducer FieldsProducer(SegmentReadState state)

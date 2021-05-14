@@ -482,7 +482,7 @@ namespace Lucene.Net.Search.Similarities
         /// Sole constructor. (For invocation by subclass
         /// constructors, typically implicit.)
         /// </summary>
-        public TFIDFSimilarity()
+        protected TFIDFSimilarity() // LUCENENET: CA1012: Abstract types should not have constructors (marked protected)
         {
         }
 
@@ -751,7 +751,10 @@ namespace Lucene.Net.Search.Similarities
         private Explanation ExplainScore(int doc, Explanation freq, IDFStats stats, NumericDocValues norms)
         {
             Explanation result = new Explanation();
-            result.Description = "score(doc=" + doc + ",freq=" + freq + "), product of:";
+            // LUCENENET specific - using freq.Value is a change that was made in Lucene 5.0, but is included
+            // in 4.8.0 to remove annoying newlines from the output.
+            // See: https://github.com/apache/lucene-solr/commit/f0bfcbc7d8fbc5bb2791da60af559e8b0ad6eed6
+            result.Description = "score(doc=" + doc + ",freq=" + freq.Value + "), product of:";
 
             // explain query weight
             Explanation queryExpl = new Explanation();

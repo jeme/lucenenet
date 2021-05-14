@@ -1,4 +1,4 @@
-using J2N.Numerics;
+﻿using J2N.Numerics;
 using Lucene.Net.Diagnostics;
 using System;
 using System.Collections;
@@ -65,8 +65,8 @@ namespace Lucene.Net.Index
         {
             private readonly IndexInput input;
             private string field = "";
-            private BytesRef bytes = new BytesRef();
-            private Term term;
+            private readonly BytesRef bytes = new BytesRef(); // LUCENENET: marked readonly
+            private readonly Term term; // LUCENENET: marked readonly
 
             internal PrefixCodedTermsIterator(RAMFile buffer)
             {
@@ -76,16 +76,26 @@ namespace Lucene.Net.Index
                 {
                     input = new RAMInputStream("PrefixCodedTermsIterator", buffer);
                 }
-                catch (IOException e)
+                catch (Exception e) when (e.IsIOException())
                 {
-                    throw new Exception(e.ToString(), e);
+                    throw RuntimeException.Create(e);
                 }
             }
 
             public virtual Term Current => term;
 
-            public virtual void Dispose()
+            public void Dispose()
             {
+                Dispose(true);
+                GC.SuppressFinalize(true);
+            }
+
+            protected virtual void Dispose(bool disposing)
+            {
+                if (disposing)
+                {
+                    input?.Dispose(); // LUCENENET specific - call dispose on input
+                }
             }
 
             object IEnumerator.Current => Current;
@@ -94,8 +104,8 @@ namespace Lucene.Net.Index
             {
                 // LUCENENET specific - Since there is no way to check for a next element
                 // without calling this method in .NET, the assert is redundant and ineffective.
-                //if (Debugging.AssertsEnabled) Debugging.Assert(input.GetFilePointer() < input.Length); // Has next
-                if (input.GetFilePointer() < input.Length)
+                //if (Debugging.AssertsEnabled) Debugging.Assert(input.Position < input.Length); // Has next
+                if (input.Position < input.Length) // LUCENENET specific: Renamed from getFilePointer() to match FileStream
                 {
                     try
                     {
@@ -111,9 +121,9 @@ namespace Lucene.Net.Index
                         bytes.Length = prefix + suffix;
                         term.Set(field, bytes);
                     }
-                    catch (IOException e)
+                    catch (Exception e) when (e.IsIOException())
                     {
-                        throw new Exception(e.ToString(), e);
+                        throw RuntimeException.Create(e);
                     }
 
                     return true;
@@ -123,7 +133,7 @@ namespace Lucene.Net.Index
 
             public virtual void Reset()
             {
-                throw new NotSupportedException();
+                throw UnsupportedOperationException.Create();
             }
         }
 
@@ -133,17 +143,12 @@ namespace Lucene.Net.Index
         {
             public Builder()
             {
-                InitializeInstanceFields();
-            }
-
-            internal virtual void InitializeInstanceFields()
-            {
                 output = new RAMOutputStream(buffer);
             }
 
-            private RAMFile buffer = new RAMFile();
-            private RAMOutputStream output;
-            private Term lastTerm = new Term("");
+            private readonly RAMFile buffer = new RAMFile(); // LUCENENET: marked readonly
+            private readonly RAMOutputStream output; // LUCENENET: marked readonly
+            private readonly Term lastTerm = new Term(""); // LUCENENET: marked readonly
 
             /// <summary>
             /// add a term </summary>
@@ -169,9 +174,9 @@ namespace Lucene.Net.Index
                     lastTerm.Bytes.CopyBytes(term.Bytes);
                     lastTerm.Field = term.Field;
                 }
-                catch (IOException e)
+                catch (Exception e) when (e.IsIOException())
                 {
-                    throw new Exception(e.ToString(), e);
+                    throw RuntimeException.Create(e);
                 }
             }
 
@@ -184,9 +189,9 @@ namespace Lucene.Net.Index
                     output.Dispose();
                     return new PrefixCodedTerms(buffer);
                 }
-                catch (IOException e)
+                catch (Exception e) when (e.IsIOException())
                 {
-                    throw new Exception(e.ToString(), e);
+                    throw RuntimeException.Create(e);
                 }
             }
 

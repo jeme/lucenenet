@@ -1,4 +1,5 @@
-﻿using Lucene.Net.Index;
+﻿// Lucene version compatibility level 4.8.1
+using Lucene.Net.Index;
 using Lucene.Net.Search;
 using Lucene.Net.Support;
 using Lucene.Net.Util;
@@ -53,7 +54,7 @@ namespace Lucene.Net.Facet
             /// <summary>
             /// Sole constructor.
             /// </summary>
-            public Docs()
+            protected Docs() // LUCENENET: CA1012: Abstract types should not have constructors (marked protected)
             {
             }
 
@@ -128,12 +129,12 @@ namespace Lucene.Net.Facet
         /// </summary>
         protected virtual Docs CreateDocs(int maxDoc)
         {
-            return new DocsAnonymousInnerClassHelper(maxDoc);
+            return new DocsAnonymousClass(maxDoc);
         }
 
-        private class DocsAnonymousInnerClassHelper : Docs
+        private class DocsAnonymousClass : Docs
         {
-            public DocsAnonymousInnerClassHelper(int maxDoc)
+            public DocsAnonymousClass(int maxDoc)
             {
                 bits = new FixedBitSet(maxDoc);
             }
@@ -236,9 +237,9 @@ namespace Lucene.Net.Facet
         /// </summary>
         public static TopFieldDocs Search(IndexSearcher searcher, Query q, Filter filter, int n, Sort sort, ICollector fc)
         {
-            if (sort == null)
+            if (sort is null)
             {
-                throw new ArgumentException("sort must not be null");
+                throw new ArgumentNullException(nameof(sort), "sort must not be null"); // LUCENENET specific - changed from IllegalArgumentException to ArgumentNullException (.NET convention)
             }
             return (TopFieldDocs)DoSearch(searcher, null, q, filter, n, sort, false, false, fc);
         }
@@ -249,9 +250,9 @@ namespace Lucene.Net.Facet
         /// </summary>
         public static TopFieldDocs Search(IndexSearcher searcher, Query q, Filter filter, int n, Sort sort, bool doDocScores, bool doMaxScore, ICollector fc)
         {
-            if (sort == null)
+            if (sort is null)
             {
-                throw new ArgumentException("sort must not be null");
+                throw new ArgumentNullException(nameof(sort), "sort must not be null"); // LUCENENET specific - changed from IllegalArgumentException to ArgumentNullException (.NET convention)
             }
             return (TopFieldDocs)DoSearch(searcher, null, q, filter, n, sort, doDocScores, doMaxScore, fc);
         }
@@ -280,9 +281,9 @@ namespace Lucene.Net.Facet
         /// </summary>
         public static TopDocs SearchAfter(IndexSearcher searcher, ScoreDoc after, Query q, Filter filter, int n, Sort sort, ICollector fc)
         {
-            if (sort == null)
+            if (sort is null)
             {
-                throw new ArgumentException("sort must not be null");
+                throw new ArgumentNullException(nameof(sort), "sort must not be null"); // LUCENENET specific - changed from IllegalArgumentException to ArgumentNullException (.NET convention)
             }
             return DoSearch(searcher, after, q, filter, n, sort, false, false, fc);
         }
@@ -293,9 +294,9 @@ namespace Lucene.Net.Facet
         /// </summary>
         public static TopDocs SearchAfter(IndexSearcher searcher, ScoreDoc after, Query q, Filter filter, int n, Sort sort, bool doDocScores, bool doMaxScore, ICollector fc)
         {
-            if (sort == null)
+            if (sort is null)
             {
-                throw new ArgumentException("sort must not be null");
+                throw new ArgumentNullException(nameof(sort), "sort must not be null"); // LUCENENET specific - changed from IllegalArgumentException to ArgumentNullException (.NET convention)
             }
             return DoSearch(searcher, after, q, filter, n, sort, doDocScores, doMaxScore, fc);
         }

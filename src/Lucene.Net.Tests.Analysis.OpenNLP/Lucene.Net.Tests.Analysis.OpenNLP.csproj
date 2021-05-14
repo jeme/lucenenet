@@ -29,11 +29,9 @@
 
     <AssemblyTitle>Lucene.Net.Tests.Analysis.OpenNLP</AssemblyTitle>
     <RootNamespace>Lucene.Net.Analysis.OpenNlp</RootNamespace>
-  </PropertyGroup>
 
-  <!-- OpenNLP is not strong-named -->
-  <PropertyGroup Label="Assembly Signing">
-    <SignAssembly>false</SignAssembly>
+    <IsPublishable>false</IsPublishable>
+    <IsPublishable Condition=" '$(TargetFramework)' == 'net48' ">true</IsPublishable>
   </PropertyGroup>
 
   <ItemGroup>

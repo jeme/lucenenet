@@ -69,12 +69,12 @@ namespace Lucene.Net.Analysis.Phonetic
     public class PhoneticFilterFactory : TokenFilterFactory, IResourceLoaderAware
     {
         /// <summary>parameter name: either a short name or a full class name</summary>
-        public static readonly string ENCODER = "encoder";
+        public const string ENCODER = "encoder";
         /// <summary>parameter name: true if encoded tokens should be added as synonyms</summary>
-        public static readonly string INJECT = "inject"; // boolean
+        public const string INJECT = "inject"; // boolean
                                                          /** parameter name: restricts the length of the phonetic code */
-        public static readonly string MAX_CODE_LENGTH = "maxCodeLength";
-        private static readonly string PACKAGE_CONTAINING_ENCODERS = "Lucene.Net.Analysis.Phonetic.Language.";
+        public const string MAX_CODE_LENGTH = "maxCodeLength";
+        private const string PACKAGE_CONTAINING_ENCODERS = "Lucene.Net.Analysis.Phonetic.Language.";
 
         //Effectively constants; uppercase keys
         private static readonly IDictionary<string, Type> registry = new Dictionary<string, Type> // LUCENENET: Avoid static constructors (see https://github.com/apache/lucenenet/pull/224#issuecomment-469284006)
@@ -108,9 +108,9 @@ namespace Lucene.Net.Analysis.Phonetic
             {
                 maxCodeLength = null;
             }
-            if (!(args.Count == 0))
+            if (args.Count > 0)
             {
-                throw new ArgumentException("Unknown parameters: " + args);
+                throw new ArgumentException(string.Format(J2N.Text.StringFormatter.CurrentCulture, "Unknown parameters: {0}", args));
             }
         }
 
@@ -129,7 +129,7 @@ namespace Lucene.Net.Analysis.Phonetic
                 {
                     setMaxCodeLenMethod = clazz.GetMethod("set_MaxCodeLen");
                 }
-                catch (Exception e)
+                catch (Exception e) when (e.IsException())
                 {
                     throw new ArgumentException("Encoder " + name + " / " + clazz + " does not support " + MAX_CODE_LENGTH, e);
                 }
@@ -149,7 +149,7 @@ namespace Lucene.Net.Analysis.Phonetic
             {
                 return loader.NewInstance<IStringEncoder>(lookupName).GetType();
             }
-            catch (Exception e)
+            catch (Exception e) when (e.IsRuntimeException())
             {
                 throw new ArgumentException("Error loading encoder '" + name + "': must be full class name or one of " + Collections.ToString(registry.Keys), e);
             }
@@ -170,7 +170,7 @@ namespace Lucene.Net.Analysis.Phonetic
                 }
                 return encoder;
             }
-            catch (Exception e)
+            catch (Exception e) when (e.IsException())
             {
                 Exception t = (e is TargetInvocationException) ? e.InnerException : e;
                 throw new ArgumentException("Error initializing encoder: " + name + " / " + clazz, t);

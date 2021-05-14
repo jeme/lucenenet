@@ -1,3 +1,4 @@
+﻿using J2N.Numerics;
 using System;
 
 namespace Lucene.Net.Replicator
@@ -45,7 +46,7 @@ namespace Lucene.Net.Replicator
         /// <param name="length">Optional, the length of the file.</param>
         public RevisionFile(string fileName, long length = -1)
         {
-            if (string.IsNullOrEmpty(fileName)) throw new ArgumentException("fileName must not be null or empty", "fileName");
+            if (string.IsNullOrEmpty(fileName)) throw new ArgumentException("fileName must not be null or empty", nameof(fileName));
 
             FileName = fileName;
             Length = length;
@@ -53,7 +54,7 @@ namespace Lucene.Net.Replicator
 
         public override bool Equals(object obj)
         {
-            if (ReferenceEquals(null, obj)) return false;
+            if (obj is null) return false;
             if (ReferenceEquals(this, obj)) return true;
             if (obj.GetType() != this.GetType()) return false;
             return Equals((RevisionFile)obj);
@@ -62,14 +63,14 @@ namespace Lucene.Net.Replicator
         // LUCENENET specific Equals overload
         public virtual bool Equals(RevisionFile other)
         {
-            if (ReferenceEquals(null, other)) return false;
+            if (other is null) return false;
             if (ReferenceEquals(this, other)) return true;
             return string.Equals(FileName, other.FileName, StringComparison.Ordinal) && Length == other.Length;
         }
 
         public override int GetHashCode()
         {
-            return FileName.GetHashCode() ^ (int)(Length ^ (long)((ulong)Length >> 32));
+            return FileName.GetHashCode() ^ (int)(Length ^ Length.TripleShift(32));
         }
 
         public override string ToString()

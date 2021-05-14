@@ -1,3 +1,4 @@
+﻿using J2N.Numerics;
 using Lucene.Net.Diagnostics;
 using Lucene.Net.Support;
 using System;
@@ -31,6 +32,7 @@ namespace Lucene.Net.Util.Packed
         internal const int MIN_VALUE_EQUALS_0 = 1 << 0;
         internal const int BPV_SHIFT = 1;
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static long ZigZagEncode(long n)
         {
             return (n >> 63) ^ (n << 1);
@@ -40,15 +42,16 @@ namespace Lucene.Net.Util.Packed
         /// <summary>
         /// NOTE: This was writeVLong() in Lucene.
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static void WriteVInt64(DataOutput @out, long i)
         {
             int k = 0;
             while ((i & ~0x7FL) != 0L && k++ < 8)
             {
-                @out.WriteByte(unchecked((byte)(sbyte)((i & 0x7FL) | 0x80L)));
-                i = (long)((ulong)i >> 7);
+                @out.WriteByte((byte)((i & 0x7FL) | 0x80L));
+                i = i.TripleShift(7);
             }
-            @out.WriteByte((byte)(sbyte)i);
+            @out.WriteByte((byte)i);
         }
 
         protected DataOutput m_out;
@@ -70,6 +73,7 @@ namespace Lucene.Net.Util.Packed
 
         /// <summary>
         /// Reset this writer to wrap <paramref name="out"/>. The block size remains unchanged. </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public virtual void Reset(DataOutput @out)
         {
             if (Debugging.AssertsEnabled) Debugging.Assert(@out != null);
@@ -79,11 +83,12 @@ namespace Lucene.Net.Util.Packed
             m_finished = false;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void CheckNotFinished()
         {
             if (m_finished)
             {
-                throw new InvalidOperationException("Already finished");
+                throw IllegalStateException.Create("Already finished");
             }
         }
 
@@ -106,7 +111,7 @@ namespace Lucene.Net.Util.Packed
             CheckNotFinished();
             if (m_off != 0 && m_off != m_values.Length)
             {
-                throw new InvalidOperationException("" + m_off);
+                throw IllegalStateException.Create("" + m_off);
             }
             if (m_off == m_values.Length)
             {

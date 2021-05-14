@@ -68,17 +68,11 @@ namespace Egothor.Stemmer
     /// The DiffIt class is a means generate patch commands from an already prepared
     /// stemmer table.
     /// </summary>
-    public class DiffIt
+    public static class DiffIt // LUCENENET specific: CA1052 Static holder types should be Static or NotInheritable
     {
-        /// <summary>
-        /// no instantiation
-        /// </summary>
-        private DiffIt() { }
-
         internal static int Get(int i, string s)
         {
-            int result;
-            if (!int.TryParse(s.Substring(i, 1), NumberStyles.Integer, CultureInfo.InvariantCulture, out result))
+            if (!int.TryParse(s.Substring(i, 1), NumberStyles.Integer, CultureInfo.InvariantCulture, out int result))
             {
                 return 1;
             }
@@ -101,8 +95,8 @@ namespace Egothor.Stemmer
             int del = Get(1, args[0]);
             int rep = Get(2, args[0]);
             int nop = Get(3, args[0]);
-            // LUCENENET specific - reformatted with :
-            string charset = SystemProperties.GetProperty("egothor:stemmer:charset", "UTF-8");
+            // LUCENENET specific - reformatted with : and changed "charset" to "encoding"
+            string charset = SystemProperties.GetProperty("egothor:stemmer:encoding", "UTF-8");
             var stemmerTables = new List<string>();
 
             // LUCENENET specific
@@ -124,31 +118,28 @@ namespace Egothor.Stemmer
                 // System.out.println("[" + args[i] + "]");
                 Diff diff = new Diff(ins, del, rep, nop);
 
-                using (TextReader input = new StreamReader(new FileStream(stemmerTable, FileMode.Open, FileAccess.Read), Encoding.GetEncoding(charset)))
+                using TextReader input = new StreamReader(new FileStream(stemmerTable, FileMode.Open, FileAccess.Read), Encoding.GetEncoding(charset));
+                string line;
+                while ((line = input.ReadLine()) != null)
                 {
-                    string line;
-                    while ((line = input.ReadLine()) != null)
+                    line = line.ToLowerInvariant();
+                    using StringTokenizer st = new StringTokenizer(line);
+                    if (st.MoveNext())
                     {
-                        try
+                        string stem = st.Current;
+                        Console.WriteLine(stem + " -a");
+                        while (st.MoveNext())
                         {
-                            line = line.ToLowerInvariant();
-                            StringTokenizer st = new StringTokenizer(line);
-                            st.MoveNext();
-                            string stem = st.Current;
-                            Console.WriteLine(stem + " -a");
-                            while (st.MoveNext())
+                            string token = st.Current;
+                            if (token.Equals(stem, StringComparison.Ordinal) == false)
                             {
-                                string token = st.Current;
-                                if (token.Equals(stem, StringComparison.Ordinal) == false)
-                                {
-                                    Console.WriteLine(stem + " " + diff.Exec(token, stem));
-                                }
+                                Console.WriteLine(stem + " " + diff.Exec(token, stem));
                             }
                         }
-                        catch (InvalidOperationException /*x*/)
-                        {
-                            // no base token (stem) on a line
-                        }
+                    }
+                    else // LUCENENET: st.MoveNext() will return false rather than throwing a NoSuchElementException
+                    {
+                        // no base token (stem) on a line
                     }
                 }
             }

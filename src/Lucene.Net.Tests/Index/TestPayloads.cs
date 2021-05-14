@@ -1,4 +1,4 @@
-using J2N.Text;
+﻿using J2N.Text;
 using J2N.Threading;
 using Lucene.Net.Analysis;
 using Lucene.Net.Analysis.TokenAttributes;
@@ -154,7 +154,7 @@ namespace Lucene.Net.Index
             StringBuilder sb = new StringBuilder();
             for (int i = 0; i < terms.Length; i++)
             {
-                sb.Append(terms[i].Text());
+                sb.Append(terms[i].Text);
                 sb.Append(" ");
             }
             string content = sb.ToString();
@@ -200,7 +200,7 @@ namespace Lucene.Net.Index
             var tps = new DocsAndPositionsEnum[numTerms];
             for (int i = 0; i < numTerms; i++)
             {
-                tps[i] = MultiFields.GetTermPositionsEnum(reader, MultiFields.GetLiveDocs(reader), terms[i].Field, new BytesRef(terms[i].Text()));
+                tps[i] = MultiFields.GetTermPositionsEnum(reader, MultiFields.GetLiveDocs(reader), terms[i].Field, new BytesRef(terms[i].Text));
             }
 
             while (tps[0].NextDoc() != DocIdSetIterator.NO_MORE_DOCS)
@@ -231,7 +231,7 @@ namespace Lucene.Net.Index
             /*
              *  test lazy skipping
              */
-            DocsAndPositionsEnum tp = MultiFields.GetTermPositionsEnum(reader, MultiFields.GetLiveDocs(reader), terms[0].Field, new BytesRef(terms[0].Text()));
+            DocsAndPositionsEnum tp = MultiFields.GetTermPositionsEnum(reader, MultiFields.GetLiveDocs(reader), terms[0].Field, new BytesRef(terms[0].Text));
             tp.NextDoc();
             tp.NextPosition();
             // NOTE: prior rev of this test was failing to first
@@ -255,7 +255,7 @@ namespace Lucene.Net.Index
             /*
              * Test different lengths at skip points
              */
-            tp = MultiFields.GetTermPositionsEnum(reader, MultiFields.GetLiveDocs(reader), terms[1].Field, new BytesRef(terms[1].Text()));
+            tp = MultiFields.GetTermPositionsEnum(reader, MultiFields.GetLiveDocs(reader), terms[1].Field, new BytesRef(terms[1].Text));
             tp.NextDoc();
             tp.NextPosition();
             Assert.AreEqual(1, tp.GetPayload().Length, "Wrong payload length.");
@@ -398,8 +398,7 @@ namespace Lucene.Net.Index
 
             protected internal override TokenStreamComponents CreateComponents(string fieldName, TextReader reader)
             {
-                PayloadData payload;
-                fieldToData.TryGetValue(fieldName, out payload);
+                fieldToData.TryGetValue(fieldName, out PayloadData payload);
                 Tokenizer ts = new MockTokenizer(reader, MockTokenizer.WHITESPACE, false);
                 TokenStream tokenStream = (payload != null) ? (TokenStream)new PayloadFilter(ts, payload.Data, payload.Offset, payload.Length) : ts;
                 return new TokenStreamComponents(ts, tokenStream);
@@ -487,7 +486,7 @@ namespace Lucene.Net.Index
             ThreadJob[] ingesters = new ThreadJob[numThreads];
             for (int i = 0; i < numThreads; i++)
             {
-                ingesters[i] = new ThreadAnonymousInnerClassHelper(this, numDocs, pool, writer, field);
+                ingesters[i] = new ThreadAnonymousClass(this, numDocs, pool, writer, field);
                 ingesters[i].Start();
             }
 
@@ -520,7 +519,7 @@ namespace Lucene.Net.Index
             Assert.AreEqual(pool.Count, numThreads);
         }
 
-        private class ThreadAnonymousInnerClassHelper : ThreadJob
+        private class ThreadAnonymousClass : ThreadJob
         {
             private readonly TestPayloads outerInstance;
 
@@ -529,7 +528,7 @@ namespace Lucene.Net.Index
             private readonly IndexWriter writer;
             private readonly string field;
 
-            public ThreadAnonymousInnerClassHelper(TestPayloads outerInstance, int numDocs, ByteArrayPool pool, IndexWriter writer, string field)
+            public ThreadAnonymousClass(TestPayloads outerInstance, int numDocs, ByteArrayPool pool, IndexWriter writer, string field)
             {
                 this.outerInstance = outerInstance;
                 this.numDocs = numDocs;
@@ -549,10 +548,9 @@ namespace Lucene.Net.Index
                         writer.AddDocument(d);
                     }
                 }
-                catch (Exception e)
+                catch (Exception e) when (e.IsException())
                 {
-                    Console.WriteLine(e.ToString());
-                    Console.Write(e.StackTrace);
+                    e.printStackTrace();
                     Assert.Fail(e.ToString());
                 }
             }

@@ -1,4 +1,4 @@
-using J2N.Threading.Atomic;
+﻿using J2N.Threading.Atomic;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -59,7 +59,7 @@ namespace Lucene.Net.Replicator
             {
                 if (refCount <= 0)
                 {
-                    throw new InvalidOperationException("this revision is already released");
+                    throw IllegalStateException.Create("this revision is already released");
                 }
 
                 var rc = refCount.DecrementAndGet();
@@ -82,7 +82,7 @@ namespace Lucene.Net.Replicator
                 }
                 else if (rc < 0)
                 {
-                    throw new InvalidOperationException(string.Format("too many decRef calls: refCount is {0} after decrement", rc));
+                    throw IllegalStateException.Create(string.Format("too many decRef calls: refCount is {0} after decrement", rc));
                 }
             }
 
@@ -144,10 +144,9 @@ namespace Lucene.Net.Replicator
         /// <exception cref="InvalidOperationException"></exception>
         private void ReleaseSession(string sessionId)
         {
-            ReplicationSession session;
             // if we're called concurrently by close() and release(), could be that one
             // thread beats the other to release the session.
-            if (sessions.TryGetValue(sessionId, out session))
+            if (sessions.TryGetValue(sessionId, out ReplicationSession session))
             {
                 sessions.Remove(sessionId);
                 session.Revision.DecRef();
@@ -165,7 +164,7 @@ namespace Lucene.Net.Replicator
                 if (!disposed)
                     return;
 
-                throw new ObjectDisposedException("This replicator has already been disposed");
+                throw AlreadyClosedException.Create(this.GetType().FullName, "This replicator has already been disposed.");
             }
         }
 
@@ -237,8 +236,7 @@ namespace Lucene.Net.Replicator
             {
                 EnsureOpen();
 
-                ReplicationSession session;
-                if (sessions.TryGetValue(sessionId, out session) && session != null && session.IsExpired(ExpirationThreshold))
+                if (sessions.TryGetValue(sessionId, out ReplicationSession session) && session != null && session.IsExpired(ExpirationThreshold))
                 {
                     ReleaseSession(sessionId);
                     session = null;
@@ -272,7 +270,7 @@ namespace Lucene.Net.Replicator
                     if (compare < 0)
                     {
                         revision.Release();
-                        throw new ArgumentException(string.Format("Cannot publish an older revision: rev={0} current={1}", revision, currentRevision), "revision");
+                        throw new ArgumentException(string.Format("Cannot publish an older revision: rev={0} current={1}", revision, currentRevision), nameof(revision));
                     }
                 }
 

@@ -1,4 +1,5 @@
-﻿using J2N.Collections.Generic.Extensions;
+﻿// Lucene version compatibility level 4.8.1
+using J2N.Collections.Generic.Extensions;
 using Lucene.Net.Diagnostics;
 using Lucene.Net.Index;
 using Lucene.Net.Search;
@@ -142,9 +143,9 @@ namespace Lucene.Net.Queries
         ///          the term to add </param>
         public virtual void Add(Term term)
         {
-            if (term == null)
+            if (term is null)
             {
-                throw new ArgumentException("Term must not be null");
+                throw new ArgumentNullException(nameof(term), "Term must not be null"); // LUCENENET specific - changed from IllegalArgumentException to ArgumentOutOfRangeException (.NET convention)
             }
             this.m_terms.Add(term);
         }

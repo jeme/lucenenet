@@ -1,8 +1,8 @@
+﻿using J2N.Numerics;
 using J2N.Text;
 using Lucene.Net.Diagnostics;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
 namespace Lucene.Net.Codecs.Lucene40
@@ -26,13 +26,13 @@ namespace Lucene.Net.Codecs.Lucene40
 
     using ArrayUtil = Lucene.Net.Util.ArrayUtil;
     using AtomicReader = Lucene.Net.Index.AtomicReader;
-    using IBits = Lucene.Net.Util.IBits;
     using BytesRef = Lucene.Net.Util.BytesRef;
     using DataInput = Lucene.Net.Store.DataInput;
     using Directory = Lucene.Net.Store.Directory;
     using FieldInfo = Lucene.Net.Index.FieldInfo;
     using FieldInfos = Lucene.Net.Index.FieldInfos;
     using Fields = Lucene.Net.Index.Fields;
+    using IBits = Lucene.Net.Util.IBits;
     using IndexFileNames = Lucene.Net.Index.IndexFileNames;
     using IndexOutput = Lucene.Net.Store.IndexOutput;
     using IOContext = Lucene.Net.Store.IOContext;
@@ -60,7 +60,9 @@ namespace Lucene.Net.Codecs.Lucene40
     {
         private readonly Directory directory;
         private readonly string segment;
+#pragma warning disable CA2213 // Disposable fields should be disposed
         private IndexOutput tvx = null, tvd = null, tvf = null;
+#pragma warning restore CA2213 // Disposable fields should be disposed
 
         /// <summary>
         /// Sole constructor. </summary>
@@ -80,9 +82,9 @@ namespace Lucene.Net.Codecs.Lucene40
                 CodecUtil.WriteHeader(tvf, Lucene40TermVectorsReader.CODEC_NAME_FIELDS, Lucene40TermVectorsReader.VERSION_CURRENT);
                 if (Debugging.AssertsEnabled)
                 {
-                    Debugging.Assert(Lucene40TermVectorsReader.HEADER_LENGTH_INDEX == tvx.GetFilePointer());
-                    Debugging.Assert(Lucene40TermVectorsReader.HEADER_LENGTH_DOCS == tvd.GetFilePointer());
-                    Debugging.Assert(Lucene40TermVectorsReader.HEADER_LENGTH_FIELDS == tvf.GetFilePointer());
+                    Debugging.Assert(Lucene40TermVectorsReader.HEADER_LENGTH_INDEX == tvx.Position); // LUCENENET specific: Renamed from getFilePointer() to match FileStream
+                    Debugging.Assert(Lucene40TermVectorsReader.HEADER_LENGTH_DOCS == tvd.Position); // LUCENENET specific: Renamed from getFilePointer() to match FileStream
+                    Debugging.Assert(Lucene40TermVectorsReader.HEADER_LENGTH_FIELDS == tvf.Position); // LUCENENET specific: Renamed from getFilePointer() to match FileStream
                 }
                 success = true;
             }
@@ -95,12 +97,13 @@ namespace Lucene.Net.Codecs.Lucene40
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override void StartDocument(int numVectorFields)
         {
             lastFieldName = null;
             this.numVectorFields = numVectorFields;
-            tvx.WriteInt64(tvd.GetFilePointer());
-            tvx.WriteInt64(tvf.GetFilePointer());
+            tvx.WriteInt64(tvd.Position); // LUCENENET specific: Renamed from getFilePointer() to match FileStream
+            tvx.WriteInt64(tvf.Position); // LUCENENET specific: Renamed from getFilePointer() to match FileStream
             tvd.WriteVInt32(numVectorFields);
             fieldCount = 0;
             fps = ArrayUtil.Grow(fps, numVectorFields);
@@ -113,14 +116,14 @@ namespace Lucene.Net.Codecs.Lucene40
 
         public override void StartField(FieldInfo info, int numTerms, bool positions, bool offsets, bool payloads)
         {
-            if (Debugging.AssertsEnabled) Debugging.Assert(lastFieldName == null || info.Name.CompareToOrdinal(lastFieldName) > 0, () => "fieldName=" + info.Name + " lastFieldName=" + lastFieldName);
+            if (Debugging.AssertsEnabled) Debugging.Assert(lastFieldName == null || info.Name.CompareToOrdinal(lastFieldName) > 0, "fieldName={0} lastFieldName={1}", info.Name, lastFieldName);
             lastFieldName = info.Name;
             this.positions = positions;
             this.offsets = offsets;
             this.payloads = payloads;
             lastTerm.Length = 0;
             lastPayloadLength = -1; // force first payload to write its length
-            fps[fieldCount++] = tvf.GetFilePointer();
+            fps[fieldCount++] = tvf.Position; // LUCENENET specific: Renamed from getFilePointer() to match FileStream
             tvd.WriteVInt32(info.Number);
             tvf.WriteVInt32(numTerms);
             sbyte bits = 0x0;
@@ -156,7 +159,7 @@ namespace Lucene.Net.Codecs.Lucene40
         private int[] offsetStartBuffer = new int[10];
 
         private int[] offsetEndBuffer = new int[10];
-        private BytesRef payloadData = new BytesRef(10);
+        private readonly BytesRef payloadData = new BytesRef(10); // LUCENENET: marked readonly
         private int bufferedIndex = 0;
         private int bufferedFreq = 0;
         private bool positions = false;
@@ -206,11 +209,11 @@ namespace Lucene.Net.Codecs.Lucene40
                         scratch.Grow(length);
                         scratch.Length = length;
                         positions.ReadBytes(scratch.Bytes, scratch.Offset, scratch.Length);
-                        WritePosition((int)((uint)code >> 1), scratch);
+                        WritePosition(code.TripleShift(1), scratch);
                     }
                     else
                     {
-                        WritePosition((int)((uint)code >> 1), null);
+                        WritePosition(code.TripleShift(1), null);
                     }
                 }
                 tvf.WriteBytes(payloadData.Bytes, payloadData.Offset, payloadData.Length);
@@ -220,7 +223,7 @@ namespace Lucene.Net.Codecs.Lucene40
                 // pure positions, no payloads
                 for (int i = 0; i < numProx; i++)
                 {
-                    tvf.WriteVInt32((int)((uint)positions.ReadVInt32() >> 1));
+                    tvf.WriteVInt32(positions.ReadVInt32().TripleShift(1));
                 }
             }
 
@@ -314,7 +317,7 @@ namespace Lucene.Net.Codecs.Lucene40
                     {
                         // we overflowed the payload buffer, just throw UOE
                         // having > System.Int32.MaxValue bytes of payload for a single term in a single doc is nuts.
-                        throw new NotSupportedException("A term cannot have more than System.Int32.MaxValue bytes of payload data in a single document");
+                        throw UnsupportedOperationException.Create("A term cannot have more than System.Int32.MaxValue bytes of payload data in a single document");
                     }
                     payloadData.Append(payload);
                 }
@@ -332,9 +335,7 @@ namespace Lucene.Net.Codecs.Lucene40
             {
                 Dispose();
             }
-#pragma warning disable 168
-            catch (Exception ignored)
-#pragma warning restore 168
+            catch (Exception ignored) when (ignored.IsThrowable())
             {
             }
             IOUtils.DeleteFilesIgnoringExceptions(directory, 
@@ -350,8 +351,8 @@ namespace Lucene.Net.Codecs.Lucene40
         /// </summary>
         private void AddRawDocuments(Lucene40TermVectorsReader reader, int[] tvdLengths, int[] tvfLengths, int numDocs)
         {
-            long tvdPosition = tvd.GetFilePointer();
-            long tvfPosition = tvf.GetFilePointer();
+            long tvdPosition = tvd.Position; // LUCENENET specific: Renamed from getFilePointer() to match FileStream
+            long tvfPosition = tvf.Position; // LUCENENET specific: Renamed from getFilePointer() to match FileStream
             long tvdStart = tvdPosition;
             long tvfStart = tvfPosition;
             for (int i = 0; i < numDocs; i++)
@@ -365,8 +366,8 @@ namespace Lucene.Net.Codecs.Lucene40
             tvf.CopyBytes(reader.TvfStream, tvfPosition - tvfStart);
             if (Debugging.AssertsEnabled)
             {
-                Debugging.Assert(tvd.GetFilePointer() == tvdPosition);
-                Debugging.Assert(tvf.GetFilePointer() == tvfPosition);
+                Debugging.Assert(tvd.Position == tvdPosition); // LUCENENET specific: Renamed from getFilePointer() to match FileStream
+                Debugging.Assert(tvf.Position == tvfPosition); // LUCENENET specific: Renamed from getFilePointer() to match FileStream
             }
         }
 
@@ -389,9 +390,9 @@ namespace Lucene.Net.Codecs.Lucene40
                 {
                     TermVectorsReader vectorsReader = matchingSegmentReader.TermVectorsReader;
 
-                    if (vectorsReader != null && vectorsReader is Lucene40TermVectorsReader)
+                    if (vectorsReader != null && vectorsReader is Lucene40TermVectorsReader lucene40TermVectorsReader)
                     {
-                        matchingVectorsReader = (Lucene40TermVectorsReader)vectorsReader;
+                        matchingVectorsReader = lucene40TermVectorsReader;
                     }
                 }
                 if (reader.LiveDocs != null)
@@ -504,21 +505,23 @@ namespace Lucene.Net.Codecs.Lucene40
             return maxDoc;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override void Finish(FieldInfos fis, int numDocs)
         {
-            if (Lucene40TermVectorsReader.HEADER_LENGTH_INDEX + ((long)numDocs) * 16 != tvx.GetFilePointer())
+            if (Lucene40TermVectorsReader.HEADER_LENGTH_INDEX + ((long)numDocs) * 16 != tvx.Position) // LUCENENET specific: Renamed from getFilePointer() to match FileStream
             // this is most likely a bug in Sun JRE 1.6.0_04/_05;
             // we detect that the bug has struck, here, and
             // throw an exception to prevent the corruption from
             // entering the index.  See LUCENE-1282 for
             // details.
             {
-                throw new Exception("tvx size mismatch: mergedDocs is " + numDocs + " but tvx size is " + tvx.GetFilePointer() + " file=" + tvx.ToString() + "; now aborting this merge to prevent index corruption");
+                throw RuntimeException.Create("tvx size mismatch: mergedDocs is " + numDocs + " but tvx size is " + tvx.Position + " file=" + tvx.ToString() + "; now aborting this merge to prevent index corruption");
             }
         }
 
         /// <summary>
         /// Close all streams. </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         protected override void Dispose(bool disposing)
         {
             if (disposing)

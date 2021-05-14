@@ -35,7 +35,7 @@ namespace Lucene.Net.Analysis.OpenNlp
         private CharacterIterator text;
         private int currentSentence;
         private int[] sentenceStarts;
-        private NLPSentenceDetectorOp sentenceOp;
+        private readonly NLPSentenceDetectorOp sentenceOp; // LUCENENET: marked readonly
 
         public OpenNLPSentenceBreakIterator(NLPSentenceDetectorOp sentenceOp)
         {
@@ -87,7 +87,7 @@ namespace Lucene.Net.Analysis.OpenNlp
         {
             if (pos < text.BeginIndex || pos > text.EndIndex)
             {
-                throw new ArgumentException("offset out of bounds");
+                throw new ArgumentOutOfRangeException(nameof(pos), "offset out of bounds: must be >= text.BeginIndex and <= text.EndIndex"); // LUCENENET specific - changed from IllegalArgumentException to ArgumentOutOfRangeException (.NET convention)
             }
             else if (0 == sentenceStarts.Length)
             {
@@ -168,7 +168,7 @@ namespace Lucene.Net.Analysis.OpenNlp
         {
             if (pos < text.BeginIndex || pos > text.EndIndex)
             {
-                throw new ArgumentException("offset out of bounds");
+                throw new ArgumentOutOfRangeException(nameof(pos), "offset out of bounds: must be >= text.BeginIndex and <= text.EndIndex"); // LUCENENET specific - changed from IllegalArgumentException to ArgumentOutOfRangeException (.NET convention)
             }
             else if (0 == sentenceStarts.Length)
             {
@@ -256,9 +256,8 @@ namespace Lucene.Net.Analysis.OpenNlp
         private string CharacterIteratorToString()
         {
             string fullText;
-            if (text is CharArrayIterator)
+            if (text is CharArrayIterator charArrayIterator)
             {
-                CharArrayIterator charArrayIterator = (CharArrayIterator)text;
                 fullText = new string(charArrayIterator.Text, charArrayIterator.Start, charArrayIterator.Length);
             }
             else

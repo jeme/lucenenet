@@ -1,4 +1,4 @@
-using Spatial4n.Core.Context;
+﻿using Spatial4n.Core.Context;
 using Spatial4n.Core.Shapes;
 using Spatial4n.Core.Util;
 using System;
@@ -48,7 +48,7 @@ namespace Lucene.Net.Spatial.Prefix.Tree
 
             protected internal override SpatialPrefixTree NewSPT()
             {
-                return new GeohashPrefixTree(m_ctx, m_maxLevels.HasValue ? m_maxLevels.Value : GeohashPrefixTree.MaxLevelsPossible);
+                return new GeohashPrefixTree(m_ctx, m_maxLevels ?? GeohashPrefixTree.MaxLevelsPossible);
             }
         }
 
@@ -65,7 +65,7 @@ namespace Lucene.Net.Spatial.Prefix.Tree
             int Maxp = MaxLevelsPossible;
             if (maxLevels <= 0 || maxLevels > Maxp)
             {
-                throw new ArgumentException("maxLen must be [1-" + Maxp + "] but got " + maxLevels);
+                throw new ArgumentOutOfRangeException(nameof(maxLevels), "maxLen must be [1-" + Maxp + "] but got " + maxLevels); // LUCENENET specific - changed from IllegalArgumentException to ArgumentOutOfRangeException (.NET convention)
             }
         }
 

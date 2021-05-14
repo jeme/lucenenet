@@ -1,5 +1,6 @@
-using Lucene.Net.Index;
+﻿using Lucene.Net.Index;
 using Lucene.Net.Util;
+using RandomizedTesting.Generators;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -60,27 +61,24 @@ namespace Lucene.Net.Search
         public override Weight CreateNormalizedWeight(Query query)
         {
             Weight w = base.CreateNormalizedWeight(query);
-            return new AssertingWeightAnonymousInnerClassHelper(this, random, w);
+            return new AssertingWeightAnonymousClass(random, w);
         }
 
-        private class AssertingWeightAnonymousInnerClassHelper : AssertingWeight
+        private class AssertingWeightAnonymousClass : AssertingWeight
         {
-            private readonly AssertingIndexSearcher outerInstance;
-
-            public AssertingWeightAnonymousInnerClassHelper(AssertingIndexSearcher outerInstance, Random random, Weight w)
+            public AssertingWeightAnonymousClass(Random random, Weight w)
                 : base(random, w)
             {
-                this.outerInstance = outerInstance;
             }
 
             public override void Normalize(float norm, float topLevelBoost)
             {
-                throw new InvalidOperationException("Weight already normalized.");
+                throw IllegalStateException.Create("Weight already normalized.");
             }
 
             public override float GetValueForNormalization()
             {
-                throw new InvalidOperationException("Weight already normalized.");
+                throw IllegalStateException.Create("Weight already normalized.");
             }
         }
 

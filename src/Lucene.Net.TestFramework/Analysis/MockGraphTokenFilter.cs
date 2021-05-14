@@ -1,7 +1,6 @@
-using Lucene.Net.Analysis.TokenAttributes;
+﻿using Lucene.Net.Analysis.TokenAttributes;
 using Lucene.Net.Util;
 using System;
-using AssertionError = Lucene.Net.Diagnostics.AssertionException;
 using Console = Lucene.Net.Util.SystemConsole;
 
 namespace Lucene.Net.Analysis
@@ -33,7 +32,9 @@ namespace Lucene.Net.Analysis
 
     public sealed class MockGraphTokenFilter : LookaheadTokenFilter<LookaheadTokenFilter.Position>
     {
-        new private static bool DEBUG = false;
+#pragma warning disable CA1802 // Use literals where appropriate
+        new private static readonly bool DEBUG = false;
+#pragma warning restore CA1802 // Use literals where appropriate
 
         private readonly ICharTermAttribute termAtt;
 
@@ -130,7 +131,7 @@ namespace Lucene.Net.Analysis
             }
             if (random == null)
             {
-                throw new AssertionError("IncrementToken() called in wrong state!");
+                throw IllegalStateException.Create("IncrementToken() called in wrong state!");
             }
             return NextToken();
         }

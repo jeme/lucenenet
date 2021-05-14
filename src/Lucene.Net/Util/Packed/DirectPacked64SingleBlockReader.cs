@@ -1,5 +1,7 @@
+﻿using J2N.Numerics;
 using System;
 using System.IO;
+using System.Runtime.CompilerServices;
 
 namespace Lucene.Net.Util.Packed
 {
@@ -33,7 +35,7 @@ namespace Lucene.Net.Util.Packed
             : base(valueCount, bitsPerValue)
         {
             this.@in = @in;
-            startPointer = @in.GetFilePointer();
+            startPointer = @in.Position; // LUCENENET specific: Renamed from getFilePointer() to match FileStream
             valuesPerBlock = 64 / bitsPerValue;
             mask = ~(~0L << bitsPerValue);
         }
@@ -48,14 +50,15 @@ namespace Lucene.Net.Util.Packed
 
                 long block = @in.ReadInt64();
                 int offsetInBlock = index % valuesPerBlock;
-                return ((long)((ulong)block >> (offsetInBlock * m_bitsPerValue))) & mask;
+                return (block.TripleShift(offsetInBlock * m_bitsPerValue)) & mask;
             }
-            catch (IOException e)
+            catch (Exception e) when (e.IsIOException())
             {
-                throw new InvalidOperationException("failed", e);
+                throw IllegalStateException.Create("failed", e);
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override long RamBytesUsed()
         {
             return 0;

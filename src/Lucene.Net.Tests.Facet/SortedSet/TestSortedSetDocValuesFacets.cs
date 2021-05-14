@@ -1,4 +1,6 @@
-﻿using NUnit.Framework;
+﻿// Lucene version compatibility level 4.8.1
+using NUnit.Framework;
+using RandomizedTesting.Generators;
 using System;
 using System.Collections.Generic;
 using Assert = Lucene.Net.TestFramework.Assert;
@@ -48,7 +50,6 @@ namespace Lucene.Net.Facet.SortedSet
         [Test]
         public virtual void TestBasic()
         {
-
             AssumeTrue("Test requires SortedSetDV support", DefaultCodecSupportsSortedSet);
             Directory dir = NewDirectory();
 
@@ -138,10 +139,10 @@ namespace Lucene.Net.Facet.SortedSet
 
             try
             {
-                new SortedSetDocValuesFacetCounts(state, c);
+                _ = new SortedSetDocValuesFacetCounts(state, c);
                 fail("did not hit expected exception");
             }
-            catch (InvalidOperationException)
+            catch (Exception ise) when (ise.IsIllegalStateException())
             {
                 // expected
             }
@@ -366,9 +367,7 @@ namespace Lucene.Net.Facet.SortedSet
                         {
                             if (doc.dims[j] != null)
                             {
-                                int? v; 
-                                
-                                if (!expectedCounts[j].TryGetValue(doc.dims[j],out v))
+                                if (!expectedCounts[j].TryGetValue(doc.dims[j], out int? v))
                                 {
                                     expectedCounts[j][doc.dims[j]] = 1;
                                 }
@@ -412,5 +411,4 @@ namespace Lucene.Net.Facet.SortedSet
             IOUtils.Dispose(w, searcher.IndexReader, indexDir, taxoDir);
         }
     }
-
 }

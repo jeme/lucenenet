@@ -67,21 +67,21 @@ namespace Lucene.Net.Spatial.Serialized
                 m_ctx.BinaryCodec.WriteShape(new BinaryWriter(byteStream), shape);
 
                 //this is a hack to avoid redundant byte array copying by byteStream.toByteArray()
-                byteStream.WriteTo(new OutputStreamAnonymousHelper(bytesRef));
+                byteStream.WriteTo(new OutputStreamAnonymousClass(bytesRef));
             }
-            catch (IOException e)
+            catch (Exception e) when (e.IsIOException())
             {
-                throw new Exception(e.ToString(), e);
+                throw RuntimeException.Create(e);
             }
             this.indexLastBufSize = bytesRef.Length;//cache heuristic
             return new Field[] { new BinaryDocValuesField(FieldName, bytesRef) };
         }
 
-        internal class OutputStreamAnonymousHelper : MemoryStream
+        private class OutputStreamAnonymousClass : MemoryStream
         {
             private readonly BytesRef bytesRef;
 
-            public OutputStreamAnonymousHelper(BytesRef bytesRef)
+            public OutputStreamAnonymousClass(BytesRef bytesRef)
             {
                 this.bytesRef = bytesRef;
             }
@@ -102,7 +102,7 @@ namespace Lucene.Net.Spatial.Serialized
 
         public override ConstantScoreQuery MakeQuery(SpatialArgs args)
         {
-            throw new NotSupportedException("This strategy can't return a query that operates" +
+            throw UnsupportedOperationException.Create("This strategy can't return a query that operates" +
                 " efficiently. Instead try a Filter or ValueSource.");
         }
 
@@ -126,7 +126,7 @@ namespace Lucene.Net.Spatial.Serialized
         //TODO raise to SpatialStrategy
         public virtual ValueSource MakeShapeValueSource()
         {
-            return new ShapeDocValueSource(this, FieldName, m_ctx.BinaryCodec);
+            return new ShapeDocValueSource(FieldName, m_ctx.BinaryCodec);
         }
 
         /// <summary>
@@ -144,16 +144,16 @@ namespace Lucene.Net.Spatial.Serialized
 
             public override DocIdSet GetDocIdSet(AtomicReaderContext context, IBits acceptDocs)
             {
-                return new DocIdSetAnonymousHelper(this, context, acceptDocs);
+                return new DocIdSetAnonymousClass(this, context, acceptDocs);
             }
 
-            internal class DocIdSetAnonymousHelper : DocIdSet
+            private class DocIdSetAnonymousClass : DocIdSet
             {
                 private readonly PredicateValueSourceFilter outerInstance;
                 private readonly AtomicReaderContext context;
                 private readonly IBits acceptDocs;
 
-                public DocIdSetAnonymousHelper(PredicateValueSourceFilter outerInstance, AtomicReaderContext context, IBits acceptDocs)
+                public DocIdSetAnonymousClass(PredicateValueSourceFilter outerInstance, AtomicReaderContext context, IBits acceptDocs)
                 {
                     this.outerInstance = outerInstance;
                     this.context = context;
@@ -162,7 +162,7 @@ namespace Lucene.Net.Spatial.Serialized
 
                 public override DocIdSetIterator GetIterator()
                 {
-                    throw new NotSupportedException(
+                    throw UnsupportedOperationException.Create(
                         "Iteration is too slow; instead try FilteredQuery.QUERY_FIRST_FILTER_STRATEGY");
                         //Note that if you're truly bent on doing this, then see FunctionValues.getRangeScorer
                 }
@@ -174,20 +174,18 @@ namespace Lucene.Net.Spatial.Serialized
                         //null Map context -- we simply don't have one. That's ok.
                         FunctionValues predFuncValues = outerInstance.predicateValueSource.GetValues(null, context);
 
-                        return new BitsAnonymousHelper(this, predFuncValues, context, acceptDocs);
+                        return new BitsAnonymousClass(predFuncValues, context, acceptDocs);
                     }
                 }
 
-                internal class BitsAnonymousHelper : IBits
+                private class BitsAnonymousClass : IBits
                 {
-                    private readonly DocIdSetAnonymousHelper outerInstance;
                     private readonly FunctionValues predFuncValues;
                     private readonly AtomicReaderContext context;
                     private readonly IBits acceptDocs;
 
-                    public BitsAnonymousHelper(DocIdSetAnonymousHelper outerInstance, FunctionValues predFuncValues, AtomicReaderContext context, IBits acceptDocs)
+                    public BitsAnonymousClass(FunctionValues predFuncValues, AtomicReaderContext context, IBits acceptDocs)
                     {
-                        this.outerInstance = outerInstance;
                         this.predFuncValues = predFuncValues;
                         this.context = context;
                         this.acceptDocs = acceptDocs;
@@ -229,13 +227,11 @@ namespace Lucene.Net.Spatial.Serialized
         /// <seealso cref="MakeShapeValueSource()"/>
         internal class ShapeDocValueSource : ValueSource
         {
-            private readonly SerializedDVStrategy outerInstance;
             private readonly string fieldName;
             private readonly BinaryCodec binaryCodec;//spatial4n
 
-            internal ShapeDocValueSource(SerializedDVStrategy outerInstance, string fieldName, BinaryCodec binaryCodec)
+            internal ShapeDocValueSource(string fieldName, BinaryCodec binaryCodec)
             {
-                this.outerInstance = outerInstance;
                 this.fieldName = fieldName;
                 this.binaryCodec = binaryCodec;
             }
@@ -244,22 +240,22 @@ namespace Lucene.Net.Spatial.Serialized
             {
                 BinaryDocValues docValues = readerContext.AtomicReader.GetBinaryDocValues(fieldName);
 
-                return new FuctionValuesAnonymousHelper(this, docValues);
+                return new FuctionValuesAnonymousClass(this, docValues);
             }
 
-            internal class FuctionValuesAnonymousHelper : FunctionValues
+            private class FuctionValuesAnonymousClass : FunctionValues
             {
                 private readonly ShapeDocValueSource outerInstance;
                 private readonly BinaryDocValues docValues;
 
-                public FuctionValuesAnonymousHelper(ShapeDocValueSource outerInstance, BinaryDocValues docValues)
+                public FuctionValuesAnonymousClass(ShapeDocValueSource outerInstance, BinaryDocValues docValues)
                 {
                     this.outerInstance = outerInstance;
                     this.docValues = docValues;
                 }
 
                 private int bytesRefDoc = -1;
-                private BytesRef bytesRef = new BytesRef();//scratch
+                private readonly BytesRef bytesRef = new BytesRef();//scratch
 
                 internal bool FillBytes(int doc)
                 {
@@ -302,9 +298,9 @@ namespace Lucene.Net.Spatial.Serialized
                     {
                         return outerInstance.binaryCodec.ReadShape(dataInput);
                     }
-                    catch (IOException e)
+                    catch (Exception e) when (e.IsIOException())
                     {
-                        throw new Exception(e.ToString(), e);
+                        throw RuntimeException.Create(e);
                     }
                 }
 

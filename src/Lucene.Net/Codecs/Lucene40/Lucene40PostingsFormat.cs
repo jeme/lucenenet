@@ -1,6 +1,5 @@
 using Lucene.Net.Diagnostics;
 using System;
-using System.Diagnostics;
 
 namespace Lucene.Net.Codecs.Lucene40
 {
@@ -241,7 +240,7 @@ namespace Lucene.Net.Codecs.Lucene40
 
         public override FieldsConsumer FieldsConsumer(SegmentWriteState state)
         {
-            throw new NotSupportedException("this codec can only be used for reading");
+            throw UnsupportedOperationException.Create("this codec can only be used for reading");
         }
 
         public override FieldsProducer FieldsProducer(SegmentReadState state)
@@ -266,11 +265,11 @@ namespace Lucene.Net.Codecs.Lucene40
 
         /// <summary>
         /// Extension of freq postings file. </summary>
-        internal static readonly string FREQ_EXTENSION = "frq";
+        internal const string FREQ_EXTENSION = "frq";
 
         /// <summary>
         /// Extension of prox postings file. </summary>
-        internal static readonly string PROX_EXTENSION = "prx";
+        internal const string PROX_EXTENSION = "prx";
 
         public override string ToString()
         {

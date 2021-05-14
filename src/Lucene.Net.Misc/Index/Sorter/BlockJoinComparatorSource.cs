@@ -95,22 +95,22 @@ namespace Lucene.Net.Index.Sorter
 
             // NOTE: we could return parent ID as value but really our sort "value" is more complex...
             // So we throw UOE for now. At the moment you really should only use this at indexing time.
-            return new FieldComparerAnonymousInnerClassHelper(this, parentSlots,
+            return new FieldComparerAnonymousClass(this, parentSlots,
                 childSlots, parentReverseMul, parentComparers, childReverseMul, childComparers);
         }
 
-        private class FieldComparerAnonymousInnerClassHelper : FieldComparer<int?>
+        private class FieldComparerAnonymousClass : FieldComparer<int?>
         {
             private readonly BlockJoinComparerSource outerInstance;
 
-            private int[] parentSlots;
-            private int[] childSlots;
-            private int[] parentReverseMul;
-            private FieldComparer[] parentComparers;
-            private int[] childReverseMul;
-            private FieldComparer[] childComparers;
+            private readonly int[] parentSlots;
+            private readonly int[] childSlots;
+            private readonly int[] parentReverseMul;
+            private readonly FieldComparer[] parentComparers;
+            private readonly int[] childReverseMul;
+            private readonly FieldComparer[] childComparers;
 
-            public FieldComparerAnonymousInnerClassHelper(BlockJoinComparerSource outerInstance,
+            public FieldComparerAnonymousClass(BlockJoinComparerSource outerInstance,
                 int[] parentSlots, int[] childSlots, int[] parentReverseMul, FieldComparer[] parentComparers,
                 int[] childReverseMul, FieldComparer[] childComparers)
             {
@@ -133,9 +133,9 @@ namespace Lucene.Net.Index.Sorter
                 {
                     return Compare(childSlots[slot1], parentSlots[slot1], childSlots[slot2], parentSlots[slot2]);
                 }
-                catch (IOException e)
+                catch (Exception e) when (e.IsIOException())
                 {
-                    throw new Exception(e.ToString(), e);
+                    throw RuntimeException.Create(e);
                 }
             }
 
@@ -148,7 +148,7 @@ namespace Lucene.Net.Index.Sorter
             public override void SetTopValue(object value)
             {
                 // we dont have enough information (the docid is needed)
-                throw new NotSupportedException("this comparer cannot be used with deep paging");
+                throw UnsupportedOperationException.Create("this comparer cannot be used with deep paging");
             }
 
             public override int CompareBottom(int doc)
@@ -159,7 +159,7 @@ namespace Lucene.Net.Index.Sorter
             public override int CompareTop(int doc)
             {
                 // we dont have enough information (the docid is needed)
-                throw new NotSupportedException("this comparer cannot be used with deep paging");
+                throw UnsupportedOperationException.Create("this comparer cannot be used with deep paging");
             }
 
             public override void Copy(int slot, int doc)
@@ -174,11 +174,11 @@ namespace Lucene.Net.Index.Sorter
                 DocIdSet parents = outerInstance.parentsFilter.GetDocIdSet(context, null);
                 if (parents == null)
                 {
-                    throw new InvalidOperationException("AtomicReader " + context.AtomicReader + " contains no parents!");
+                    throw IllegalStateException.Create("AtomicReader " + context.AtomicReader + " contains no parents!");
                 }
                 if (!(parents is FixedBitSet))
                 {
-                    throw new InvalidOperationException("parentFilter must return FixedBitSet; got " + parents);
+                    throw IllegalStateException.Create("parentFilter must return FixedBitSet; got " + parents);
                 }
                 parentBits = (FixedBitSet)parents;
                 for (int i = 0; i < parentComparers.Length; i++)
@@ -195,7 +195,7 @@ namespace Lucene.Net.Index.Sorter
             // LUCENENET NOTE: This was value(int) in Lucene.
             public override IComparable this[int slot] => throw
                 // really our sort "value" is more complex...
-                new NotSupportedException("filling sort field values is not yet supported");
+                UnsupportedOperationException.Create("filling sort field values is not yet supported");
 
             public override void SetScorer(Scorer scorer)
             {

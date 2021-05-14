@@ -36,8 +36,8 @@
   <PropertyGroup Label="NuGet Package File Paths">
     <LuceneNetDotNetDir>$(SolutionDir)src\dotnet\</LuceneNetDotNetDir>
     <LuceneNetCodeAnalysisToolsDir>$(LuceneNetDotNetDir)Lucene.Net.CodeAnalysis\tools\</LuceneNetCodeAnalysisToolsDir>
-    <LuceneNetCodeAnalysisCSAssemblyFile>$(LuceneNetDotNetDir)\Lucene.Net.CodeAnalysis.CSharp\bin\$(Configuration)\netstandard2.0\*.dll</LuceneNetCodeAnalysisCSAssemblyFile>
-    <LuceneNetCodeAnalysisVBAssemblyFile>$(LuceneNetDotNetDir)\Lucene.Net.CodeAnalysis.VisualBasic\bin\$(Configuration)\netstandard2.0\*.dll</LuceneNetCodeAnalysisVBAssemblyFile>
+    <LuceneNetCodeAnalysisCSAssemblyFile>$(LuceneNetDotNetDir)\Lucene.Net.CodeAnalysis.CSharp\bin\$(Configuration)\netstandard1.3\*.dll</LuceneNetCodeAnalysisCSAssemblyFile>
+    <LuceneNetCodeAnalysisVBAssemblyFile>$(LuceneNetDotNetDir)\Lucene.Net.CodeAnalysis.VisualBasic\bin\$(Configuration)\netstandard1.3\*.dll</LuceneNetCodeAnalysisVBAssemblyFile>
   </PropertyGroup>
 
   <ItemGroup Label="NuGet Package Files">
@@ -101,10 +101,16 @@
     <InternalsVisibleTo Include="Lucene.Net.Tests._J-S" />
     <InternalsVisibleTo Include="Lucene.Net.Tests._T-Z" />
 
+    <InternalsVisibleTo Include="Lucene.Net.Tests.AllProjects" />
+
     <InternalsVisibleTo Include="Lucene.Net.Tests.Analysis.Common" />
     <InternalsVisibleTo Include="Lucene.Net.Tests.Analysis.Kuromoji" />
+    <InternalsVisibleTo Include="Lucene.Net.Tests.Analysis.Morfologik" />
     <InternalsVisibleTo Include="Lucene.Net.Tests.Analysis.Phonetic" />
+    <InternalsVisibleTo Include="Lucene.Net.Tests.Analysis.SmartCn" />
+    <InternalsVisibleTo Include="Lucene.Net.Tests.Analysis.Stempel" />
     <InternalsVisibleTo Include="Lucene.Net.Tests.Benchmark" />
+    <InternalsVisibleTo Include="Lucene.Net.Tests.Classification" />
     <InternalsVisibleTo Include="Lucene.Net.Tests.Expressions" />
     <InternalsVisibleTo Include="Lucene.Net.Tests.Facet" />
     <InternalsVisibleTo Include="Lucene.Net.Tests.Grouping" />
@@ -116,6 +122,7 @@
     <InternalsVisibleTo Include="Lucene.Net.Tests.QueryParser" />
     <InternalsVisibleTo Include="Lucene.Net.Tests.Cli" /> <!-- For lucene-cli -->
     <InternalsVisibleTo Include="Lucene.Net.Tests.Replicator" />
+    <InternalsVisibleTo Include="Lucene.Net.Tests.Sandbox" />
     <InternalsVisibleTo Include="Lucene.Net.Tests.Spatial" />
     <InternalsVisibleTo Include="Lucene.Net.Tests.Suggest" />
     <InternalsVisibleTo Include="Lucene.Net.Tests.TestFramework" />

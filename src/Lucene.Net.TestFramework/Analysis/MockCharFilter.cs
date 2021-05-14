@@ -1,4 +1,4 @@
-using Lucene.Net.Diagnostics;
+﻿using Lucene.Net.Diagnostics;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -40,7 +40,7 @@ namespace Lucene.Net.Analysis
             this.remainder = remainder;
             if (remainder < 0 || remainder >= 10)
             {
-                throw new ArgumentException("invalid remainder parameter (must be 0..10): " + remainder);
+                throw new ArgumentOutOfRangeException(nameof(remainder), "invalid remainder parameter (must be 0..10): " + remainder); // LUCENENET specific - changed from IllegalArgumentException to ArgumentOutOfRangeException (.NET convention)
             }
         }
 
@@ -112,7 +112,7 @@ namespace Lucene.Net.Analysis
                 ret = currentOff;
             }
 
-            if (Debugging.AssertsEnabled) Debugging.Assert(ret >= 0, () => "currentOff=" + currentOff + ",diff=" + (ret - currentOff));
+            if (Debugging.AssertsEnabled) Debugging.Assert(ret >= 0,"currentOff={0},diff={1}", currentOff, (ret - currentOff));
             return ret;
         }
 

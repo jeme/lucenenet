@@ -1,4 +1,6 @@
-﻿using Lucene.Net.Diagnostics;
+// Lucene version compatibility level 4.8.1
+using J2N.Numerics;
+using Lucene.Net.Diagnostics;
 using Lucene.Net.Support;
 using Lucene.Net.Util;
 using System.Diagnostics;
@@ -61,7 +63,7 @@ namespace Lucene.Net.Analysis.CharFilters
 
             while (hi >= lo)
             {
-                mid = (int)((uint)(lo + hi) >> 1);
+                mid = (lo + hi).TripleShift(1);
                 if (currentOff < offsets[mid])
                 {
                     hi = mid - 1;
@@ -114,8 +116,7 @@ namespace Lucene.Net.Analysis.CharFilters
             }
 
             int offset = offsets[(size == 0) ? 0 : size - 1];
-            if (Debugging.AssertsEnabled) Debugging.Assert(size == 0 || off >= offset,
-                () => "Offset #" + size + "(" + off + ") is less than the last recorded offset " + offset + "\n" + Arrays.ToString(offsets) + "\n" + Arrays.ToString(diffs));
+            if (Debugging.AssertsEnabled) Debugging.Assert(size == 0 || off >= offset, "Offset #{0}({1}) is less than the last recorded offset {2}\n{3}\n{4}", size, off, offset, offsets, diffs);
 
             if (size == 0 || off != offsets[size - 1])
             {

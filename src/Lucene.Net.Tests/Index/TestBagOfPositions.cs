@@ -1,7 +1,8 @@
-using J2N.Collections.Generic.Extensions;
+﻿using J2N.Collections.Generic.Extensions;
 using J2N.Threading;
 using Lucene.Net.Documents;
 using NUnit.Framework;
+using RandomizedTesting.Generators;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -125,7 +126,7 @@ namespace Lucene.Net.Index
                 Document document = new Document();
                 Field field = new Field("field", "", fieldType);
                 document.Add(field);
-                threads[threadID] = new ThreadAnonymousInnerClassHelper(this, numTerms, maxTermsPerDoc, postings, iw, startingGun, threadRandom, document, field);
+                threads[threadID] = new ThreadAnonymousClass(this, numTerms, maxTermsPerDoc, postings, iw, startingGun, threadRandom, document, field);
                 threads[threadID].Start();
             }
             startingGun.Signal();
@@ -155,7 +156,7 @@ namespace Lucene.Net.Index
             dir.Dispose();
         }
 
-        private class ThreadAnonymousInnerClassHelper : ThreadJob
+        private class ThreadAnonymousClass : ThreadJob
         {
             private readonly TestBagOfPositions outerInstance;
 
@@ -168,7 +169,7 @@ namespace Lucene.Net.Index
             private readonly Document document;
             private readonly Field field;
 
-            public ThreadAnonymousInnerClassHelper(TestBagOfPositions outerInstance, int numTerms, int maxTermsPerDoc, ConcurrentQueue<string> postings, RandomIndexWriter iw, CountdownEvent startingGun, Random threadRandom, Document document, Field field)
+            public ThreadAnonymousClass(TestBagOfPositions outerInstance, int numTerms, int maxTermsPerDoc, ConcurrentQueue<string> postings, RandomIndexWriter iw, CountdownEvent startingGun, Random threadRandom, Document document, Field field)
             {
                 this.outerInstance = outerInstance;
                 this.numTerms = numTerms;
@@ -192,8 +193,7 @@ namespace Lucene.Net.Index
                         int numTerms = threadRandom.Next(maxTermsPerDoc);
                         for (int i = 0; i < numTerms; i++)
                         {
-                            string token;
-                            if (!postings.TryDequeue(out token))
+                            if (!postings.TryDequeue(out string token))
                             {
                                 break;
                             }
@@ -204,9 +204,9 @@ namespace Lucene.Net.Index
                         iw.AddDocument(document);
                     }
                 }
-                catch (Exception e)
+                catch (Exception e) when (e.IsException())
                 {
-                    throw new Exception(e.Message, e);
+                    throw RuntimeException.Create(e);
                 }
             }
         }

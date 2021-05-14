@@ -1,4 +1,5 @@
 ﻿using Lucene.Net.Util.Fst;
+using System;
 using System.Collections.Generic;
 using System.IO;
 
@@ -121,8 +122,10 @@ namespace Lucene.Net.Codecs.Memory
         public const int TERMS_VERSION_CURRENT = TERMS_VERSION_CHECKSUM;
 
         private readonly PostingsWriterBase _postingsWriter;
-        private readonly FieldInfos _fieldInfos;
+        //private readonly FieldInfos _fieldInfos; // LUCENENET: Never read
+#pragma warning disable CA2213 // Disposable fields should be disposed
         private IndexOutput _output;
+#pragma warning restore CA2213 // Disposable fields should be disposed
         private readonly IList<FieldMetaData> _fields = new List<FieldMetaData>();
 
         public FSTTermsWriter(SegmentWriteState state, PostingsWriterBase postingsWriter)
@@ -131,7 +134,7 @@ namespace Lucene.Net.Codecs.Memory
                 TERMS_EXTENSION);
 
             _postingsWriter = postingsWriter;
-            _fieldInfos = state.FieldInfos;
+            //_fieldInfos = state.FieldInfos; // LUCENENET: Never read
             _output = state.Directory.CreateOutput(termsFileName, state.Context);
 
             var success = false;
@@ -171,11 +174,11 @@ namespace Lucene.Net.Codecs.Memory
             {
                 if (_output == null) return;
 
-                IOException ioe = null;
+                Exception ioe = null; // LUCENENET: No need to cast to IOExcpetion
                 try
                 {
                     // write field summary
-                    var dirStart = _output.GetFilePointer();
+                    var dirStart = _output.Position; // LUCENENET specific: Renamed from getFilePointer() to match FileStream
 
                     _output.WriteVInt32(_fields.Count);
                     foreach (var field in _fields)
@@ -194,7 +197,7 @@ namespace Lucene.Net.Codecs.Memory
                     WriteTrailer(_output, dirStart);
                     CodecUtil.WriteFooter(_output);
                 }
-                catch (IOException ioe2)
+                catch (Exception ioe2) when (ioe2.IsIOException())
                 {
                     ioe = ioe2;
                 }
@@ -243,7 +246,7 @@ namespace Lucene.Net.Codecs.Memory
             private long _numTerms;
 
             private readonly Int32sRef _scratchTerm = new Int32sRef();
-            private readonly RAMOutputStream _statsWriter = new RAMOutputStream();
+            //private readonly RAMOutputStream _statsWriter = new RAMOutputStream(); // LUCENENET: Never read
             private readonly RAMOutputStream _metaWriter = new RAMOutputStream();
 
             internal TermsWriter(FSTTermsWriter outerInstance, FieldInfo fieldInfo)
@@ -279,7 +282,7 @@ namespace Lucene.Net.Codecs.Memory
                 };
                 _outerInstance._postingsWriter.FinishTerm(state);
                 _outerInstance._postingsWriter.EncodeTerm(meta.longs, _metaWriter, _fieldInfo, state, true);
-                var bytesSize = (int) _metaWriter.GetFilePointer();
+                var bytesSize = (int) _metaWriter.Position; // LUCENENET specific: Renamed from getFilePointer() to match FileStream
                 if (bytesSize > 0)
                 {
                     meta.bytes = new byte[bytesSize];

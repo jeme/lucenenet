@@ -1,4 +1,5 @@
-﻿using Lucene.Net.Analysis.Util;
+﻿// Lucene version compatibility level 4.8.1
+using Lucene.Net.Analysis.Util;
 using NUnit.Framework;
 using System;
 using System.IO;
@@ -133,7 +134,7 @@ namespace Lucene.Net.Analysis.Standard
                 TokenizerFactory("UAX29URLEmail", "bogusArg", "bogusValue");
                 fail();
             }
-            catch (ArgumentException expected)
+            catch (Exception expected) when (expected.IsIllegalArgumentException())
             {
                 assertTrue(expected.Message.Contains("Unknown parameters"));
             }
@@ -147,7 +148,7 @@ namespace Lucene.Net.Analysis.Standard
                 TokenizerFactory("UAX29URLEmail", "maxTokenLength", "-1").Create(new StringReader("hello"));
                 fail();
             }
-            catch (ArgumentException expected)
+            catch (ArgumentOutOfRangeException expected) // LUCENENET specific - changed from IllegalArgumentException to ArgumentOutOfRangeException (.NET convention)
             {
                 assertTrue(expected.Message.Contains("maxTokenLength must be greater than zero"));
             }

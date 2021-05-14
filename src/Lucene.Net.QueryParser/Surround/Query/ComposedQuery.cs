@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Lucene.Net.Diagnostics;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -26,7 +27,7 @@ namespace Lucene.Net.QueryParsers.Surround.Query
     /// </summary>
     public abstract class ComposedQuery : SrndQuery
     {
-        public ComposedQuery(IList<SrndQuery> qs, bool operatorInfix, string opName)
+        protected ComposedQuery(IList<SrndQuery> qs, bool operatorInfix, string opName) // LUCENENET: CA1012: Abstract types should not have constructors (marked protected)
         {
             Recompose(qs);
             this.operatorInfix = operatorInfix;
@@ -35,7 +36,7 @@ namespace Lucene.Net.QueryParsers.Surround.Query
 
         protected virtual void Recompose(IList<SrndQuery> queries)
         {
-            if (queries.Count < 2) throw new InvalidOperationException("Too few subqueries");
+            if (queries.Count < 2) throw AssertionError.Create("Too few subqueries");
             this.m_queries = new List<SrndQuery>(queries);
         }
 

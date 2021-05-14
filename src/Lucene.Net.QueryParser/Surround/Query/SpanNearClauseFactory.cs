@@ -1,4 +1,5 @@
-﻿using Lucene.Net.Index;
+﻿using Lucene.Net.Diagnostics;
+using Lucene.Net.Index;
 using Lucene.Net.Search.Spans;
 using System;
 using System.Collections.Generic;
@@ -68,10 +69,10 @@ namespace Lucene.Net.QueryParsers.Surround.Query
             this.qf = qf;
           }
 
-        private IndexReader reader;
-        private string fieldName;
-        private IDictionary<SpanQuery, float> weightBySpanQuery;
-        private BasicQueryFactory qf;
+        private readonly IndexReader reader; // LUCENENET: marked readonly
+        private readonly string fieldName; // LUCENENET: marked readonly
+        private readonly IDictionary<SpanQuery, float> weightBySpanQuery; // LUCENENET: marked readonly
+        private readonly BasicQueryFactory qf; // LUCENENET: marked readonly
 
         public virtual IndexReader IndexReader => reader;
 
@@ -105,7 +106,7 @@ namespace Lucene.Net.QueryParsers.Surround.Query
             if (q == SrndQuery.TheEmptyLcnQuery)
                 return;
             if (!(q is SpanQuery))
-                throw new InvalidOperationException("Expected SpanQuery: " + q.ToString(FieldName));
+                throw AssertionError.Create("Expected SpanQuery: " + q.ToString(FieldName));
             AddSpanQueryWeighted((SpanQuery)q, q.Boost);
         }
 

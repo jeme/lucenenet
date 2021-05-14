@@ -37,9 +37,8 @@ namespace Lucene.Net.Misc
     /// 
     /// </para>
     /// </summary>
-    public class HighFreqTerms
+    public static class HighFreqTerms // LUCENENET specific: CA1052 Static holder types should be Static or NotInheritable
     {
-
         // The top numTerms will be displayed
         public const int DEFAULT_NUMTERMS = 100;
 
@@ -73,14 +72,12 @@ namespace Lucene.Net.Misc
                 }
             }
 
-            using (IndexReader reader = DirectoryReader.Open(dir))
-            {
-                TermStats[] terms = GetHighFreqTerms(reader, numTerms, field, comparer);
+            using IndexReader reader = DirectoryReader.Open(dir);
+            TermStats[] terms = GetHighFreqTerms(reader, numTerms, field, comparer);
 
-                for (int i = 0; i < terms.Length; i++)
-                {
-                    Console.WriteLine("{0}:{1} \t totalTF = {2:#,##0} \t doc freq = {3:#,##0} \n", terms[i].Field, terms[i].GetTermText(), terms[i].TotalTermFreq, terms[i].DocFreq);
-                }
+            for (int i = 0; i < terms.Length; i++)
+            {
+                Console.WriteLine("{0}:{1} \t totalTF = {2:#,##0} \t doc freq = {3:#,##0} \n", terms[i].Field, terms[i].GetTermText(), terms[i].TotalTermFreq, terms[i].DocFreq);
             }
         }
 
@@ -102,7 +99,7 @@ namespace Lucene.Net.Misc
                 Fields fields = MultiFields.GetFields(reader);
                 if (fields == null)
                 {
-                    throw new Exception("field " + field + " not found");
+                    throw RuntimeException.Create("field " + field + " not found");
                 }
                 Terms terms = fields.GetTerms(field);
                 if (terms != null)
@@ -117,7 +114,7 @@ namespace Lucene.Net.Misc
                 Fields fields = MultiFields.GetFields(reader);
                 if (fields == null)
                 {
-                    throw new Exception("no fields found for this index");
+                    throw RuntimeException.Create("no fields found for this index");
                 }
                 tiq = new TermStatsQueue(numTerms, comparer);
                 foreach (string fieldName in fields)

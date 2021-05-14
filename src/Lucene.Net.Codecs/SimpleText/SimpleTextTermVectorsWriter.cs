@@ -61,7 +61,9 @@ namespace Lucene.Net.Codecs.SimpleText
 
         private readonly Directory _directory;
         private readonly string _segment;
+#pragma warning disable CA2213 // Disposable fields should be disposed
         private IndexOutput _output;
+#pragma warning restore CA2213 // Disposable fields should be disposed
         private int _numDocsWritten;
         private readonly BytesRef _scratch = new BytesRef();
         private bool _offsets;
@@ -181,19 +183,18 @@ namespace Lucene.Net.Codecs.SimpleText
             {
                 Dispose();
             }
-            finally
+            catch (Exception t) when (t.IsThrowable())
             {
-
-                IOUtils.DeleteFilesIgnoringExceptions(_directory,
-                    IndexFileNames.SegmentFileName(_segment, "", VECTORS_EXTENSION));
             }
+            IOUtils.DeleteFilesIgnoringExceptions(_directory,
+                    IndexFileNames.SegmentFileName(_segment, "", VECTORS_EXTENSION));
         }
 
         public override void Finish(FieldInfos fis, int numDocs)
         {
             if (_numDocsWritten != numDocs)
             {
-                throw new Exception("mergeVectors produced an invalid result: mergedDocs is " + numDocs +
+                throw RuntimeException.Create("mergeVectors produced an invalid result: mergedDocs is " + numDocs +
                                     " but vec numDocs is " + _numDocsWritten + " file=" + _output +
                                     "; now aborting this merge to prevent index corruption");
             }

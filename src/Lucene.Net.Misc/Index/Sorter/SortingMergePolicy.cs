@@ -128,7 +128,7 @@ namespace Lucene.Net.Index.Sorter
             {
                 if (unsortedReaders == null)
                 {
-                    throw new InvalidOperationException();
+                    throw IllegalStateException.Create();
                 }
                 if (docMap == null)
                 {
@@ -136,17 +136,17 @@ namespace Lucene.Net.Index.Sorter
                 }
                 if (Debugging.AssertsEnabled) Debugging.Assert(mergeState.DocMaps.Length == 1); // we returned a singleton reader
                 MonotonicAppendingInt64Buffer deletes = GetDeletes(unsortedReaders);
-                return new DocMapAnonymousInnerClassHelper(this, mergeState, deletes);
+                return new DocMapAnonymousClass(this, mergeState, deletes);
             }
 
-            private class DocMapAnonymousInnerClassHelper : MergePolicy.DocMap
+            private class DocMapAnonymousClass : MergePolicy.DocMap
             {
                 private readonly SortingOneMerge outerInstance;
 
-                private MergeState mergeState;
-                private MonotonicAppendingInt64Buffer deletes;
+                private readonly MergeState mergeState;
+                private readonly MonotonicAppendingInt64Buffer deletes;
 
-                public DocMapAnonymousInnerClassHelper(SortingOneMerge outerInstance, MergeState mergeState, MonotonicAppendingInt64Buffer deletes)
+                public DocMapAnonymousClass(SortingOneMerge outerInstance, MergeState mergeState, MonotonicAppendingInt64Buffer deletes)
                 {
                     this.outerInstance = outerInstance;
                     this.mergeState = mergeState;
@@ -189,13 +189,11 @@ namespace Lucene.Net.Index.Sorter
         /// </summary>
         public static bool IsSorted(AtomicReader reader, Sort sort)
         {
-            if (reader is SegmentReader)
+            if (reader is SegmentReader segReader)
             {
-                SegmentReader segReader = (SegmentReader)reader;
                 IDictionary<string, string> diagnostics = segReader.SegmentInfo.Info.Diagnostics;
-                string diagnosticsSort;
-                if (diagnostics != null 
-                    && diagnostics.TryGetValue(SORTER_ID_PROP, out diagnosticsSort)
+                if (diagnostics != null
+                    && diagnostics.TryGetValue(SORTER_ID_PROP, out string diagnosticsSort)
                     && sort.ToString().Equals(diagnosticsSort, StringComparison.Ordinal))
                 {
                     return true;

@@ -1,4 +1,5 @@
-﻿using J2N.Text;
+﻿// Lucene version compatibility level 4.8.1
+using J2N.Text;
 using Lucene.Net.Support.IO;
 using System;
 using System.Collections.Generic;
@@ -40,10 +41,7 @@ namespace Lucene.Net.Facet.Taxonomy.WriterCache
 
         private const int DEFAULT_BLOCK_SIZE = 32 * 1024; // 32 KB default size
 
-        internal sealed class Block
-#if FEATURE_CLONEABLE
-            : System.ICloneable
-#endif
+        internal sealed class Block // LUCENENET specific: Not implementing ICloneable per Microsoft's recommendation
         {
             internal const long serialVersionUID = 1L;
 
@@ -92,7 +90,7 @@ namespace Lucene.Net.Facet.Taxonomy.WriterCache
                     // case 1L:
                     // LUCENENET TODO: When object fields change, increment serialVersionUID and move the above block here for legacy support...
                     default:
-                        throw new InvalidDataException($"Version {serialVersion} of {this.GetType().ToString()} deserialization is not supported.");
+                        throw new InvalidDataException($"Version {serialVersion} of {this.GetType()} deserialization is not supported.");
                 }
             }
         }
@@ -309,7 +307,7 @@ namespace Lucene.Net.Facet.Taxonomy.WriterCache
                 // case 1L:
                 // LUCENENET TODO: When object fields change, increment serialVersionUID and move the above block here for legacy support...
                 default:
-                    throw new InvalidDataException($"Version {serialVersion} of {this.GetType().ToString()} deserialization is not supported.");
+                    throw new InvalidDataException($"Version {serialVersion} of {this.GetType()} deserialization is not supported.");
             }
         }
 

@@ -1,4 +1,5 @@
-﻿using System;
+﻿// Lucene version compatibility level 4.8.1
+using System;
 using System.IO;
 using NUnit.Framework;
 using Lucene.Net.Analysis.Util;
@@ -48,7 +49,7 @@ namespace Lucene.Net.Analysis.Cn
                 TokenizerFactory("Chinese", "bogusArg", "bogusValue");
                 fail();
             }
-            catch (ArgumentException expected)
+            catch (Exception expected) when (expected.IsIllegalArgumentException())
             {
                 assertTrue(expected.Message.Contains("Unknown parameters"));
             }

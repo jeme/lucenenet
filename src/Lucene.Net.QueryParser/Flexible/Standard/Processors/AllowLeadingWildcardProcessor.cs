@@ -3,7 +3,6 @@ using Lucene.Net.QueryParsers.Flexible.Core.Messages;
 using Lucene.Net.QueryParsers.Flexible.Core.Nodes;
 using Lucene.Net.QueryParsers.Flexible.Core.Processors;
 using Lucene.Net.QueryParsers.Flexible.Core.Util;
-using Lucene.Net.QueryParsers.Flexible.Messages;
 using Lucene.Net.QueryParsers.Flexible.Standard.Config;
 using Lucene.Net.QueryParsers.Flexible.Standard.Nodes;
 using Lucene.Net.QueryParsers.Flexible.Standard.Parser;
@@ -60,10 +59,8 @@ namespace Lucene.Net.QueryParsers.Flexible.Standard.Processors
 
         protected override IQueryNode PostProcessNode(IQueryNode node)
         {
-            if (node is WildcardQueryNode)
+            if (node is WildcardQueryNode wildcardNode)
             {
-                WildcardQueryNode wildcardNode = (WildcardQueryNode)node;
-
                 if (wildcardNode.Text.Length > 0)
                 {
                     // Validate if the wildcard was escaped
@@ -74,7 +71,8 @@ namespace Lucene.Net.QueryParsers.Flexible.Standard.Processors
                     {
                         case '*':
                         case '?':
-                            throw new QueryNodeException(new Message(
+                            // LUCENENET: Factored out NLS/Message/IMessage so end users can optionally utilize the built-in .NET localization.
+                            throw new QueryNodeException(string.Format(
                                 QueryParserMessages.LEADING_WILDCARD_NOT_ALLOWED, node
                                     .ToQueryString(new EscapeQuerySyntax())));
                     }

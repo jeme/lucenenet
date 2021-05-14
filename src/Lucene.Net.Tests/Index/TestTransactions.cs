@@ -1,4 +1,4 @@
-using J2N.Threading;
+﻿using J2N.Threading;
 using Lucene.Net.Documents;
 using Lucene.Net.Index.Extensions;
 using Lucene.Net.Store;
@@ -90,7 +90,7 @@ namespace Lucene.Net.Index
                         DoWork();
                     } while (Environment.TickCount < stopTime);
                 }
-                catch (Exception e)
+                catch (Exception e) when (e.IsThrowable())
                 {
                     Console.WriteLine(Thread.CurrentThread + ": exc");
                     Console.Error.WriteLine(e.StackTrace);
@@ -114,8 +114,6 @@ namespace Lucene.Net.Index
         private class IndexerThread : TimedThread
         {
             private readonly TestTransactions outerInstance;
-            private Func<IConcurrentMergeScheduler> newScheduler1;
-            private Func<IConcurrentMergeScheduler> newScheduler2;
             internal Directory dir1;
             internal Directory dir2;
             internal object @lock;
@@ -123,12 +121,9 @@ namespace Lucene.Net.Index
 
             public IndexerThread(TestTransactions outerInstance, object @lock, 
                 Directory dir1, Directory dir2,
-                Func<IConcurrentMergeScheduler> newScheduler1, Func<IConcurrentMergeScheduler> newScheduler2,
                 TimedThread[] threads)
                 : base(threads)
             {
-                this.newScheduler1 = newScheduler1;
-                this.newScheduler2 = newScheduler2;
                 this.outerInstance = outerInstance;
                 this.@lock = @lock;
                 this.dir1 = dir1;
@@ -142,9 +137,9 @@ namespace Lucene.Net.Index
                     outerInstance,
 #endif
                     TEST_VERSION_CURRENT, new MockAnalyzer(Random))
-                                .SetMaxBufferedDocs(3)
-                                .SetMergeScheduler(newScheduler1())
-                                .SetMergePolicy(NewLogMergePolicy(2));
+                        .SetMaxBufferedDocs(3)
+                        .SetMergeScheduler(new ConcurrentMergeScheduler())
+                        .SetMergePolicy(NewLogMergePolicy(2));
                 IndexWriter writer1 = new IndexWriter(dir1, config);
                 ((IConcurrentMergeScheduler)writer1.Config.MergeScheduler).SetSuppressExceptions();
 
@@ -155,9 +150,9 @@ namespace Lucene.Net.Index
                     outerInstance,
 #endif
                     TEST_VERSION_CURRENT, new MockAnalyzer(Random))
-                                .SetMaxBufferedDocs(2)
-                                .SetMergeScheduler(newScheduler2())
-                                .SetMergePolicy(NewLogMergePolicy(3));
+                        .SetMaxBufferedDocs(2)
+                        .SetMergeScheduler(new ConcurrentMergeScheduler())
+                        .SetMergePolicy(NewLogMergePolicy(3));
                 IndexWriter writer2 = new IndexWriter(dir2, config2);
                 ((IConcurrentMergeScheduler)writer2.Config.MergeScheduler).SetSuppressExceptions();
 
@@ -173,7 +168,7 @@ namespace Lucene.Net.Index
                         {
                             writer1.PrepareCommit();
                         }
-                        catch (Exception)
+                        catch (Exception t) when (t.IsThrowable())
                         {
                             writer1.Rollback();
                             writer2.Rollback();
@@ -183,7 +178,7 @@ namespace Lucene.Net.Index
                         {
                             writer2.PrepareCommit();
                         }
-                        catch (Exception)
+                        catch (Exception t) when (t.IsThrowable())
                         {
                             writer1.Rollback();
                             writer2.Rollback();
@@ -251,7 +246,7 @@ namespace Lucene.Net.Index
                         r1 = DirectoryReader.Open(dir1);
                         r2 = DirectoryReader.Open(dir2);
                     }
-                    catch (IOException e)
+                    catch (Exception e) when (e.IsIOException())
                     {
                         if (!e.Message.Contains("on purpose"))
                         {
@@ -270,7 +265,7 @@ namespace Lucene.Net.Index
                 }
                 if (r1.NumDocs != r2.NumDocs)
                 {
-                    throw new Exception("doc counts differ: r1=" + r1.NumDocs + " r2=" + r2.NumDocs);
+                    throw RuntimeException.Create("doc counts differ: r1=" + r1.NumDocs + " r2=" + r2.NumDocs);
                 }
                 r1.Dispose();
                 r2.Dispose();
@@ -291,9 +286,7 @@ namespace Lucene.Net.Index
         }
 
         [Test]
-        public virtual void TestTransactions_Mem(
-            [ValueSource(typeof(ConcurrentMergeSchedulerFactories), "Values")]Func<IConcurrentMergeScheduler> newScheduler1,
-            [ValueSource(typeof(ConcurrentMergeSchedulerFactories), "Values")]Func<IConcurrentMergeScheduler> newScheduler2)
+        public virtual void TestTransactions_Mem()
         {
             Console.WriteLine("start test");
             // we cant use non-ramdir on windows, because this test needs to double-write.
@@ -317,7 +310,7 @@ namespace Lucene.Net.Index
             TimedThread[] threads = new TimedThread[3];
             int numThread = 0;
 
-            IndexerThread indexerThread = new IndexerThread(this, this, dir1, dir2, newScheduler1, newScheduler2, threads);
+            IndexerThread indexerThread = new IndexerThread(this, this, dir1, dir2, threads);
 
             threads[numThread++] = indexerThread;
             indexerThread.Start();

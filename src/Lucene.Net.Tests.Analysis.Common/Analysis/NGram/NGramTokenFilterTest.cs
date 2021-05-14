@@ -1,4 +1,5 @@
-﻿using J2N;
+﻿// Lucene version compatibility level 4.8.1
+using J2N;
 using Lucene.Net.Analysis.Core;
 using Lucene.Net.Analysis.Miscellaneous;
 using Lucene.Net.Analysis.TokenAttributes;
@@ -47,7 +48,7 @@ namespace Lucene.Net.Analysis.NGram
             {
                 new NGramTokenFilter(TEST_VERSION_CURRENT, input, 2, 1);
             }
-            catch (ArgumentException)
+            catch (Exception e) when (e.IsIllegalArgumentException())
             {
                 gotException = true;
             }
@@ -62,7 +63,7 @@ namespace Lucene.Net.Analysis.NGram
             {
                 new NGramTokenFilter(TEST_VERSION_CURRENT, input, 0, 1);
             }
-            catch (ArgumentException)
+            catch (ArgumentOutOfRangeException) // LUCENENET specific - changed from IllegalArgumentException to ArgumentOutOfRangeException (.NET convention)
             {
                 gotException = true;
             }

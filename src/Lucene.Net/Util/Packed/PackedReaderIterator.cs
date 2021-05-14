@@ -2,6 +2,7 @@ using Lucene.Net.Diagnostics;
 using Lucene.Net.Support;
 using System;
 using System.IO;
+using System.Runtime.CompilerServices;
 
 namespace Lucene.Net.Util.Packed
 {
@@ -48,6 +49,7 @@ namespace Lucene.Net.Util.Packed
             position = -1;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private int Iterations(int mem)
         {
             int iterations = bulkOperation.ComputeIterations(m_valueCount, mem);
@@ -73,7 +75,7 @@ namespace Lucene.Net.Util.Packed
             int remaining = m_valueCount - position - 1;
             if (remaining <= 0)
             {
-                throw new EndOfStreamException();
+                throw EOFException.Create();
             }
             count = Math.Min(remaining, count);
 

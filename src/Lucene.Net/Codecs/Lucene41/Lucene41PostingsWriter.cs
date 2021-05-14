@@ -1,6 +1,7 @@
-using Lucene.Net.Diagnostics;
+﻿using Lucene.Net.Diagnostics;
+using Lucene.Net.Index;
 using System;
-using System.Diagnostics;
+using System.Runtime.CompilerServices;
 
 namespace Lucene.Net.Codecs.Lucene41
 {
@@ -62,9 +63,11 @@ namespace Lucene.Net.Codecs.Lucene41
         internal const int VERSION_CHECKSUM = 2;
         internal const int VERSION_CURRENT = VERSION_CHECKSUM;
 
+#pragma warning disable CA2213 // Disposable fields should be disposed
         internal IndexOutput docOut;
         internal IndexOutput posOut;
         internal IndexOutput payOut;
+#pragma warning restore CA2213 // Disposable fields should be disposed
 
         internal static readonly Int32BlockTermState emptyState = new Int32BlockTermState();
         internal Int32BlockTermState lastState;
@@ -210,6 +213,7 @@ namespace Lucene.Net.Codecs.Lucene41
             // freq is always implicitly totalTermFreq in this case.
             internal int singletonDocID = -1;
 
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public override object Clone()
             {
                 Int32BlockTermState other = new Int32BlockTermState();
@@ -235,11 +239,13 @@ namespace Lucene.Net.Codecs.Lucene41
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override BlockTermState NewTermState()
         {
             return new Int32BlockTermState();
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override void Init(IndexOutput termsOut)
         {
             CodecUtil.WriteHeader(termsOut, TERMS_CODEC, VERSION_CURRENT);
@@ -249,9 +255,10 @@ namespace Lucene.Net.Codecs.Lucene41
         public override int SetField(FieldInfo fieldInfo)
         {
             IndexOptions indexOptions = fieldInfo.IndexOptions;
-            fieldHasFreqs = indexOptions.CompareTo(IndexOptions.DOCS_AND_FREQS) >= 0;
-            fieldHasPositions = indexOptions.CompareTo(IndexOptions.DOCS_AND_FREQS_AND_POSITIONS) >= 0;
-            fieldHasOffsets = indexOptions.CompareTo(IndexOptions.DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS) >= 0;
+            // LUCENENET specific - to avoid boxing, changed from CompareTo() to IndexOptionsComparer.Compare()
+            fieldHasFreqs = IndexOptionsComparer.Default.Compare(indexOptions, IndexOptions.DOCS_AND_FREQS) >= 0;
+            fieldHasPositions = IndexOptionsComparer.Default.Compare(indexOptions, IndexOptions.DOCS_AND_FREQS_AND_POSITIONS) >= 0;
+            fieldHasOffsets = IndexOptionsComparer.Default.Compare(indexOptions, IndexOptions.DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS) >= 0;
             fieldHasPayloads = fieldInfo.HasPayloads;
             skipWriter.SetField(fieldHasPositions, fieldHasOffsets, fieldHasPayloads);
             lastState = emptyState;
@@ -274,13 +281,13 @@ namespace Lucene.Net.Codecs.Lucene41
 
         public override void StartTerm()
         {
-            docStartFP = docOut.GetFilePointer();
+            docStartFP = docOut.Position; // LUCENENET specific: Renamed from getFilePointer() to match FileStream
             if (fieldHasPositions)
             {
-                posStartFP = posOut.GetFilePointer();
+                posStartFP = posOut.Position; // LUCENENET specific: Renamed from getFilePointer() to match FileStream
                 if (fieldHasPayloads || fieldHasOffsets)
                 {
-                    payStartFP = payOut.GetFilePointer();
+                    payStartFP = payOut.Position; // LUCENENET specific: Renamed from getFilePointer() to match FileStream
                 }
             }
             lastDocID = 0;
@@ -311,7 +318,7 @@ namespace Lucene.Net.Codecs.Lucene41
 
             if (docId < 0 || (docCount > 0 && docDelta <= 0))
             {
-                throw new Exception("docs out of order (" + docId + " <= " + lastDocID + " ) (docOut: " + docOut + ")");
+                throw new CorruptIndexException("docs out of order (" + docId + " <= " + lastDocID + " ) (docOut: " + docOut + ")");
             }
 
             docDeltaBuffer[docBufferUpto] = docDelta;
@@ -424,9 +431,9 @@ namespace Lucene.Net.Codecs.Lucene41
                 {
                     if (payOut != null)
                     {
-                        lastBlockPayFP = payOut.GetFilePointer();
+                        lastBlockPayFP = payOut.Position; // LUCENENET specific: Renamed from getFilePointer() to match FileStream
                     }
-                    lastBlockPosFP = posOut.GetFilePointer();
+                    lastBlockPosFP = posOut.Position; // LUCENENET specific: Renamed from getFilePointer() to match FileStream
                     lastBlockPosBufferUpto = posBufferUpto;
                     lastBlockPayloadByteUpto = payloadByteUpto;
                 }
@@ -446,7 +453,7 @@ namespace Lucene.Net.Codecs.Lucene41
 
             // TODO: wasteful we are counting this (counting # docs
             // for this term) in two places?
-            if (Debugging.AssertsEnabled) Debugging.Assert(state2.DocFreq == docCount, () => state2.DocFreq + " vs " + docCount);
+            if (Debugging.AssertsEnabled) Debugging.Assert(state2.DocFreq == docCount, "{0} vs {1}", state2.DocFreq, docCount);
 
             // if (DEBUG) {
             //   System.out.println("FPW.finishTerm docFreq=" + state2.docFreq);
@@ -505,7 +512,7 @@ namespace Lucene.Net.Codecs.Lucene41
                 if (state2.TotalTermFreq > Lucene41PostingsFormat.BLOCK_SIZE)
                 {
                     // record file offset for last pos in last block
-                    lastPosBlockOffset = posOut.GetFilePointer() - posStartFP;
+                    lastPosBlockOffset = posOut.Position - posStartFP; // LUCENENET specific: Renamed from getFilePointer() to match FileStream
                 }
                 else
                 {

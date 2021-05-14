@@ -1,4 +1,5 @@
-﻿using Lucene.Net.Analysis.Util;
+﻿// Lucene version compatibility level 4.8.1
+using Lucene.Net.Analysis.Util;
 using Lucene.Net.Diagnostics;
 using Lucene.Net.Util;
 using NUnit.Framework;
@@ -66,9 +67,9 @@ namespace Lucene.Net.Analysis.Core
                 // we managed to fully create an instance. check a few more things:
 
                 // if it implements MultiTermAware, sanity check its impl
-                if (factory is IMultiTermAwareComponent)
+                if (factory is IMultiTermAwareComponent multiTermAwareComponent)
                 {
-                    AbstractAnalysisFactory mtc = ((IMultiTermAwareComponent)factory).GetMultiTermComponent();
+                    AbstractAnalysisFactory mtc = multiTermAwareComponent.GetMultiTermComponent();
                     assertNotNull(mtc);
                     // its not ok to return e.g. a charfilter here: but a tokenizer could wrap a filter around it
                     assertFalse(mtc is CharFilterFactory);
@@ -89,9 +90,9 @@ namespace Lucene.Net.Analysis.Core
                 // we managed to fully create an instance. check a few more things:
 
                 // if it implements MultiTermAware, sanity check its impl
-                if (factory is IMultiTermAwareComponent)
+                if (factory is IMultiTermAwareComponent multiTermAwareComponent)
                 {
-                    AbstractAnalysisFactory mtc = ((IMultiTermAwareComponent)factory).GetMultiTermComponent();
+                    AbstractAnalysisFactory mtc = multiTermAwareComponent.GetMultiTermComponent();
                     assertNotNull(mtc);
                     // its not ok to return a charfilter or tokenizer here, this makes no sense
                     assertTrue(mtc is TokenFilterFactory);
@@ -112,9 +113,9 @@ namespace Lucene.Net.Analysis.Core
                 // we managed to fully create an instance. check a few more things:
 
                 // if it implements MultiTermAware, sanity check its impl
-                if (factory is IMultiTermAwareComponent)
+                if (factory is IMultiTermAwareComponent multiTermAwareComponent)
                 {
-                    AbstractAnalysisFactory mtc = ((IMultiTermAwareComponent)factory).GetMultiTermComponent();
+                    AbstractAnalysisFactory mtc = multiTermAwareComponent.GetMultiTermComponent();
                     assertNotNull(mtc);
                     // its not ok to return a tokenizer or tokenfilter here, this makes no sense
                     assertTrue(mtc is CharFilterFactory);
@@ -131,7 +132,7 @@ namespace Lucene.Net.Analysis.Core
 
         /// <summary>
         /// tries to initialize a factory with no arguments </summary>
-        private AbstractAnalysisFactory Initialize(Type factoryClazz)
+        private static AbstractAnalysisFactory Initialize(Type factoryClazz) // LUCENENET: CA1822: Mark members as static
         {
             IDictionary<string, string> args =
                 new Dictionary<string, string> { ["luceneMatchVersion"] = TEST_VERSION_CURRENT_STRING };
@@ -141,9 +142,9 @@ namespace Lucene.Net.Analysis.Core
             {
                 ctor = factoryClazz.GetConstructor(new Type[] { typeof(IDictionary<string, string>) });
             }
-            catch (Exception e)
+            catch (Exception e) when (e.IsException())
             {
-                throw new Exception("factory '" + factoryClazz + "' does not have a proper ctor!", e);
+                throw RuntimeException.Create("factory '" + factoryClazz + "' does not have a proper ctor!", e);
             }
 
             AbstractAnalysisFactory factory = null;
@@ -151,15 +152,15 @@ namespace Lucene.Net.Analysis.Core
             {
                 factory = (AbstractAnalysisFactory)ctor.Invoke(new object[] { args });
             }
-            catch (TypeInitializationException e)
+            catch (Exception e) when (e.IsInstantiationException())
             {
-                throw new Exception(e.Message, e);
+                throw RuntimeException.Create(e);
             }
-            catch (MethodAccessException e)
+            catch (Exception e) when (e.IsIllegalAccessException())
             {
-                throw new Exception(e.Message, e);
+                throw RuntimeException.Create(e);
             }
-            catch (TargetInvocationException e)
+            catch (Exception e) when (e.IsInvocationTargetException())
             {
                 if (e.InnerException is ArgumentException)
                 {
@@ -174,26 +175,24 @@ namespace Lucene.Net.Analysis.Core
                 {
                     aware.Inform(new StringMockResourceLoader(""));
                 }
-#pragma warning disable CA1031 // Do not catch general exception types
-                catch (IOException)
+                catch (Exception ignored) when (ignored.IsIOException())
                 {
                     // its ok if the right files arent available or whatever to throw this
                 }
-                catch (ArgumentException)
+                catch (Exception ignored) when (ignored.IsIllegalArgumentException())
                 {
                     // is this ok? I guess so
                 }
-#pragma warning restore CA1031 // Do not catch general exception types
             }
             return factory;
         }
 
         // some silly classes just so we can use checkRandomData
-        private readonly TokenizerFactory assertingTokenizer = new AnonymousInnerClassHelperTokenizerFactory(new Dictionary<string, string>());
+        private readonly TokenizerFactory assertingTokenizer = new TokenizerFactoryAnonymousClass(new Dictionary<string, string>());
 
-        private sealed class AnonymousInnerClassHelperTokenizerFactory : TokenizerFactory
+        private sealed class TokenizerFactoryAnonymousClass : TokenizerFactory
         {
-            public AnonymousInnerClassHelperTokenizerFactory(IDictionary<string, string> java) : base(java)
+            public TokenizerFactoryAnonymousClass(IDictionary<string, string> java) : base(java)
             {
             }
 

@@ -1,4 +1,5 @@
-﻿using Lucene.Net.Index;
+﻿// Lucene version compatibility level 4.8.1
+using Lucene.Net.Index;
 using Lucene.Net.Queries.Function.DocValues;
 using Lucene.Net.Util;
 using Lucene.Net.Util.Packed;
@@ -54,17 +55,17 @@ namespace Lucene.Net.Queries.Function.ValueSources
             Terms t = MultiFields.GetTerms(top, m_qfield);
             TermsEnum termsEnum = t == null ? TermsEnum.EMPTY : t.GetEnumerator();
 
-            return new Int32DocValuesAnonymousInnerClassHelper(this, this, terms, termsEnum);
+            return new Int32DocValuesAnonymousClass(this, this, terms, termsEnum);
         }
 
-        private class Int32DocValuesAnonymousInnerClassHelper : Int32DocValues
+        private class Int32DocValuesAnonymousClass : Int32DocValues
         {
             private readonly JoinDocFreqValueSource outerInstance;
 
             private readonly BinaryDocValues terms;
             private readonly TermsEnum termsEnum;
 
-            public Int32DocValuesAnonymousInnerClassHelper(JoinDocFreqValueSource outerInstance, JoinDocFreqValueSource @this, BinaryDocValues terms, TermsEnum termsEnum)
+            public Int32DocValuesAnonymousClass(JoinDocFreqValueSource outerInstance, JoinDocFreqValueSource @this, BinaryDocValues terms, TermsEnum termsEnum)
                 : base(@this)
             {
                 this.outerInstance = outerInstance;
@@ -92,9 +93,9 @@ namespace Lucene.Net.Queries.Function.ValueSources
                         return 0;
                     }
                 }
-                catch (IOException e)
+                catch (Exception e) when (e.IsIOException())
                 {
-                    throw new Exception("caught exception in function " + outerInstance.GetDescription() + " : doc=" + doc, e);
+                    throw RuntimeException.Create("caught exception in function " + outerInstance.GetDescription() + " : doc=" + doc, e);
                 }
             }
         }

@@ -179,9 +179,9 @@ namespace Lucene.Net.Index.Memory
         //  private final IntBlockPool.SliceReader postingsReader;
         private readonly Int32BlockPool.SliceWriter postingsWriter;
 
-        private Dictionary<string, FieldInfo> fieldInfos = new Dictionary<string, FieldInfo>();
+        private readonly Dictionary<string, FieldInfo> fieldInfos = new Dictionary<string, FieldInfo>(); // LUCENENET: marked readonly
 
-        private Counter bytesUsed;
+        private readonly Counter bytesUsed; // LUCENENET: marked readonly
 
         /// <summary>
         /// Constructs an empty instance.
@@ -234,17 +234,17 @@ namespace Lucene.Net.Index.Memory
         /// <param name="analyzer"> the analyzer to use for tokenization </param>
         public virtual void AddField(string fieldName, string text, Analyzer analyzer)
         {
-            if (fieldName == null)
+            if (fieldName is null)
             {
-                throw new ArgumentException("fieldName must not be null");
+                throw new ArgumentNullException(nameof(fieldName), "fieldName must not be null"); // LUCENENET specific - changed from IllegalArgumentException to ArgumentNullException (.NET convention)
             }
-            if (text == null)
+            if (text is null)
             {
-                throw new ArgumentException("text must not be null");
+                throw new ArgumentNullException(nameof(text), "text must not be null"); // LUCENENET specific - changed from IllegalArgumentException to ArgumentNullException (.NET convention)
             }
-            if (analyzer == null)
+            if (analyzer is null)
             {
-                throw new ArgumentException("analyzer must not be null");
+                throw new ArgumentNullException(nameof(analyzer), "analyzer must not be null"); // LUCENENET specific - changed from IllegalArgumentException to ArgumentNullException (.NET convention)
             }
 
             TokenStream stream;
@@ -252,9 +252,9 @@ namespace Lucene.Net.Index.Memory
             {
                 stream = analyzer.GetTokenStream(fieldName, text);
             }
-            catch (IOException ex)
+            catch (Exception ex) when (ex.IsIOException())
             {
-                throw new Exception(ex.ToString(), ex);
+                throw RuntimeException.Create(ex);
             }
 
             AddField(fieldName, stream, 1.0f, analyzer.GetPositionIncrementGap(fieldName), analyzer.GetOffsetGap(fieldName));
@@ -272,24 +272,18 @@ namespace Lucene.Net.Index.Memory
         public virtual TokenStream KeywordTokenStream<T>(ICollection<T> keywords)
         {
             // TODO: deprecate & move this method into AnalyzerUtil?
-            if (keywords == null)
+            if (keywords is null)
             {
-                throw new ArgumentException("keywords must not be null");
+                throw new ArgumentNullException(nameof(keywords), "keywords must not be null"); // LUCENENET specific - changed from IllegalArgumentException to ArgumentNullException (.NET convention)
             }
 
-            return new TokenStreamAnonymousInnerClassHelper<T>(this, keywords);
+            return new TokenStreamAnonymousClass<T>(keywords);
         }
 
-        private sealed class TokenStreamAnonymousInnerClassHelper<T> : TokenStream
+        private sealed class TokenStreamAnonymousClass<T> : TokenStream
         {
-            private readonly MemoryIndex outerInstance;
-
-            private ICollection<T> keywords;
-
-            public TokenStreamAnonymousInnerClassHelper(MemoryIndex outerInstance, ICollection<T> keywords)
+            public TokenStreamAnonymousClass(ICollection<T> keywords)
             {
-                this.outerInstance = outerInstance;
-                this.keywords = keywords;
                 iter = keywords.GetEnumerator();
                 start = 0;
                 termAtt = AddAttribute<ICharTermAttribute>();
@@ -309,7 +303,7 @@ namespace Lucene.Net.Index.Memory
                 }
 
                 T obj = iter.Current;
-                if (obj == null)
+                if (obj is null)
                 {
                     throw new ArgumentException("keyword must not be null");
                 }
@@ -320,6 +314,30 @@ namespace Lucene.Net.Index.Memory
                 offsetAtt.SetOffset(start, start + termAtt.Length);
                 start += term.Length + 1; // separate words by 1 (blank) character
                 return true;
+            }
+
+            /// <summary>
+            /// Releases resources used by the <see cref="TokenStreamAnonymousClass{T}"/> and
+            /// if overridden in a derived class, optionally releases unmanaged resources.
+            /// </summary>
+            /// <param name="disposing"><c>true</c> to release both managed and unmanaged resources;
+            /// <c>false</c> to release only unmanaged resources.</param>
+
+            // LUCENENET specific
+            protected override void Dispose(bool disposing)
+            {
+                try
+                {
+                    if (disposing)
+                    {
+                        iter?.Dispose(); // LUCENENET specific - dispose iter and set to null
+                        iter = null;
+                    }
+                }
+                finally
+                {
+                    base.Dispose(disposing);
+                }
             }
         }
 
@@ -387,27 +405,26 @@ namespace Lucene.Net.Index.Memory
         {
             try
             {
-                if (fieldName == null)
+                if (fieldName is null)
                 {
-                    throw new ArgumentException("fieldName must not be null");
+                    throw new ArgumentNullException(nameof(fieldName), "fieldName must not be null"); // LUCENENET specific - changed from IllegalArgumentException to ArgumentNullException (.NET convention)
                 }
-                if (stream == null)
+                if (stream is null)
                 {
-                    throw new ArgumentException("token stream must not be null");
+                    throw new ArgumentNullException(nameof(stream), "token stream must not be null"); // LUCENENET specific - changed from IllegalArgumentException to ArgumentNullException (.NET convention)
                 }
                 if (boost <= 0.0f)
                 {
-                    throw new ArgumentException("boost factor must be greater than 0.0");
+                    throw new ArgumentOutOfRangeException(nameof(boost), "boost factor must be greater than 0.0"); // LUCENENET specific - changed from IllegalArgumentException to ArgumentOutOfRangeException (.NET convention)
                 }
                 int numTokens = 0;
                 int numOverlapTokens = 0;
                 int pos = -1;
                 BytesRefHash terms;
                 SliceByteStartArray sliceArray;
-                Info info = null;
                 long sumTotalTermFreq = 0;
                 int offset = 0;
-                if (fields.TryGetValue(fieldName, out info))
+                if (fields.TryGetValue(fieldName, out Info info))
                 {
                     numTokens = info.numTokens;
                     numOverlapTokens = info.numOverlapTokens;
@@ -487,9 +504,9 @@ namespace Lucene.Net.Index.Memory
                     sortedFields = null; // invalidate sorted view, if any
                 }
             } // can never happen
-            catch (Exception e)
+            catch (Exception e) when (e.IsException())
             {
-                throw new Exception(e.ToString(), e);
+                throw RuntimeException.Create(e);
             }
             finally
             {
@@ -500,9 +517,9 @@ namespace Lucene.Net.Index.Memory
                         stream.Dispose();
                     }
                 }
-                catch (IOException e2)
+                catch (Exception e2) when (e2.IsIOException())
                 {
-                    throw new Exception(e2.ToString(), e2);
+                    throw RuntimeException.Create(e2);
                 }
             }
         }
@@ -531,22 +548,22 @@ namespace Lucene.Net.Index.Memory
         ///  </returns>
         public virtual float Search(Query query)
         {
-            if (query == null)
+            if (query is null)
             {
-                throw new ArgumentException("query must not be null");
+                throw new ArgumentNullException(nameof(query), "query must not be null"); // LUCENENET specific - changed from IllegalArgumentException to ArgumentNullException (.NET convention)
             }
 
             IndexSearcher searcher = CreateSearcher();
             try
             {
                 float[] scores = new float[1]; // inits to 0.0f (no match)
-                searcher.Search(query, new CollectorAnonymousInnerClassHelper(this, scores));
+                searcher.Search(query, new CollectorAnonymousClass(scores));
                 float score = scores[0];
                 return score;
             } // can never happen (RAMDirectory)
-            catch (IOException e)
+            catch (Exception e) when (e.IsIOException())
             {
-                throw new Exception(e.ToString(), e);
+                throw RuntimeException.Create(e);
             }
             finally
             {
@@ -567,15 +584,12 @@ namespace Lucene.Net.Index.Memory
             }
         }
 
-        private class CollectorAnonymousInnerClassHelper : ICollector
+        private class CollectorAnonymousClass : ICollector
         {
-            private readonly MemoryIndex outerInstance;
+            private readonly float[] scores;
 
-            private float[] scores;
-
-            public CollectorAnonymousInnerClassHelper(MemoryIndex outerInstance, float[] scores)
+            public CollectorAnonymousClass(float[] scores)
             {
-                this.outerInstance = outerInstance;
                 this.scores = scores;
             }
 

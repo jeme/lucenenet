@@ -1,4 +1,4 @@
-using J2N.Threading;
+﻿using J2N.Threading;
 using Lucene.Net.Attributes;
 using Lucene.Net.Codecs;
 using Lucene.Net.Documents;
@@ -310,9 +310,7 @@ namespace Lucene.Net.Index
                 writer.AddIndexes(aux, dir);
                 Assert.IsTrue(false);
             }
-#pragma warning disable 168
-            catch (ArgumentException e)
-#pragma warning restore 168
+            catch (Exception e) when (e.IsIllegalArgumentException())
             {
                 Assert.AreEqual(100, writer.MaxDoc);
             }
@@ -671,7 +669,7 @@ namespace Lucene.Net.Index
             {
                 for (int i = 0; i < NUM_THREADS; i++)
                 {
-                    threads[i] = new ThreadAnonymousInnerClassHelper(this, numIter);
+                    threads[i] = new ThreadAnonymousClass(this, numIter);
                 }
 
                 for (int i = 0; i < NUM_THREADS; i++)
@@ -680,12 +678,12 @@ namespace Lucene.Net.Index
                 }
             }
 
-            private class ThreadAnonymousInnerClassHelper : ThreadJob
+            private class ThreadAnonymousClass : ThreadJob
             {
                 private readonly RunAddIndexesThreads outerInstance;
                 private readonly int numIter;
 
-                public ThreadAnonymousInnerClassHelper(RunAddIndexesThreads outerInstance, int numIter)
+                public ThreadAnonymousClass(RunAddIndexesThreads outerInstance, int numIter)
                 {
                     this.outerInstance = outerInstance;
                     this.numIter = numIter;
@@ -713,7 +711,7 @@ namespace Lucene.Net.Index
                             outerInstance.DoBody(j++, dirs);
                         }
                     }
-                    catch (Exception t)
+                    catch (Exception t) when (t.IsThrowable())
                     {
                         outerInstance.Handle(t);
                     }
@@ -948,9 +946,7 @@ namespace Lucene.Net.Index
                 {
                     report = !didClose;
                 }
-                // LUCENENET specific - since NoSuchDirectoryException subclasses FileNotFoundException
-                // in Lucene, we need to handle it here to be on the safe side.
-                else if (t is FileNotFoundException/* || t is NoSuchFileException*/ || t is DirectoryNotFoundException)
+                else if (t.IsNoSuchFileExceptionOrFileNotFoundException())
                 {
                     report = !didClose;
                 }
@@ -1212,42 +1208,34 @@ namespace Lucene.Net.Index
             {
                 IndexWriterConfig conf = NewIndexWriterConfig(TEST_VERSION_CURRENT, new MockAnalyzer(Random));
                 conf.SetCodec(new UnRegisteredCodec());
-                using (var w = new IndexWriter(toAdd, conf))
-                {
-                    Document doc = new Document();
-                    FieldType customType = new FieldType();
-                    customType.IsIndexed = true;
-                    doc.Add(NewField("foo", "bar", customType));
-                    w.AddDocument(doc);
-                }
+                using var w = new IndexWriter(toAdd, conf);
+                Document doc = new Document();
+                FieldType customType = new FieldType();
+                customType.IsIndexed = true;
+                doc.Add(NewField("foo", "bar", customType));
+                w.AddDocument(doc);
             }
 
             {
-                using (Directory dir = NewDirectory())
+                using Directory dir = NewDirectory();
+                IndexWriterConfig conf = NewIndexWriterConfig(TEST_VERSION_CURRENT, new MockAnalyzer(Random));
+                conf.SetCodec(TestUtil.AlwaysPostingsFormat(new Pulsing41PostingsFormat(1 + Random.Next(20))));
+                IndexWriter w = new IndexWriter(dir, conf);
+                try
                 {
-                    IndexWriterConfig conf = NewIndexWriterConfig(TEST_VERSION_CURRENT, new MockAnalyzer(Random));
-                    conf.SetCodec(TestUtil.AlwaysPostingsFormat(new Pulsing41PostingsFormat(1 + Random.Next(20))));
-                    IndexWriter w = new IndexWriter(dir, conf);
-                    try
-                    {
-                        w.AddIndexes(toAdd);
-                        Assert.Fail("no such codec");
-                    }
-#pragma warning disable 168
-                    catch (ArgumentException ex)
-#pragma warning restore 168
-                    {
-                        // expected
-                    }
-                    finally
-                    {
-                        w.Dispose();
-                    }
-                    using (IndexReader open = DirectoryReader.Open(dir))
-                    {
-                        Assert.AreEqual(0, open.NumDocs);
-                    }
+                    w.AddIndexes(toAdd);
+                    Assert.Fail("no such codec");
                 }
+                catch (Exception ex) when (ex.IsIllegalArgumentException())
+                {
+                    // expected
+                }
+                finally
+                {
+                    w.Dispose();
+                }
+                using IndexReader open = DirectoryReader.Open(dir);
+                Assert.AreEqual(0, open.NumDocs);
             }
 
             try
@@ -1255,9 +1243,7 @@ namespace Lucene.Net.Index
                 DirectoryReader.Open(toAdd);
                 Assert.Fail("no such codec");
             }
-#pragma warning disable 168
-            catch (ArgumentException ex)
-#pragma warning restore 168
+            catch (Exception ex) when (ex.IsIllegalArgumentException())
             {
                 // expected
             }

@@ -1,10 +1,10 @@
+﻿using J2N.Runtime.CompilerServices;
 using J2N.Threading.Atomic;
-using J2N.Runtime.CompilerServices;
 using Lucene.Net.Diagnostics;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Globalization;
+using System.Runtime.CompilerServices;
 using JCG = J2N.Collections.Generic;
 
 namespace Lucene.Net.Codecs.Lucene3x
@@ -27,10 +27,10 @@ namespace Lucene.Net.Codecs.Lucene3x
      */
 
     using BinaryDocValues = Lucene.Net.Index.BinaryDocValues;
-    using IBits = Lucene.Net.Util.IBits;
     using Directory = Lucene.Net.Store.Directory;
     using FieldInfo = Lucene.Net.Index.FieldInfo;
     using FieldInfos = Lucene.Net.Index.FieldInfos;
+    using IBits = Lucene.Net.Util.IBits;
     using IndexFileNames = Lucene.Net.Index.IndexFileNames;
     using IndexInput = Lucene.Net.Store.IndexInput;
     using IOContext = Lucene.Net.Store.IOContext;
@@ -81,7 +81,7 @@ namespace Lucene.Net.Codecs.Lucene3x
         {
             Directory separateNormsDir = info.Dir; // separate norms are never inside CFS
             maxdoc = info.DocCount;
-            string segmentName = info.Name;
+            //string segmentName = info.Name; // LUCENENET: IDE0059: Remove unnecessary value assignment
             bool success = false;
             try
             {
@@ -136,7 +136,7 @@ namespace Lucene.Net.Codecs.Lucene3x
                     }
                 }
                 // TODO: change to a real check? see LUCENE-3619
-                if (Debugging.AssertsEnabled) Debugging.Assert(singleNormStream == null || nextNormSeek == singleNormStream.Length, () => singleNormStream != null ? "len: " + singleNormStream.Length + " expected: " + nextNormSeek : "null");
+                if (Debugging.AssertsEnabled) Debugging.Assert(singleNormStream == null || nextNormSeek == singleNormStream.Length, singleNormStream != null ? "len: {0} expected: {1}" : "null", singleNormStream?.Length ?? 0, nextNormSeek);
                 success = true;
             }
             finally
@@ -161,6 +161,8 @@ namespace Lucene.Net.Codecs.Lucene3x
                 {
                     norms.Clear();
                     openFiles.Clear();
+                    singleNormStream?.Dispose(); // LUCENENET: Dispose singleNormStream and set to null
+                    singleNormStream = null;
                 }
             }
         }
@@ -179,6 +181,7 @@ namespace Lucene.Net.Codecs.Lucene3x
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static bool HasSeparateNorms(SegmentInfo info, int number)
         {
             string v = info.GetAttribute(Lucene3xSegmentInfoFormat.NORMGEN_PREFIX + number);
@@ -232,22 +235,23 @@ namespace Lucene.Net.Codecs.Lucene3x
                                 file.Dispose();
                             }
                             outerInstance.ramBytesUsed.AddAndGet(RamUsageEstimator.SizeOf(bytes));
-                            instance = new NumericDocValuesAnonymousInnerClassHelper(this, bytes);
+                            instance = new NumericDocValuesAnonymousClass(bytes);
                         }
                         return instance;
                     }
                 }
             }
 
-            private class NumericDocValuesAnonymousInnerClassHelper : NumericDocValues
+            private class NumericDocValuesAnonymousClass : NumericDocValues
             {
                 private readonly byte[] bytes;
 
-                public NumericDocValuesAnonymousInnerClassHelper(NormsDocValues outerInstance, byte[] bytes)
+                public NumericDocValuesAnonymousClass(byte[] bytes)
                 {
                     this.bytes = bytes;
                 }
 
+                [MethodImpl(MethodImplOptions.AggressiveInlining)]
                 public override long Get(int docID)
                 {
                     return bytes[docID];
@@ -255,6 +259,7 @@ namespace Lucene.Net.Codecs.Lucene3x
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override NumericDocValues GetNumeric(FieldInfo field)
         {
             var dv = norms[field.Name];
@@ -264,24 +269,25 @@ namespace Lucene.Net.Codecs.Lucene3x
 
         public override BinaryDocValues GetBinary(FieldInfo field)
         {
-            throw new InvalidOperationException();
+            throw AssertionError.Create();
         }
 
         public override SortedDocValues GetSorted(FieldInfo field)
         {
-            throw new InvalidOperationException();
+            throw AssertionError.Create();
         }
 
         public override SortedSetDocValues GetSortedSet(FieldInfo field)
         {
-            throw new InvalidOperationException();
+            throw AssertionError.Create();
         }
 
         public override IBits GetDocsWithField(FieldInfo field)
         {
-            throw new InvalidOperationException();
+            throw AssertionError.Create();
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override long RamBytesUsed() => ramBytesUsed;
 
         public override void CheckIntegrity() { }

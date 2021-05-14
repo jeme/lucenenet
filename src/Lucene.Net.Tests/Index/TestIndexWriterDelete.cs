@@ -1,4 +1,4 @@
-using J2N.Collections.Generic.Extensions;
+﻿using J2N.Collections.Generic.Extensions;
 using J2N.Threading;
 using J2N.Threading.Atomic;
 using Lucene.Net.Analysis;
@@ -8,6 +8,7 @@ using Lucene.Net.Store;
 using Lucene.Net.Support.IO;
 using Lucene.Net.Util;
 using NUnit.Framework;
+using RandomizedTesting.Generators;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -349,7 +350,7 @@ namespace Lucene.Net.Index
             for (int i = 0; i < numThreads; i++)
             {
                 int offset = i;
-                threads[i] = new ThreadAnonymousInnerClassHelper(this, modifier, latch, doneLatch, offset);
+                threads[i] = new ThreadAnonymousClass(this, modifier, latch, doneLatch, offset);
                 threads[i].Start();
             }
             latch.Signal();
@@ -379,7 +380,7 @@ namespace Lucene.Net.Index
             dir.Dispose();
         }
 
-        private class ThreadAnonymousInnerClassHelper : ThreadJob
+        private class ThreadAnonymousClass : ThreadJob
         {
             private readonly TestIndexWriterDelete outerInstance;
 
@@ -388,7 +389,7 @@ namespace Lucene.Net.Index
             private readonly CountdownEvent doneLatch;
             private readonly int offset;
 
-            public ThreadAnonymousInnerClassHelper(TestIndexWriterDelete outerInstance, RandomIndexWriter modifier, CountdownEvent latch, CountdownEvent doneLatch, int offset)
+            public ThreadAnonymousClass(TestIndexWriterDelete outerInstance, RandomIndexWriter modifier, CountdownEvent latch, CountdownEvent doneLatch, int offset)
             {
                 this.outerInstance = outerInstance;
                 this.modifier = modifier;
@@ -421,9 +422,9 @@ namespace Lucene.Net.Index
                         }
                     }
                 }
-                catch (Exception e)
+                catch (Exception e) when (e.IsException())
                 {
-                    throw new Exception(e.Message, e);
+                    throw RuntimeException.Create(e);
                 }
                 finally
                 {
@@ -551,24 +552,22 @@ namespace Lucene.Net.Index
         }
 
         [Test]
-        public virtual void TestDeletesOnDiskFull(
-            [ValueSource(typeof(ConcurrentMergeSchedulerFactories), "Values")]Func<IConcurrentMergeScheduler> newScheduler)
+        public virtual void TestDeletesOnDiskFull()
         {
-            DoTestOperationsOnDiskFull(newScheduler, false);
+            DoTestOperationsOnDiskFull(false);
         }
 
         [Test]
-        public virtual void TestUpdatesOnDiskFull(
-            [ValueSource(typeof(ConcurrentMergeSchedulerFactories), "Values")]Func<IConcurrentMergeScheduler> newScheduler)
+        public virtual void TestUpdatesOnDiskFull()
         {
-            DoTestOperationsOnDiskFull(newScheduler, true);
+            DoTestOperationsOnDiskFull(true);
         }
 
         /// <summary>
         /// Make sure if modifier tries to commit but hits disk full that modifier
         /// remains consistent and usable. Similar to TestIndexReader.testDiskFull().
         /// </summary>
-        private void DoTestOperationsOnDiskFull(Func<IConcurrentMergeScheduler> newScheduler, bool updates)
+        private void DoTestOperationsOnDiskFull(bool updates)
         {
             Term searchTerm = new Term("content", "aaa");
             int START_COUNT = 157;
@@ -595,7 +594,7 @@ namespace Lucene.Net.Index
             long diskUsage = startDir.GetSizeInBytes();
             long diskFree = diskUsage + 10;
 
-            IOException err = null;
+            Exception err = null; // LUCENENET: No need to cast to IOExcpetion
 
             bool done = false;
 
@@ -613,7 +612,7 @@ namespace Lucene.Net.Index
                 var config = NewIndexWriterConfig(TEST_VERSION_CURRENT, new MockAnalyzer(Random, MockTokenizer.WHITESPACE, false))
                                 .SetMaxBufferedDocs(1000)
                                 .SetMaxBufferedDeleteTerms(1000)
-                                .SetMergeScheduler(newScheduler());
+                                .SetMergeScheduler(new ConcurrentMergeScheduler());
 
                 IConcurrentMergeScheduler scheduler = config.MergeScheduler as IConcurrentMergeScheduler;
                 if (scheduler != null)
@@ -711,7 +710,7 @@ namespace Lucene.Net.Index
                             done = true;
                         }
                     }
-                    catch (IOException e)
+                    catch (Exception e) when (e.IsIOException())
                     {
                         if (Verbose)
                         {
@@ -762,7 +761,7 @@ namespace Lucene.Net.Index
                     {
                         newReader = DirectoryReader.Open(dir);
                     }
-                    catch (IOException e)
+                    catch (Exception e) when (e.IsIOException())
                     {
                         Console.WriteLine(e.ToString());
                         Console.Write(e.StackTrace);
@@ -775,7 +774,7 @@ namespace Lucene.Net.Index
                     {
                         hits = searcher.Search(new TermQuery(searchTerm), null, 1000).ScoreDocs;
                     }
-                    catch (IOException e)
+                    catch (Exception e) when (e.IsIOException())
                     {
                         Console.WriteLine(e.ToString());
                         Console.Write(e.StackTrace);
@@ -830,7 +829,7 @@ namespace Lucene.Net.Index
         [Test]
         public virtual void TestErrorAfterApplyDeletes()
         {
-            Failure failure = new FailureAnonymousInnerClassHelper(this);
+            Failure failure = new FailureAnonymousClass(this);
 
             // create a couple of files
 
@@ -921,9 +920,7 @@ namespace Lucene.Net.Index
                 }
                 modifier.Commit();
             }
-#pragma warning disable 168
-            catch (IOException ioe)
-#pragma warning restore 168
+            catch (Exception ioe) when (ioe.IsIOException())
             {
                 // expected
                 failed = true;
@@ -945,11 +942,11 @@ namespace Lucene.Net.Index
             dir.Dispose();
         }
 
-        private class FailureAnonymousInnerClassHelper : Failure
+        private class FailureAnonymousClass : Failure
         {
             private readonly TestIndexWriterDelete outerInstance;
 
-            public FailureAnonymousInnerClassHelper(TestIndexWriterDelete outerInstance)
+            public FailureAnonymousClass(TestIndexWriterDelete outerInstance)
             {
                 this.outerInstance = outerInstance;
                 sawMaybe = false;
@@ -1017,7 +1014,7 @@ namespace Lucene.Net.Index
         [Test]
         public virtual void TestErrorInDocsWriterAdd()
         {
-            Failure failure = new FailureAnonymousInnerClassHelper2(this);
+            Failure failure = new FailureAnonymousClass2(this);
 
             // create a couple of files
 
@@ -1044,7 +1041,7 @@ namespace Lucene.Net.Index
                 {
                     modifier.AddDocument(doc);
                 }
-                catch (IOException io)
+                catch (Exception io) when (io.IsIOException())
                 {
                     if (Verbose)
                     {
@@ -1060,11 +1057,11 @@ namespace Lucene.Net.Index
             dir.Dispose();
         }
 
-        private class FailureAnonymousInnerClassHelper2 : Failure
+        private class FailureAnonymousClass2 : Failure
         {
             private readonly TestIndexWriterDelete outerInstance;
 
-            public FailureAnonymousInnerClassHelper2(TestIndexWriterDelete outerInstance)
+            public FailureAnonymousClass2(TestIndexWriterDelete outerInstance)
             {
                 this.outerInstance = outerInstance;
                 failed = false;
@@ -1314,7 +1311,7 @@ namespace Lucene.Net.Index
             AtomicInt32 docsInSegment = new AtomicInt32();
             AtomicBoolean closing = new AtomicBoolean();
             AtomicBoolean sawAfterFlush = new AtomicBoolean();
-            IndexWriter w = new IndexWriterAnonymousInnerClassHelper(this, dir, NewIndexWriterConfig(TEST_VERSION_CURRENT, new MockAnalyzer(Random)).SetRAMBufferSizeMB(0.5).SetMaxBufferedDocs(-1).SetMergePolicy(NoMergePolicy.NO_COMPOUND_FILES).SetReaderPooling(false), docsInSegment, closing, sawAfterFlush);
+            IndexWriter w = new IndexWriterAnonymousClass(this, dir, NewIndexWriterConfig(TEST_VERSION_CURRENT, new MockAnalyzer(Random)).SetRAMBufferSizeMB(0.5).SetMaxBufferedDocs(-1).SetMergePolicy(NoMergePolicy.NO_COMPOUND_FILES).SetReaderPooling(false), docsInSegment, closing, sawAfterFlush);
             int id = 0;
             while (true)
             {
@@ -1349,7 +1346,7 @@ namespace Lucene.Net.Index
             dir.Dispose();
         }
 
-        private class IndexWriterAnonymousInnerClassHelper : IndexWriter
+        private class IndexWriterAnonymousClass : IndexWriter
         {
             private readonly TestIndexWriterDelete outerInstance;
 
@@ -1357,7 +1354,7 @@ namespace Lucene.Net.Index
             private readonly AtomicBoolean closing;
             private readonly AtomicBoolean sawAfterFlush;
 
-            public IndexWriterAnonymousInnerClassHelper(TestIndexWriterDelete outerInstance, Directory dir, IndexWriterConfig setReaderPooling, AtomicInt32 docsInSegment, AtomicBoolean closing, AtomicBoolean sawAfterFlush)
+            public IndexWriterAnonymousClass(TestIndexWriterDelete outerInstance, Directory dir, IndexWriterConfig setReaderPooling, AtomicInt32 docsInSegment, AtomicBoolean closing, AtomicBoolean sawAfterFlush)
                 : base(dir, setReaderPooling)
             {
                 this.outerInstance = outerInstance;

@@ -49,14 +49,14 @@ namespace Lucene.Net.Search.Grouping
         private int totalHitCount;
         private int totalGroupedHitCount;
 
-        public AbstractSecondPassGroupingCollector(IEnumerable<ISearchGroup<TGroupValue>> groups, Sort groupSort, Sort withinGroupSort,
-                                                   int maxDocsPerGroup, bool getScores, bool getMaxScores, bool fillSortFields)
+        protected AbstractSecondPassGroupingCollector(IEnumerable<ISearchGroup<TGroupValue>> groups, Sort groupSort, Sort withinGroupSort,
+                                                   int maxDocsPerGroup, bool getScores, bool getMaxScores, bool fillSortFields) // LUCENENET: CA1012: Abstract types should not have constructors (marked protected)
         {
 
             //System.out.println("SP init");
             if (groups.Count() == 0)
             {
-                throw new ArgumentException("no groups to collect (groups.size() is 0)");
+                throw new ArgumentException("no groups to collect (groups.Count is 0)");
             }
 
             this.groupSort = groupSort;
@@ -126,7 +126,7 @@ namespace Lucene.Net.Search.Grouping
             GroupDocs<TGroupValue>[] groupDocsResult = new GroupDocs<TGroupValue>[groups.Count()];
 
             int groupIDX = 0;
-            float maxScore = float.MinValue;
+            float maxScore = float.Epsilon; // LUCENENET: Epsilon in .NET is the same as MIN_VALUE in Java
             foreach (var group in groups)
             {
                 AbstractSecondPassGroupingCollector.SearchGroupDocs<TGroupValue> groupDocs = m_groupMap[group.GroupValue];
@@ -141,7 +141,7 @@ namespace Lucene.Net.Search.Grouping
             }
 
             return new TopGroups<TGroupValue>(groupSort.GetSort(),
-                                                   withinGroupSort == null ? null : withinGroupSort.GetSort(),
+                                                   withinGroupSort?.GetSort(),
                                                    totalHitCount, totalGroupedHitCount, groupDocsResult,
                                                    maxScore);
         }
@@ -155,13 +155,8 @@ namespace Lucene.Net.Search.Grouping
     /// to access nested classes of <see cref="AbstractAllGroupHeadsCollector{GH}"/>
     /// without referencing the generic closing type.
     /// </summary>
-    public class AbstractSecondPassGroupingCollector
+    public static class AbstractSecondPassGroupingCollector // LUCENENET specific: CA1052 Static holder types should be Static or NotInheritable
     {
-        /// <summary>
-        /// Don't allow creation
-        /// </summary>
-        private AbstractSecondPassGroupingCollector() { }
-
         // TODO: merge with SearchGroup or not?
         // ad: don't need to build a new hashmap
         // disad: blows up the size of SearchGroup if we need many of them, and couples implementations

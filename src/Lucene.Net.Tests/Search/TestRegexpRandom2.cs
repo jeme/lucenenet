@@ -1,7 +1,8 @@
-using Lucene.Net.Documents;
+﻿using Lucene.Net.Documents;
 using Lucene.Net.Index.Extensions;
 using Lucene.Net.Util.Automaton;
 using NUnit.Framework;
+using RandomizedTesting.Generators;
 using System;
 using System.Collections.Generic;
 using Console = Lucene.Net.Util.SystemConsole;
@@ -115,7 +116,7 @@ namespace Lucene.Net.Search
             internal DumbRegexpQuery(Term term, RegExpSyntax flags)
                 : base(term.Field)
             {
-                RegExp re = new RegExp(term.Text(), flags);
+                RegExp re = new RegExp(term.Text, flags);
                 automaton = re.ToAutomaton();
             }
 
@@ -126,11 +127,6 @@ namespace Lucene.Net.Search
 
             private sealed class SimpleAutomatonTermsEnum : FilteredTermsEnum
             {
-                private void InitializeInstanceFields()
-                {
-                    runAutomaton = new CharacterRunAutomaton(outerInstance.automaton);
-                }
-
                 private readonly TestRegexpRandom2.DumbRegexpQuery outerInstance;
 
                 private CharacterRunAutomaton runAutomaton;
@@ -141,7 +137,7 @@ namespace Lucene.Net.Search
                 {
                     this.outerInstance = outerInstance;
 
-                    InitializeInstanceFields();
+                    runAutomaton = new CharacterRunAutomaton(outerInstance.automaton);
                     SetInitialSeekTerm(new BytesRef(""));
                 }
 

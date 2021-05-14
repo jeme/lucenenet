@@ -51,7 +51,7 @@ namespace Lucene.Net.Analysis.OpenNlp
             tokenizerModelFile = Require(args, TOKENIZER_MODEL);
             if (args.Count > 0)
             {
-                throw new ArgumentException("Unknown parameters: " + args);
+                throw new ArgumentException(string.Format(J2N.Text.StringFormatter.CurrentCulture, "Unknown parameters: {0}", args));
             }
         }
 
@@ -63,9 +63,9 @@ namespace Lucene.Net.Analysis.OpenNlp
                 NLPTokenizerOp tokenizerOp = OpenNLPOpsFactory.GetTokenizer(tokenizerModelFile);
                 return new OpenNLPTokenizer(factory, reader, sentenceOp, tokenizerOp);
             }
-            catch (IOException e)
+            catch (Exception e) when (e.IsIOException())
             {
-                throw new Exception(e.ToString(), e);
+                throw RuntimeException.Create(e);
             }
         }
 

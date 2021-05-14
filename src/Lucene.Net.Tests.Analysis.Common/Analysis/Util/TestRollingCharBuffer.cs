@@ -1,5 +1,7 @@
-﻿using Lucene.Net.Util;
+﻿// Lucene version compatibility level 4.8.1
+using Lucene.Net.Util;
 using NUnit.Framework;
+using RandomizedTesting.Generators;
 using System.IO;
 using Console = Lucene.Net.Util.SystemConsole;
 
@@ -28,7 +30,16 @@ namespace Lucene.Net.Analysis.Util
         [Test]
         public virtual void Test()
         {
-            var ITERS = AtLeast(1000);
+            int ITERS;
+
+            // LUCENENET specific: NUnit will crash with an OOM if we do the full test
+            // with verbosity enabled. So, decreasing the number of iterations by 1/2
+            // to keep it from crashing.
+            if (Verbose)
+                ITERS = AtLeast(500);
+            else
+                ITERS = AtLeast(1000);
+
 
             var buffer = new RollingCharBuffer();
 

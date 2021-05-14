@@ -1,9 +1,10 @@
-using J2N.Text;
+﻿using J2N.Text;
 using Lucene.Net.Diagnostics;
 using Lucene.Net.Support;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using System.Text;
 using WritableArrayAttribute = Lucene.Net.Support.WritableArrayAttribute;
 
@@ -41,10 +42,8 @@ namespace Lucene.Net.Util
 #if FEATURE_SERIALIZABLE
     [Serializable]
 #endif
+    // LUCENENET specific: Not implementing ICloneable per Microsoft's recommendation
     public sealed class BytesRef : IComparable<BytesRef>, IComparable, IEquatable<BytesRef> // LUCENENET specific - implemented IComparable for FieldComparator, IEquatable<BytesRef>
-#if FEATURE_CLONEABLE
-        , System.ICloneable
-#endif
     {
         /// <summary>
         /// An empty byte array for convenience </summary>
@@ -138,6 +137,7 @@ namespace Lucene.Net.Util
         /// </summary>
         /// <param name="text"> Must be well-formed unicode text, with no
         /// unpaired surrogates or invalid UTF16 code units. </param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void CopyChars(ICharSequence text)
         {
             if (Debugging.AssertsEnabled) Debugging.Assert(Offset == 0); // TODO broken if offset != 0
@@ -149,6 +149,7 @@ namespace Lucene.Net.Util
         /// </summary>
         /// <param name="text"> Must be well-formed unicode text, with no
         /// unpaired surrogates or invalid UTF16 code units. </param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void CopyChars(string text)
         {
             if (Debugging.AssertsEnabled) Debugging.Assert(Offset == 0); // TODO broken if offset != 0
@@ -191,6 +192,7 @@ namespace Lucene.Net.Util
         /// object.
         /// </summary>
         /// <seealso cref="DeepCopyOf(BytesRef)"/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public object Clone()
         {
             return new BytesRef(bytes, Offset, Length);
@@ -203,6 +205,7 @@ namespace Lucene.Net.Util
         /// <see cref="StringHelper.GOOD_FAST_HASH_SEED"/>, but is subject to
         /// change from release to release.
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override int GetHashCode()
         {
             return StringHelper.Murmurhash3_x86_32(this, StringHelper.GOOD_FAST_HASH_SEED);
@@ -219,6 +222,7 @@ namespace Lucene.Net.Util
             return false;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         bool IEquatable<BytesRef>.Equals(BytesRef other) // LUCENENET specific - implemented IEquatable<BytesRef>
             => BytesEquals(other);
 
@@ -226,6 +230,7 @@ namespace Lucene.Net.Util
         /// Interprets stored bytes as UTF8 bytes, returning the
         /// resulting <see cref="string"/>.
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public string Utf8ToString()
         {
             CharsRef @ref = new CharsRef(Length);
@@ -296,6 +301,7 @@ namespace Lucene.Net.Util
         /// <para/>
         /// @lucene.internal
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Grow(int newLength)
         {
             if (Debugging.AssertsEnabled) Debugging.Assert(Offset == 0); // NOTE: senseless if offset != 0
@@ -304,6 +310,7 @@ namespace Lucene.Net.Util
 
         /// <summary>
         /// Unsigned byte order comparison </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public int CompareTo(object other) // LUCENENET specific: Implemented IComparable for FieldComparer
         {
             BytesRef br = other as BytesRef;
@@ -313,6 +320,7 @@ namespace Lucene.Net.Util
 
         /// <summary>
         /// Unsigned byte order comparison </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public int CompareTo(BytesRef other)
         {
             return utf8SortedAsUnicodeSortOrder.Compare(this, other);
@@ -343,6 +351,7 @@ namespace Lucene.Net.Util
         /// The returned <see cref="BytesRef"/> will have a length of <c>other.Length</c>
         /// and an offset of zero.
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static BytesRef DeepCopyOf(BytesRef other)
         {
             BytesRef copy = new BytesRef();
@@ -358,31 +367,31 @@ namespace Lucene.Net.Util
         {
             if (Bytes == null)
             {
-                throw new InvalidOperationException("bytes is null");
+                throw IllegalStateException.Create("bytes is null");
             }
             if (Length < 0)
             {
-                throw new InvalidOperationException("length is negative: " + Length);
+                throw IllegalStateException.Create("length is negative: " + Length);
             }
             if (Length > Bytes.Length)
             {
-                throw new InvalidOperationException("length is out of bounds: " + Length + ",bytes.length=" + Bytes.Length);
+                throw IllegalStateException.Create("length is out of bounds: " + Length + ",bytes.length=" + Bytes.Length);
             }
             if (Offset < 0)
             {
-                throw new InvalidOperationException("offset is negative: " + Offset);
+                throw IllegalStateException.Create("offset is negative: " + Offset);
             }
             if (Offset > Bytes.Length)
             {
-                throw new InvalidOperationException("offset out of bounds: " + Offset + ",bytes.length=" + Bytes.Length);
+                throw IllegalStateException.Create("offset out of bounds: " + Offset + ",bytes.length=" + Bytes.Length);
             }
             if (Offset + Length < 0)
             {
-                throw new InvalidOperationException("offset+length is negative: offset=" + Offset + ",length=" + Length);
+                throw IllegalStateException.Create("offset+length is negative: offset=" + Offset + ",length=" + Length);
             }
             if (Offset + Length > Bytes.Length)
             {
-                throw new InvalidOperationException("offset+length out of bounds: offset=" + Offset + ",length=" + Length + ",bytes.length=" + Bytes.Length);
+                throw IllegalStateException.Create("offset+length out of bounds: offset=" + Offset + ",length=" + Length + ",bytes.length=" + Bytes.Length);
             }
             return true;
         }
@@ -482,6 +491,55 @@ namespace Lucene.Net.Util
 
             // One is a prefix of the other, or, they are equal:
             return a.Length - b.Length;
+        }
+    }
+
+    // LUCENENET specific
+    internal enum BytesRefFormat // For assert/test/logging
+    {
+        UTF8,
+        UTF8AsHex
+    }
+
+    // LUCENENET specific - when this object is a parameter of 
+    // a method that calls string.Format(),
+    // defers execution of building a string until
+    // string.Format() is called.
+    // This struct is meant to wrap a directory parameter when passed as a string.Format() argument.
+    internal struct BytesRefFormatter // For assert/test/logging
+    {
+#pragma warning disable IDE0044 // Add readonly modifier
+        private BytesRef bytesRef;
+        private BytesRefFormat format;
+#pragma warning restore IDE0044 // Add readonly modifier
+        public BytesRefFormatter(BytesRef bytesRef, BytesRefFormat format)
+        {
+            this.bytesRef = bytesRef; // Allow null
+            this.format = format;
+        }
+
+        public override string ToString()
+        {
+            // Special case: null
+            if (bytesRef is null)
+                return "null";
+
+            switch (format)
+            {
+                case BytesRefFormat.UTF8:
+                    try
+                    {
+                        return bytesRef.Utf8ToString();
+                    }
+                    catch (Exception e) when (e.IsIndexOutOfBoundsException())
+                    {
+                        return bytesRef.ToString();
+                    }
+                case BytesRefFormat.UTF8AsHex:
+                    return UnicodeUtil.ToHexString(bytesRef.Utf8ToString());
+                default:
+                    return bytesRef.ToString();
+            }
         }
     }
 }

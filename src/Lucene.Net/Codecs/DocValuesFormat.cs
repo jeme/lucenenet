@@ -152,13 +152,13 @@ namespace Lucene.Net.Codecs
         {
             get
             {
-                if (docValuesFormatFactory is IServiceListable)
+                if (docValuesFormatFactory is IServiceListable serviceListable)
                 {
-                    return ((IServiceListable)docValuesFormatFactory).AvailableServices;
+                    return serviceListable.AvailableServices;
                 }
                 else
                 {
-                    throw new NotSupportedException("The current DocValuesFormatFactory class does not implement IServiceListable.");
+                    throw UnsupportedOperationException.Create("The current DocValuesFormatFactory class does not implement IServiceListable.");
                 }
             }
         }

@@ -1,4 +1,5 @@
-﻿using J2N.Threading.Atomic;
+﻿// Lucene version compatibility level 4.8.1
+using J2N.Threading.Atomic;
 using Lucene.Net.Analysis.TokenAttributes;
 using Lucene.Net.Diagnostics;
 using Lucene.Net.Index;
@@ -8,9 +9,7 @@ using Lucene.Net.Support;
 using Lucene.Net.Util;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
-using System.Threading;
 
 namespace Lucene.Net.Facet.Taxonomy.Directory
 {
@@ -371,11 +370,11 @@ namespace Lucene.Net.Facet.Taxonomy.Directory
         /// </summary>
         protected virtual void Dispose(bool disposing)
         {
-            if (disposing && !isClosed)
+            lock (syncLock)
             {
-                lock (syncLock)
+                if (disposing && !isClosed)
                 {
-                    CommitLocked();
+                    Commit();
                     DoClose();
                 }
             }
@@ -392,17 +391,18 @@ namespace Lucene.Net.Facet.Taxonomy.Directory
         /// Closes the <see cref="Index.IndexReader"/> as well as the
         /// <see cref="ITaxonomyWriterCache"/> instances that were used.
         /// </summary>
-        private void CloseResources() // LUCENENET: Made private, since this has the same purpose as Dispose(bool). Removed redundant lock.
+        private void CloseResources() // LUCENENET: Made private, since this has the same purpose as Dispose(bool).
         {
-            if (initializedReaderManager)
+            lock (syncLock)
             {
-                readerManager.Dispose();
-                readerManager = null;
-                initializedReaderManager = false;
-            }
-            if (cache != null)
-            {
-                cache.Dispose();
+                if (initializedReaderManager)
+                {
+                    readerManager.Dispose();
+                    readerManager = null;
+                    initializedReaderManager = false;
+                }
+                cache?.Dispose();
+                parentStream.Dispose(); // LUCENENET specific
             }
         }
 
@@ -556,7 +556,7 @@ namespace Lucene.Net.Facet.Taxonomy.Directory
         {
             if (isClosed)
             {
-                throw new ObjectDisposedException(this.GetType().FullName, "The taxonomy writer has already been closed");
+                throw AlreadyClosedException.Create(this.GetType().FullName, "The taxonomy writer has already been disposed.");
             }
         }
 
@@ -576,8 +576,10 @@ namespace Lucene.Net.Facet.Taxonomy.Directory
             // in the reader (which knows that anyway only category 0 has a parent
             // -1).    
             parentStream.Set(Math.Max(parent + 1, 1));
-            Document d = new Document();
-            d.Add(parentStreamField);
+            Document d = new Document
+            {
+                parentStreamField
+            };
 
             fullPathField.SetStringValue(FacetsConfig.PathToString(categoryPath.Components, categoryPath.Length));
             d.Add(fullPathField);
@@ -592,7 +594,7 @@ namespace Lucene.Net.Facet.Taxonomy.Directory
             shouldRefreshReaderManager = true;
 
             // also add to the parent array
-            taxoArrays = GetTaxoArraysLocked().Add(id, parent);
+            taxoArrays = GetTaxoArrays().Add(id, parent);
 
             // NOTE: this line must be executed last, or else the cache gets updated
             // before the parents array (LUCENE-4596)
@@ -667,22 +669,22 @@ namespace Lucene.Net.Facet.Taxonomy.Directory
             }
         }
 
-        // LUCENENET: Removed the lock here because all callers already have a
-        // lock before getting in here and all callers to AddCategoryDocument also
-        // have a lock before calling it.
         private void RefreshReaderManager()
         {
-            // this method is synchronized since it cannot happen concurrently with
-            // addCategoryDocument -- when this method returns, we must know that the
-            // reader manager's state is current. also, it sets shouldRefresh to false, 
-            // and this cannot overlap with addCatDoc too.
-            // NOTE: since this method is sync'ed, it can call maybeRefresh, instead of
-            // maybeRefreshBlocking. If ever this is changed, make sure to change the
-            // call too.
-            if (shouldRefreshReaderManager && initializedReaderManager)
+            lock (syncLock)
             {
-                readerManager.MaybeRefresh();
-                shouldRefreshReaderManager = false;
+                // this method is synchronized since it cannot happen concurrently with
+                // addCategoryDocument -- when this method returns, we must know that the
+                // reader manager's state is current. also, it sets shouldRefresh to false, 
+                // and this cannot overlap with addCatDoc too.
+                // NOTE: since this method is sync'ed, it can call maybeRefresh, instead of
+                // maybeRefreshBlocking. If ever this is changed, make sure to change the
+                // call too.
+                if (shouldRefreshReaderManager && initializedReaderManager)
+                {
+                    readerManager.MaybeRefresh();
+                    shouldRefreshReaderManager = false;
+                }
             }
         }
 
@@ -690,21 +692,16 @@ namespace Lucene.Net.Facet.Taxonomy.Directory
         {
             lock (syncLock)
             {
-                CommitLocked();
+                EnsureOpen();
+                // LUCENE-4972: if we always call setCommitData, we create empty commits
+                if (!indexWriter.CommitData.TryGetValue(INDEX_EPOCH, out string epochStr)
+                    || epochStr == null
+                    || Convert.ToInt64(epochStr, 16) != indexEpoch)
+                {
+                    indexWriter.SetCommitData(CombinedCommitData(indexWriter.CommitData));
+                }
+                indexWriter.Commit();
             }
-        }
-
-        private void CommitLocked() // LUCENENET: Added to avoid lock recursion
-        {
-            EnsureOpen();
-            // LUCENE-4972: if we always call setCommitData, we create empty commits
-            if (!indexWriter.CommitData.TryGetValue(INDEX_EPOCH, out string epochStr)
-                || epochStr == null
-                || Convert.ToInt64(epochStr, 16) != indexEpoch)
-            {
-                indexWriter.SetCommitData(CombinedCommitData(indexWriter.CommitData));
-            }
-            indexWriter.Commit();
         }
 
         /// <summary>
@@ -785,114 +782,112 @@ namespace Lucene.Net.Facet.Taxonomy.Directory
         // we need to guarantee that if several threads call this concurrently, only
         // one executes it, and after it returns, the cache is updated and is either
         // complete or not.
-        private void PerhapsFillCache() // LUCENENET: Ensure the caller has a lock
+        private void PerhapsFillCache()
         {
-            if (cacheMisses < cacheMissesUntilFill)
+            lock (syncLock)
             {
-                return;
-            }
-
-            if (!shouldFillCache)
-            {
-                // we already filled the cache once, there's no need to re-fill it
-                return;
-            }
-            shouldFillCache = false;
-
-            InitReaderManager();
-
-            bool aborted = false;
-            DirectoryReader reader = readerManager.Acquire();
-            try
-            {
-                TermsEnum termsEnum = null;
-                DocsEnum docsEnum = null;
-                foreach (AtomicReaderContext ctx in reader.Leaves)
+                if (cacheMisses < cacheMissesUntilFill)
                 {
-                    Terms terms = ctx.AtomicReader.GetTerms(Consts.FULL);
-                    if (terms != null) // cannot really happen, but be on the safe side
+                    return;
+                }
+
+                if (!shouldFillCache)
+                {
+                    // we already filled the cache once, there's no need to re-fill it
+                    return;
+                }
+                shouldFillCache = false;
+
+                InitReaderManager();
+
+                bool aborted = false;
+                DirectoryReader reader = readerManager.Acquire();
+                try
+                {
+                    TermsEnum termsEnum = null;
+                    DocsEnum docsEnum = null;
+                    foreach (AtomicReaderContext ctx in reader.Leaves)
                     {
-                        termsEnum = terms.GetEnumerator(termsEnum);
-                        while (termsEnum.MoveNext())
+                        Terms terms = ctx.AtomicReader.GetTerms(Consts.FULL);
+                        if (terms != null) // cannot really happen, but be on the safe side
                         {
-                            if (!cache.IsFull)
+                            termsEnum = terms.GetEnumerator(termsEnum);
+                            while (termsEnum.MoveNext())
                             {
-                                BytesRef t = termsEnum.Term;
-                                // Since we guarantee uniqueness of categories, each term has exactly
-                                // one document. Also, since we do not allow removing categories (and
-                                // hence documents), there are no deletions in the index. Therefore, it
-                                // is sufficient to call next(), and then doc(), exactly once with no
-                                // 'validation' checks.
-                                FacetLabel cp = new FacetLabel(FacetsConfig.StringToPath(t.Utf8ToString()));
-                                docsEnum = termsEnum.Docs(null, docsEnum, DocsFlags.NONE);
-                                bool res = cache.Put(cp, docsEnum.NextDoc() + ctx.DocBase);
-                                if (Debugging.AssertsEnabled) Debugging.Assert(!res, "entries should not have been evicted from the cache");
-                            }
-                            else
-                            {
-                                // the cache is full and the next put() will evict entries from it, therefore abort the iteration.
-                                aborted = true;
-                                break;
+                                if (!cache.IsFull)
+                                {
+                                    BytesRef t = termsEnum.Term;
+                                    // Since we guarantee uniqueness of categories, each term has exactly
+                                    // one document. Also, since we do not allow removing categories (and
+                                    // hence documents), there are no deletions in the index. Therefore, it
+                                    // is sufficient to call next(), and then doc(), exactly once with no
+                                    // 'validation' checks.
+                                    FacetLabel cp = new FacetLabel(FacetsConfig.StringToPath(t.Utf8ToString()));
+                                    docsEnum = termsEnum.Docs(null, docsEnum, DocsFlags.NONE);
+                                    bool res = cache.Put(cp, docsEnum.NextDoc() + ctx.DocBase);
+                                    if (Debugging.AssertsEnabled) Debugging.Assert(!res, "entries should not have been evicted from the cache");
+                                }
+                                else
+                                {
+                                    // the cache is full and the next put() will evict entries from it, therefore abort the iteration.
+                                    aborted = true;
+                                    break;
+                                }
                             }
                         }
-                    }
-                    if (aborted)
-                    {
-                        break;
+                        if (aborted)
+                        {
+                            break;
+                        }
                     }
                 }
-            }
-            finally
-            {
-                readerManager.Release(reader);
-            }
-
-            cacheIsComplete = !aborted;
-            if (cacheIsComplete)
-            {
-                //lock (syncLock) // LUCENENET: the caller of this method already has a lock, so we don't need to make it recursive
+                finally
                 {
-                    // everything is in the cache, so no need to keep readerManager open.
-                    // this block is executed in a sync block so that it works well with
-                    // initReaderManager called in parallel.
-                    readerManager.Dispose();
-                    readerManager = null;
-                    initializedReaderManager = false;
+                    readerManager.Release(reader);
+                }
+
+                cacheIsComplete = !aborted;
+                if (cacheIsComplete)
+                {
+                    lock (syncLock)
+                    {
+                        // everything is in the cache, so no need to keep readerManager open.
+                        // this block is executed in a sync block so that it works well with
+                        // initReaderManager called in parallel.
+                        readerManager.Dispose();
+                        readerManager = null;
+                        initializedReaderManager = false;
+                    }
                 }
             }
         }
 
         private TaxonomyIndexArrays GetTaxoArrays()
         {
-            var result = taxoArrays; // LUCENENET: Careful, we need to ensure a parallel thread does't wipe out our return value
-            if (result is null)
+            if (taxoArrays is null)
             {
                 lock (syncLock)
                 {
-                    return GetTaxoArraysLocked();
+                    if (taxoArrays is null)
+                    {
+                        InitReaderManager();
+                        DirectoryReader reader = readerManager.Acquire();
+                        try
+                        {
+                            // according to Java Concurrency, this might perform better on some
+                            // JVMs, since the object initialization doesn't happen on the
+                            // volatile member.
+                            var tmpArrays = new TaxonomyIndexArrays(reader);
+                            taxoArrays = tmpArrays;
+                        }
+                        finally
+                        {
+                            readerManager.Release(reader);
+                        }
+                    }
                 }
             }
-            return result;
-        }
-
-        private TaxonomyIndexArrays GetTaxoArraysLocked()
-        {
-            var result = taxoArrays; // LUCENENET: Careful, we need to ensure a parallel thread does't wipe out our return value
-            if (result is null)
-            {
-                InitReaderManager();
-
-                DirectoryReader reader = readerManager.Acquire();
-                try
-                {
-                    return taxoArrays = new TaxonomyIndexArrays(reader);
-                }
-                finally
-                {
-                    readerManager.Release(reader);
-                }
-            }
-            return result;
+            return taxoArrays;
         }
 
         public virtual int GetParent(int ordinal)
@@ -902,12 +897,14 @@ namespace Lucene.Net.Facet.Taxonomy.Directory
             // for the parent of a nonexistant category - even if the parent array
             // was allocated bigger than it really needs to be.
             if (ordinal >= nextID)
-            {
-                throw new IndexOutOfRangeException("requested ordinal is bigger than the largest ordinal in the taxonomy");
-            }
+                // LUCENENET specific: Changed exception type thrown to be consistent with guard clauses in .NET
+                throw new ArgumentOutOfRangeException(nameof(ordinal), "requested ordinal is bigger than the largest ordinal in the taxonomy");
+            // LUCENENET specific: Added additional check to defend against throwing IndexOutOfRangeException
+            if (ordinal < 0)
+                throw new ArgumentOutOfRangeException(nameof(ordinal), "ordinal may not be negative.");
 
             int[] parents = GetTaxoArrays().Parents;
-            if (Debugging.AssertsEnabled) Debugging.Assert(ordinal < parents.Length, () => "requested ordinal (" + ordinal + "); parents.length (" + parents.Length + ") !");
+            if (Debugging.AssertsEnabled) Debugging.Assert(ordinal < parents.Length, "requested ordinal ({0}); parents.length ({1}) !", ordinal, parents.Length);
             return parents[ordinal];
         }
 
@@ -1080,7 +1077,7 @@ namespace Lucene.Net.Facet.Taxonomy.Directory
                 }
             }
 
-            int[] map = null;
+            private int[] map = null;
 
             public int[] GetMap()
             {

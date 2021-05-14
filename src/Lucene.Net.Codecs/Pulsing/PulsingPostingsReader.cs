@@ -1,3 +1,4 @@
+﻿using J2N.Numerics;
 using J2N.Runtime.CompilerServices;
 using Lucene.Net.Diagnostics;
 using Lucene.Net.Index;
@@ -177,7 +178,8 @@ namespace Lucene.Net.Codecs.Pulsing
             termState2.Absolute = termState2.Absolute || absolute;
             // if we have positions, its total TF, otherwise its computed based on docFreq.
             // TODO Double check this is right..
-            long count = fieldInfo.IndexOptions.CompareTo(IndexOptions.DOCS_AND_FREQS_AND_POSITIONS) >= 0
+            // LUCENENET specific - to avoid boxing, changed from CompareTo() to IndexOptionsComparer.Compare()
+            long count = IndexOptionsComparer.Default.Compare(fieldInfo.IndexOptions, IndexOptions.DOCS_AND_FREQS_AND_POSITIONS) >= 0
                 ? termState2.TotalTermFreq
                 : termState2.DocFreq;
            
@@ -227,10 +229,8 @@ namespace Lucene.Net.Codecs.Pulsing
             var termState2 = (PulsingTermState) termState;
             if (termState2.PostingsSize != -1)
             {
-                PulsingDocsEnum postings;
-                if (reuse is PulsingDocsEnum)
+                if (reuse is PulsingDocsEnum postings)
                 {
-                    postings = (PulsingDocsEnum) reuse;
                     if (!postings.CanReuse(field))
                     {
                         postings = new PulsingDocsEnum(field);
@@ -275,10 +275,8 @@ namespace Lucene.Net.Codecs.Pulsing
 
             if (termState2.PostingsSize != -1)
             {
-                PulsingDocsAndPositionsEnum postings;
-                if (reuse is PulsingDocsAndPositionsEnum)
+                if (reuse is PulsingDocsAndPositionsEnum postings)
                 {
-                    postings = (PulsingDocsAndPositionsEnum) reuse;
                     if (!postings.CanReuse(field))
                     {
                         postings = new PulsingDocsAndPositionsEnum(field);
@@ -335,7 +333,8 @@ namespace Lucene.Net.Codecs.Pulsing
             {
                 _indexOptions = fieldInfo.IndexOptions;
                 _storePayloads = fieldInfo.HasPayloads;
-                _storeOffsets = _indexOptions.CompareTo(IndexOptions.DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS) >= 0;
+                // LUCENENET specific - to avoid boxing, changed from CompareTo() to IndexOptionsComparer.Compare()
+                _storeOffsets = IndexOptionsComparer.Default.Compare(_indexOptions, IndexOptions.DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS) >= 0;
             }
 
             public virtual PulsingDocsEnum Reset(IBits liveDocs, PulsingTermState termState)
@@ -382,10 +381,11 @@ namespace Lucene.Net.Codecs.Pulsing
                     }
                     else
                     {
-                        _accum += (int)((uint)code >> 1); ; // shift off low bit
+                        _accum += code.TripleShift(1); ; // shift off low bit
                         _freq = (code & 1) != 0 ? 1 : _postings.ReadVInt32();
 
-                        if (_indexOptions.CompareTo(IndexOptions.DOCS_AND_FREQS_AND_POSITIONS) >= 0)
+                        // LUCENENET specific - to avoid boxing, changed from CompareTo() to IndexOptionsComparer.Compare()
+                        if (IndexOptionsComparer.Default.Compare(_indexOptions, IndexOptions.DOCS_AND_FREQS_AND_POSITIONS) >= 0)
                         {
                             // Skip positions
                             if (_storePayloads)
@@ -472,7 +472,8 @@ namespace Lucene.Net.Codecs.Pulsing
             {
                 _indexOptions = fieldInfo.IndexOptions;
                 _storePayloads = fieldInfo.HasPayloads;
-                _storeOffsets = _indexOptions.CompareTo(IndexOptions.DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS) >= 0;
+                // LUCENENET specific - to avoid boxing, changed from CompareTo() to IndexOptionsComparer.Compare()
+                _storeOffsets = IndexOptionsComparer.Default.Compare(_indexOptions, IndexOptions.DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS) >= 0;
             }
 
             internal bool CanReuse(FieldInfo fieldInfo)
@@ -519,7 +520,7 @@ namespace Lucene.Net.Codecs.Pulsing
                     }
 
                     var code = _postings.ReadVInt32();
-                    _accum += (int)((uint)code >> 1); // shift off low bit 
+                    _accum += code.TripleShift(1); // shift off low bit 
                     _freq = (code & 1) != 0 ? 1 : _postings.ReadVInt32();
                     _posPending = _freq;
                     _startOffset = _storeOffsets ? 0 : -1; // always return -1 if no offsets are stored
@@ -557,7 +558,7 @@ namespace Lucene.Net.Codecs.Pulsing
                     {
                         _payloadLength = _postings.ReadVInt32();
                     }
-                    _position += (int)((uint)code >> 1);
+                    _position += code.TripleShift(1);
                     _payloadRetrieved = false;
                 }
                 else
@@ -573,7 +574,7 @@ namespace Lucene.Net.Codecs.Pulsing
                         // new offset length
                         _offsetLength = _postings.ReadVInt32();
                     }
-                    _startOffset += (int)((uint)offsetCode >> 1);
+                    _startOffset += offsetCode.TripleShift(1);
                 }
 
                 return _position;
@@ -649,8 +650,7 @@ namespace Lucene.Net.Codecs.Pulsing
                 return null;
 
             var atts = de.Attributes;
-            DocsEnum result;
-            atts.AddAttribute<IPulsingEnumAttribute>().Enums.TryGetValue(this, out result);
+            atts.AddAttribute<IPulsingEnumAttribute>().Enums.TryGetValue(this, out DocsEnum result);
             return result;
         }
 

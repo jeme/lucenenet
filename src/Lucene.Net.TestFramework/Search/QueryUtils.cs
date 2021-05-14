@@ -1,4 +1,4 @@
-using Lucene.Net.Analysis;
+﻿using Lucene.Net.Analysis;
 using Lucene.Net.Diagnostics;
 using Lucene.Net.Documents;
 using Lucene.Net.Index;
@@ -74,7 +74,7 @@ namespace Lucene.Net.Search
 
             // test that a class check is done so that no exception is thrown
             // in the implementation of equals()
-            Query whacky = new QueryAnonymousInnerClassHelper();
+            Query whacky = new QueryAnonymousClass();
             whacky.Boost = q.Boost;
             CheckUnequal(q, whacky);
 
@@ -82,9 +82,9 @@ namespace Lucene.Net.Search
             Assert.IsFalse(q.Equals(null));
         }
 
-        private class QueryAnonymousInnerClassHelper : Query
+        private class QueryAnonymousClass : Query
         {
-            public QueryAnonymousInnerClassHelper()
+            public QueryAnonymousClass()
             {
             }
 
@@ -157,9 +157,9 @@ namespace Lucene.Net.Search
                     CheckEqual(s.Rewrite(q1), s.Rewrite(q2));
                 }
             }
-            catch (IOException e)
+            catch (Exception e) when (e.IsIOException())
             {
-                throw new Exception(e.ToString(), e);
+                throw RuntimeException.Create(e);
             }
         }
 #else
@@ -207,9 +207,9 @@ namespace Lucene.Net.Search
                     CheckEqual(s.Rewrite(q1), s.Rewrite(q2));
                 }
             }
-            catch (IOException e)
+            catch (Exception e) when (e.IsIOException())
             {
-                throw new Exception(e.ToString(), e);
+                throw RuntimeException.Create(e);
             }
         }
 #endif
@@ -285,9 +285,9 @@ namespace Lucene.Net.Search
                 emptyReaders[5] = MakeEmptyIndex(new Random(0), 5);
                 emptyReaders[7] = MakeEmptyIndex(new Random(0), 7);
             }
-            catch (IOException ex)
+            catch (Exception ex) when (ex.IsIOException())
             {
-                throw new Exception(ex.ToString(), ex);
+                throw RuntimeException.Create(ex);
             }
             return emptyReaders;
         }
@@ -351,7 +351,7 @@ namespace Lucene.Net.Search
                 const float maxDiff = 1e-5f;
                 AtomicReader[] lastReader = new AtomicReader[] { null };
 
-                s.Search(q, new CollectorAnonymousInnerClassHelper(
+                s.Search(q, new CollectorAnonymousClass(
 #if FEATURE_INSTANCE_TESTDATA_INITIALIZATION
                     luceneTestCase,
 #endif
@@ -380,7 +380,7 @@ namespace Lucene.Net.Search
             }
         }
 
-        private class CollectorAnonymousInnerClassHelper : ICollector
+        private class CollectorAnonymousClass : ICollector
         {
 #if FEATURE_INSTANCE_TESTDATA_INITIALIZATION
             private readonly LuceneTestCase luceneTestCase;
@@ -395,7 +395,7 @@ namespace Lucene.Net.Search
             private readonly float maxDiff;
             private readonly AtomicReader[] lastReader;
 
-            public CollectorAnonymousInnerClassHelper(
+            public CollectorAnonymousClass(
 #if FEATURE_INSTANCE_TESTDATA_INITIALIZATION
                 LuceneTestCase luceneTestCase,
 #endif                
@@ -454,12 +454,12 @@ namespace Lucene.Net.Search
                         {
                             sbord.Append(order[i] == skip_op ? " skip()" : " next()");
                         }
-                        throw new Exception("ERROR matching docs:" + "\n\t" + (doc != scorerDoc ? "--> " : "") + "doc=" + doc + ", scorerDoc=" + scorerDoc + "\n\t" + (!more ? "--> " : "") + "tscorer.more=" + more + "\n\t" + (scoreDiff > maxDiff ? "--> " : "") + "scorerScore=" + scorerScore + " scoreDiff=" + scoreDiff + " maxDiff=" + maxDiff + "\n\t" + (scorerDiff > maxDiff ? "--> " : "") + "scorerScore2=" + scorerScore2 + " scorerDiff=" + scorerDiff + "\n\thitCollector.Doc=" + doc + " score=" + score + "\n\t Scorer=" + scorer + "\n\t Query=" + q + "  " + q.GetType().Name + "\n\t Searcher=" + s + "\n\t Order=" + sbord + "\n\t Op=" + (op == skip_op ? " skip()" : " next()"));
+                        throw RuntimeException.Create("ERROR matching docs:" + "\n\t" + (doc != scorerDoc ? "--> " : "") + "doc=" + doc + ", scorerDoc=" + scorerDoc + "\n\t" + (!more ? "--> " : "") + "tscorer.more=" + more + "\n\t" + (scoreDiff > maxDiff ? "--> " : "") + "scorerScore=" + scorerScore + " scoreDiff=" + scoreDiff + " maxDiff=" + maxDiff + "\n\t" + (scorerDiff > maxDiff ? "--> " : "") + "scorerScore2=" + scorerScore2 + " scorerDiff=" + scorerDiff + "\n\thitCollector.Doc=" + doc + " score=" + score + "\n\t Scorer=" + scorer + "\n\t Query=" + q + "  " + q.GetType().Name + "\n\t Searcher=" + s + "\n\t Order=" + sbord + "\n\t Op=" + (op == skip_op ? " skip()" : " next()"));
                     }
                 }
-                catch (IOException e)
+                catch (Exception e) when (e.IsIOException())
                 {
-                    throw new Exception(e.ToString(), e);
+                    throw RuntimeException.Create(e);
                 }
             }
 
@@ -515,7 +515,7 @@ namespace Lucene.Net.Search
             int[] lastDoc = new int[] { -1 };
             AtomicReader[] lastReader = new AtomicReader[] { null };
             IList<AtomicReaderContext> context = s.TopReaderContext.Leaves;
-            s.Search(q, new CollectorAnonymousInnerClassHelper2(
+            s.Search(q, new CollectorAnonymousClass2(
 #if FEATURE_INSTANCE_TESTDATA_INITIALIZATION
                 luceneTestCase,
 #endif
@@ -542,7 +542,7 @@ namespace Lucene.Net.Search
             }
         }
 
-        private class CollectorAnonymousInnerClassHelper2 : ICollector
+        private class CollectorAnonymousClass2 : ICollector
         {
 #if FEATURE_INSTANCE_TESTDATA_INITIALIZATION
             private readonly LuceneTestCase luceneTestCase;
@@ -554,7 +554,7 @@ namespace Lucene.Net.Search
             private readonly AtomicReader[] lastReader;
             private readonly IList<AtomicReaderContext> context;
 
-            public CollectorAnonymousInnerClassHelper2(
+            public CollectorAnonymousClass2(
 #if FEATURE_INSTANCE_TESTDATA_INITIALIZATION                
                 LuceneTestCase luceneTestCase, 
  #endif                
@@ -605,9 +605,9 @@ namespace Lucene.Net.Search
                     }
                     lastDoc[0] = doc;
                 }
-                catch (IOException e)
+                catch (Exception e) when (e.IsIOException())
                 {
-                    throw new Exception(e.ToString(), e);
+                    throw RuntimeException.Create(e);
                 }
             }
 

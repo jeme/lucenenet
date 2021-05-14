@@ -1,4 +1,4 @@
-using Lucene.Net.Diagnostics;
+﻿using Lucene.Net.Diagnostics;
 using Lucene.Net.Index;
 using Lucene.Net.Store;
 using Lucene.Net.Util;
@@ -39,13 +39,13 @@ namespace Lucene.Net.Codecs.BlockTerms
         protected IndexOutput m_output;
 
         /// <summary>Extension of terms index file.</summary>
-        internal readonly static string TERMS_INDEX_EXTENSION = "tiv";
+        internal const string TERMS_INDEX_EXTENSION = "tiv";
 
-        internal readonly static string CODEC_NAME = "VARIABLE_GAP_TERMS_INDEX";
-        internal readonly static int VERSION_START = 0;
-        internal readonly static int VERSION_APPEND_ONLY = 1;
-        internal readonly static int VERSION_CHECKSUM = 2;
-        internal readonly static int VERSION_CURRENT = VERSION_CHECKSUM;
+        internal const string CODEC_NAME = "VARIABLE_GAP_TERMS_INDEX";
+        internal const int VERSION_START = 0;
+        internal const int VERSION_APPEND_ONLY = 1;
+        internal const int VERSION_CHECKSUM = 2;
+        internal const int VERSION_CURRENT = VERSION_CHECKSUM;
 
         private readonly IList<FSTFieldWriter> fields = new List<FSTFieldWriter>();
 
@@ -259,7 +259,7 @@ namespace Lucene.Net.Codecs.BlockTerms
                 this.fieldInfo = fieldInfo;
                 fstOutputs = PositiveInt32Outputs.Singleton;
                 fstBuilder = new Builder<long?>(FST.INPUT_TYPE.BYTE1, fstOutputs);
-                indexStart = outerInstance.m_output.GetFilePointer();
+                indexStart = outerInstance.m_output.Position; // LUCENENET specific: Renamed from getFilePointer() to match FileStream
                 ////System.out.println("VGW: field=" + fieldInfo.name);
 
                 // Always put empty string in
@@ -326,7 +326,7 @@ namespace Lucene.Net.Codecs.BlockTerms
                 {
                     try
                     {
-                        long dirStart = m_output.GetFilePointer();
+                        long dirStart = m_output.Position; // LUCENENET specific: Renamed from getFilePointer() to match FileStream
                         int fieldCount = fields.Count;
 
                         int nonNullFieldCount = 0;

@@ -1,4 +1,5 @@
-﻿using Lucene.Net.Diagnostics;
+﻿// Lucene version compatibility level 4.8.1 + LUCENE-6001
+using Lucene.Net.Diagnostics;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -67,7 +68,7 @@ namespace Lucene.Net.Facet
         {
             if (maxDoc != int.MaxValue)
             {
-                throw new ArgumentException("maxDoc must be System.Int32.MaxValue");
+                throw new ArgumentOutOfRangeException(nameof(maxDoc), "maxDoc must be System.Int32.MaxValue"); // LUCENENET specific - changed from IllegalArgumentException to ArgumentOutOfRangeException (.NET convention)
             }
             //if (DEBUG) {
             //  System.out.println("\nscore: reader=" + context.reader());
@@ -550,7 +551,7 @@ namespace Lucene.Net.Facet
                     //}
 
                     // Mark slot as valid:
-                    if (Debugging.AssertsEnabled) Debugging.Assert(docIDs[slot] != docID, () => "slot=" + slot + " docID=" + docID);
+                    if (Debugging.AssertsEnabled) Debugging.Assert(docIDs[slot] != docID, "slot={0} docID={1}", slot, docID);
                     docIDs[slot] = docID;
                     scores[slot] = baseScorer.GetScore();
                     filledSlots[filledCount++] = slot;
@@ -747,7 +748,7 @@ namespace Lucene.Net.Facet
 
             public override int Advance(int target)
             {
-                throw new NotSupportedException("FakeScorer doesn't support advance(int)");
+                throw UnsupportedOperationException.Create("FakeScorer doesn't support Advance(int)");
             }
 
             public override int DocID => outerInstance.collectDocID;
@@ -756,7 +757,7 @@ namespace Lucene.Net.Facet
 
             public override int NextDoc()
             {
-                throw new NotSupportedException("FakeScorer doesn't support nextDoc()");
+                throw UnsupportedOperationException.Create("FakeScorer doesn't support NextDoc()");
             }
 
             public override float GetScore()
@@ -774,7 +775,7 @@ namespace Lucene.Net.Facet
                 return new[] { new Scorer.ChildScorer(outerInstance.baseScorer, "MUST") };
             }
 
-            public override Weight Weight => throw new NotSupportedException();
+            public override Weight Weight => throw UnsupportedOperationException.Create();
         }
 
         internal class DocsAndCost : IComparable<DocsAndCost>

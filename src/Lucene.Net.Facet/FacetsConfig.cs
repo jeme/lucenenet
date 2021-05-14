@@ -1,9 +1,10 @@
-﻿using Lucene.Net.Diagnostics;
+﻿// Lucene version compatibility level 4.8.1
+using Lucene.Net.Diagnostics;
 using Lucene.Net.Support;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using JCG = J2N.Collections.Generic;
@@ -137,6 +138,7 @@ namespace Lucene.Net.Facet
         /// <summary>
         /// Get the current configuration for a dimension.
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public virtual DimConfig GetDimConfig(string dimName)
         {
             lock (syncLock)
@@ -153,6 +155,7 @@ namespace Lucene.Net.Facet
         /// Pass <c>true</c> if this dimension is hierarchical
         /// (has depth > 1 paths). 
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public virtual void SetHierarchical(string dimName, bool v)
         {
             lock (syncLock)
@@ -173,6 +176,7 @@ namespace Lucene.Net.Facet
         /// Pass <c>true</c> if this dimension may have more than
         /// one value per document. 
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public virtual void SetMultiValued(string dimName, bool v)
         {
             lock (syncLock)
@@ -194,6 +198,7 @@ namespace Lucene.Net.Facet
         /// accurate counts of the dimension, i.e. how many
         /// hits have this dimension. 
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public virtual void SetRequireDimCount(string dimName, bool v)
         {
             lock (syncLock)
@@ -236,6 +241,7 @@ namespace Lucene.Net.Facet
         /// </summary>
         public virtual IDictionary<string, DimConfig> DimConfigs => fieldTypes;
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void CheckSeen(ISet<string> seenDims, string dim)
         {
             if (seenDims.Contains(dim))
@@ -255,6 +261,7 @@ namespace Lucene.Net.Facet
         /// input one!
         /// </para>
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public virtual Document Build(Document doc)
         {
             return Build(null, doc);
@@ -586,7 +593,8 @@ namespace Lucene.Net.Facet
             return new BytesRef(bytes, 0, upto);
         }
 
-        private void CheckTaxoWriter(ITaxonomyWriter taxoWriter)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void CheckTaxoWriter(ITaxonomyWriter taxoWriter) // LUCENENET: CA1822: Mark members as static
         {
             if (taxoWriter == null)
             {

@@ -1,9 +1,10 @@
+﻿using J2N.Numerics;
 using Lucene.Net.Codecs.Lucene40;
 using Lucene.Net.Diagnostics;
 using Lucene.Net.Support;
 using System;
-using System.Diagnostics;
-using System.Reflection;
+using System.IO;
+using System.Runtime.CompilerServices;
 
 namespace Lucene.Net.Codecs.Compressing
 {
@@ -51,13 +52,15 @@ namespace Lucene.Net.Codecs.Compressing
     public sealed class CompressingStoredFieldsReader : StoredFieldsReader
     {
         // Do not reuse the decompression buffer when there is more than 32kb to decompress
-        private static readonly int BUFFER_REUSE_THRESHOLD = 1 << 15;
+        private const int BUFFER_REUSE_THRESHOLD = 1 << 15;
 
         private readonly int version;
         private readonly FieldInfos fieldInfos;
         private readonly CompressingStoredFieldsIndexReader indexReader;
         private readonly long maxPointer;
+#pragma warning disable CA2213 // Disposable fields should be disposed
         private readonly IndexInput fieldsStream;
+#pragma warning restore CA2213 // Disposable fields should be disposed
         private readonly int chunkSize;
         private readonly int packedIntsVersion;
         private readonly CompressionMode compressionMode;
@@ -101,7 +104,7 @@ namespace Lucene.Net.Codecs.Compressing
                 indexStream = d.OpenChecksumInput(indexStreamFN, context);
                 string codecNameIdx = formatName + CompressingStoredFieldsWriter.CODEC_SFX_IDX;
                 version = CodecUtil.CheckHeader(indexStream, codecNameIdx, CompressingStoredFieldsWriter.VERSION_START, CompressingStoredFieldsWriter.VERSION_CURRENT);
-                if (Debugging.AssertsEnabled) Debugging.Assert(CodecUtil.HeaderLength(codecNameIdx) == indexStream.GetFilePointer());
+                if (Debugging.AssertsEnabled) Debugging.Assert(CodecUtil.HeaderLength(codecNameIdx) == indexStream.Position); // LUCENENET specific: Renamed from getFilePointer() to match FileStream
                 indexReader = new CompressingStoredFieldsIndexReader(indexStream, si);
 
                 long maxPointer = -1;
@@ -140,7 +143,7 @@ namespace Lucene.Net.Codecs.Compressing
                 {
                     throw new CorruptIndexException("Version mismatch between stored fields index and data: " + version + " != " + fieldsVersion);
                 }
-                if (Debugging.AssertsEnabled) Debugging.Assert(CodecUtil.HeaderLength(codecNameDat) == fieldsStream.GetFilePointer());
+                if (Debugging.AssertsEnabled) Debugging.Assert(CodecUtil.HeaderLength(codecNameDat) == fieldsStream.Position); // LUCENENET specific: Renamed from getFilePointer() to match FileStream
 
                 if (version >= CompressingStoredFieldsWriter.VERSION_BIG_CHUNKS)
                 {
@@ -166,17 +169,19 @@ namespace Lucene.Net.Codecs.Compressing
         }
 
         /// <exception cref="ObjectDisposedException"> If this FieldsReader is disposed. </exception>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void EnsureOpen()
         {
             if (closed)
             {
-                throw new ObjectDisposedException(this.GetType().FullName, "this FieldsReader is closed");
+                throw AlreadyClosedException.Create(this.GetType().FullName, "this FieldsReader is disposed.");
             }
         }
 
         /// <summary>
         /// Dispose the underlying <see cref="IndexInput"/>s.
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         protected override void Dispose(bool disposing)
         {
             if (!closed)
@@ -223,7 +228,7 @@ namespace Lucene.Net.Codecs.Compressing
                     break;
 
                 default:
-                    throw new InvalidOperationException("Unknown type flag: " + bits.ToString("x"));
+                    throw AssertionError.Create("Unknown type flag: " + bits.ToString("x"));
             }
         }
 
@@ -248,7 +253,7 @@ namespace Lucene.Net.Codecs.Compressing
                     break;
 
                 default:
-                    throw new InvalidOperationException("Unknown type flag: " + bits.ToString("x"));
+                    throw AssertionError.Create("Unknown type flag: " + bits.ToString("x"));
             }
         }
 
@@ -284,7 +289,7 @@ namespace Lucene.Net.Codecs.Compressing
                 }
                 else
                 {
-                    long filePointer = fieldsStream.GetFilePointer();
+                    long filePointer = fieldsStream.Position; // LUCENENET specific: Renamed from getFilePointer() to match FileStream
                     PackedInt32s.Reader reader = PackedInt32s.GetDirectReaderNoHeader(fieldsStream, PackedInt32s.Format.PACKED, packedIntsVersion, chunkDocs, bitsPerStoredFields);
                     numStoredFields = (int)(reader.Get(docID - docBase));
                     fieldsStream.Seek(filePointer + PackedInt32s.Format.PACKED.ByteCount(packedIntsVersion, chunkDocs, bitsPerStoredFields));
@@ -340,7 +345,7 @@ namespace Lucene.Net.Codecs.Compressing
                 }
 
                 decompressor.Decompress(fieldsStream, chunkSize, offset, Math.Min(length, chunkSize - offset), bytes);
-                documentInput = new DataInputAnonymousInnerClassHelper(this, offset, length);
+                documentInput = new DataInputAnonymousClass(this, length);
             }
             else
             {
@@ -353,11 +358,11 @@ namespace Lucene.Net.Codecs.Compressing
             for (int fieldIDX = 0; fieldIDX < numStoredFields; fieldIDX++)
             {
                 long infoAndBits = documentInput.ReadVInt64();
-                int fieldNumber = (int)((long)((ulong)infoAndBits >> CompressingStoredFieldsWriter.TYPE_BITS));
+                int fieldNumber = (int)infoAndBits.TripleShift(CompressingStoredFieldsWriter.TYPE_BITS);
                 FieldInfo fieldInfo = fieldInfos.FieldInfo(fieldNumber);
 
                 int bits = (int)(infoAndBits & CompressingStoredFieldsWriter.TYPE_MASK);
-                if (Debugging.AssertsEnabled) Debugging.Assert(bits <= CompressingStoredFieldsWriter.NUMERIC_DOUBLE, () => "bits=" + bits.ToString("x"));
+                if (Debugging.AssertsEnabled) Debugging.Assert(bits <= CompressingStoredFieldsWriter.NUMERIC_DOUBLE,"bits={0:x}", bits);
 
                 switch (visitor.NeedsField(fieldInfo))
                 {
@@ -375,17 +380,15 @@ namespace Lucene.Net.Codecs.Compressing
             }
         }
 
-        private class DataInputAnonymousInnerClassHelper : DataInput
+        private class DataInputAnonymousClass : DataInput
         {
             private readonly CompressingStoredFieldsReader outerInstance;
 
-            private int offset;
-            private int length;
+            private readonly int length;
 
-            public DataInputAnonymousInnerClassHelper(CompressingStoredFieldsReader outerInstance, int offset, int length)
+            public DataInputAnonymousClass(CompressingStoredFieldsReader outerInstance, int length)
             {
                 this.outerInstance = outerInstance;
-                this.offset = offset;
                 this.length = length;
                 decompressed = outerInstance.bytes.Length;
             }
@@ -397,7 +400,7 @@ namespace Lucene.Net.Codecs.Compressing
                 if (Debugging.AssertsEnabled) Debugging.Assert(decompressed <= length);
                 if (decompressed == length)
                 {
-                    throw new Exception();
+                    throw EOFException.Create();
                 }
                 int toDecompress = Math.Min(length - decompressed, outerInstance.chunkSize);
                 outerInstance.decompressor.Decompress(outerInstance.fieldsStream, toDecompress, 0, toDecompress, outerInstance.bytes);
@@ -492,14 +495,14 @@ namespace Lucene.Net.Codecs.Compressing
             /// </summary>
             internal void Next(int doc)
             {
-                if (Debugging.AssertsEnabled) Debugging.Assert(doc >= this.docBase + this.chunkDocs, () => doc + " " + this.docBase + " " + this.chunkDocs);
+                if (Debugging.AssertsEnabled) Debugging.Assert(doc >= this.docBase + this.chunkDocs, "{0} {1} {2}", doc, this.docBase, this.chunkDocs);
                 fieldsStream.Seek(outerInstance.indexReader.GetStartPointer(doc));
 
                 int docBase = fieldsStream.ReadVInt32();
                 int chunkDocs = fieldsStream.ReadVInt32();
                 if (docBase < this.docBase + this.chunkDocs || docBase + chunkDocs > outerInstance.numDocs)
                 {
-                    throw new CorruptIndexException("Corrupted: current docBase=" + this.docBase + ", current numDocs=" + this.chunkDocs + ", new docBase=" + docBase + ", new numDocs=" + chunkDocs + " (resource=" + fieldsStream + ")");
+                    throw new CorruptIndexException($"Corrupted: current docBase={this.docBase}, current numDocs={this.chunkDocs}, new docBase={docBase}, new numDocs={chunkDocs} (resource={fieldsStream})");
                 }
                 this.docBase = docBase;
                 this.chunkDocs = chunkDocs;
@@ -543,7 +546,7 @@ namespace Lucene.Net.Codecs.Compressing
                     }
                     else if (bitsPerLength > 31)
                     {
-                        throw new CorruptIndexException("bitsPerLength=" + bitsPerLength);
+                        throw new CorruptIndexException($"bitsPerLength={bitsPerLength}");
                     }
                     else
                     {
@@ -593,7 +596,7 @@ namespace Lucene.Net.Codecs.Compressing
             {
                 if (Debugging.AssertsEnabled) Debugging.Assert(outerInstance.Version == CompressingStoredFieldsWriter.VERSION_CURRENT);
                 long chunkEnd = docBase + chunkDocs == outerInstance.numDocs ? outerInstance.maxPointer : outerInstance.indexReader.GetStartPointer(docBase + chunkDocs);
-                @out.CopyBytes(fieldsStream, chunkEnd - fieldsStream.GetFilePointer());
+                @out.CopyBytes(fieldsStream, chunkEnd - fieldsStream.Position); // LUCENENET specific: Renamed from getFilePointer() to match FileStream
             }
 
             /// <summary>

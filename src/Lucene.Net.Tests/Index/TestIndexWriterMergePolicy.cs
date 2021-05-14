@@ -1,4 +1,4 @@
-using Lucene.Net.Documents;
+﻿using Lucene.Net.Documents;
 using Lucene.Net.Index.Extensions;
 using NUnit.Framework;
 using System;
@@ -179,7 +179,7 @@ namespace Lucene.Net.Index
 
         // Test the case where a merge results in no doc at all
         [Test]
-        public virtual void TestMergeDocCount0([ValueSource(typeof(ConcurrentMergeSchedulerFactories), "Values")]Func<IConcurrentMergeScheduler> newScheduler)
+        public virtual void TestMergeDocCount0()
         {
             Directory dir = NewDirectory();
 
@@ -205,7 +205,7 @@ namespace Lucene.Net.Index
                 .SetOpenMode(OpenMode.APPEND)
                 .SetMaxBufferedDocs(10)
                 .SetMergePolicy(ldmp)
-                .SetMergeScheduler(newScheduler());
+                .SetMergeScheduler(new ConcurrentMergeScheduler());
             writer = new IndexWriter(dir, config);
 
             // merge factor is changed, so check invariants after all adds
@@ -300,9 +300,7 @@ namespace Lucene.Net.Index
                 lmp.MaxCFSSegmentSizeMB = -2.0;
                 Assert.Fail("Didn't throw IllegalArgumentException");
             }
-#pragma warning disable 168
-            catch (ArgumentException iae)
-#pragma warning restore 168
+            catch (ArgumentOutOfRangeException) // LUCENENET specific - changed from IllegalArgumentException to ArgumentOutOfRangeException (.NET convention)
             {
                 // pass
             }

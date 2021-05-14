@@ -1,5 +1,7 @@
+﻿using J2N.Numerics;
 using Lucene.Net.Diagnostics;
 using System;
+using System.Runtime.CompilerServices;
 
 namespace Lucene.Net.Util.Fst
 {
@@ -171,7 +173,7 @@ namespace Lucene.Net.Util.Fst
                     bool found = false;
                     while (low <= high)
                     {
-                        mid = (int)((uint)(low + high) >> 1);
+                        mid = (low + high).TripleShift(1);
                         @in.Position = arc.PosArcsStart;
                         @in.SkipBytes(arc.BytesPerArc * mid + 1);
                         int midLabel = m_fst.ReadLabel(@in);
@@ -202,7 +204,7 @@ namespace Lucene.Net.Util.Fst
                         if (Debugging.AssertsEnabled)
                         {
                             Debugging.Assert(arc.ArcIdx == mid);
-                            Debugging.Assert(arc.Label == targetLabel, () => "arc.label=" + arc.Label + " vs targetLabel=" + targetLabel + " mid=" + mid);
+                            Debugging.Assert(arc.Label == targetLabel, "arc.label={0} vs targetLabel={1} mid={2}", arc.Label, targetLabel, mid);
                         }
                         m_output[m_upto] = m_fst.Outputs.Add(m_output[m_upto - 1], arc.Output);
                         if (targetLabel == FST.END_LABEL)
@@ -344,7 +346,7 @@ namespace Lucene.Net.Util.Fst
                     bool found = false;
                     while (low <= high)
                     {
-                        mid = (int)((uint)(low + high) >> 1);
+                        mid = (low + high).TripleShift(1);
                         @in.Position = arc.PosArcsStart;
                         @in.SkipBytes(arc.BytesPerArc * mid + 1);
                         int midLabel = m_fst.ReadLabel(@in);
@@ -376,7 +378,7 @@ namespace Lucene.Net.Util.Fst
                         if (Debugging.AssertsEnabled)
                         {
                             Debugging.Assert(arc.ArcIdx == mid);
-                            Debugging.Assert(arc.Label == targetLabel, () => "arc.label=" + arc.Label + " vs targetLabel=" + targetLabel + " mid=" + mid);
+                            Debugging.Assert(arc.Label == targetLabel, "arc.label={0} vs targetLabel={1} mid={2}", arc.Label, targetLabel, mid);
                         }
                         m_output[m_upto] = m_fst.Outputs.Add(m_output[m_upto - 1], arc.Output);
                         if (targetLabel == FST.END_LABEL)
@@ -435,7 +437,7 @@ namespace Lucene.Net.Util.Fst
                         if (Debugging.AssertsEnabled)
                         {
                             Debugging.Assert(check);
-                            Debugging.Assert(arc.Label < targetLabel, () => "arc.label=" + arc.Label + " vs targetLabel=" + targetLabel);
+                            Debugging.Assert(arc.Label < targetLabel,"arc.label={0} vs targetLabel={1}", arc.Label, targetLabel);
                         }
                         PushLast();
                         return;
@@ -627,6 +629,7 @@ namespace Lucene.Net.Util.Fst
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private FST.Arc<T> GetArc(int idx)
         {
             if (m_arcs[idx] == null)

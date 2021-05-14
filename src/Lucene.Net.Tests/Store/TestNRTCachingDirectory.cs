@@ -1,4 +1,4 @@
-using NUnit.Framework;
+﻿using NUnit.Framework;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -144,18 +144,16 @@ namespace Lucene.Net.Store
         {
             var tempDir = CreateTempDir("doesnotexist").FullName;
             System.IO.Directory.Delete(tempDir, true);
-            using (Directory dir = new NRTCachingDirectory(NewFSDirectory(new DirectoryInfo(tempDir)), 2.0, 25.0))
+            using Directory dir = new NRTCachingDirectory(NewFSDirectory(new DirectoryInfo(tempDir)), 2.0, 25.0);
+            try
             {
-                try
-                {
-                    Assert.False(System.IO.Directory.Exists(tempDir));
-                    DirectoryReader.Open(dir);
-                    Assert.Fail("did not hit expected exception");
-                }
-                catch (DirectoryNotFoundException)
-                {
-                    // expected
-                }
+                Assert.False(System.IO.Directory.Exists(tempDir));
+                DirectoryReader.Open(dir);
+                Assert.Fail("did not hit expected exception");
+            }
+            catch (Exception nsde) when (nsde.IsNoSuchDirectoryException())
+            {
+                // expected
             }
         }
 

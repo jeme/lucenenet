@@ -112,7 +112,7 @@ namespace Lucene.Net.Replicator
             {
                 if (allowEmpty)
                     return null;
-                throw new InvalidOperationException("empty list of files not allowed");
+                throw IllegalStateException.Create("empty list of files not allowed");
             }
 
             string segmentsFile = files[files.Count - 1];
@@ -120,7 +120,7 @@ namespace Lucene.Net.Replicator
             files.RemoveAt(files.Count - 1);
             if (!segmentsFile.StartsWith(IndexFileNames.SEGMENTS, StringComparison.Ordinal) || segmentsFile.Equals(IndexFileNames.SEGMENTS_GEN, StringComparison.Ordinal))
             {
-                throw new InvalidOperationException(
+                throw IllegalStateException.Create(
                     string.Format("last file to copy+sync must be segments_N but got {0}; check your Revision implementation!", segmentsFile));
             }
             return segmentsFile;
@@ -168,8 +168,10 @@ namespace Lucene.Net.Replicator
 
                 if (commit != null && commit.SegmentsFileName.Equals(segmentsFile, StringComparison.Ordinal))
                 {
-                    ISet<string> commitFiles = new JCG.HashSet<string>(commit.FileNames);
-                    commitFiles.Add(IndexFileNames.SEGMENTS_GEN);
+                    ISet<string> commitFiles = new JCG.HashSet<string>(commit.FileNames)
+                    {
+                        IndexFileNames.SEGMENTS_GEN
+                    };
 
                     Regex matcher = IndexFileNames.CODEC_FILE_PATTERN;
                     foreach (string file in directory.ListAll())

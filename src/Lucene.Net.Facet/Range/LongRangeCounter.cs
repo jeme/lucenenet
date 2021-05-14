@@ -1,6 +1,7 @@
-﻿using Lucene.Net.Diagnostics;
+﻿// Lucene version compatibility level 4.8.1
+using J2N.Numerics;
+using Lucene.Net.Diagnostics;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Text;
 
 namespace Lucene.Net.Facet.Range
@@ -47,15 +48,15 @@ namespace Lucene.Net.Facet.Range
             // track the start vs end case separately because if a
             // given point is both, then it must be its own
             // elementary interval:
-            IDictionary<long?, int?> endsMap = new Dictionary<long?, int?>();
-
-            endsMap[long.MinValue] = 1;
-            endsMap[long.MaxValue] = 2;
+            IDictionary<long?, int?> endsMap = new Dictionary<long?, int?>
+            {
+                [long.MinValue] = 1,
+                [long.MaxValue] = 2
+            };
 
             foreach (Int64Range range in ranges)
             {
-                int? cur;
-                if (!endsMap.TryGetValue(range.minIncl, out cur))
+                if (!endsMap.TryGetValue(range.minIncl, out int? cur))
                 {
                     endsMap[range.minIncl] = 1;
                 }
@@ -80,7 +81,7 @@ namespace Lucene.Net.Facet.Range
             // Build elementaryIntervals (a 1D Venn diagram):
             IList<InclusiveRange> elementaryIntervals = new List<InclusiveRange>();
             int upto0 = 1;
-            long v = endsList[0].HasValue ? endsList[0].Value : 0;
+            long v = endsList[0] ?? 0;
             long prev;
             if (endsMap[v] == 3)
             {
@@ -94,8 +95,8 @@ namespace Lucene.Net.Facet.Range
 
             while (upto0 < endsList.Count)
             {
-                v = endsList[upto0].HasValue ? endsList[upto0].Value : 0;
-                int flags = endsMap[v].HasValue ? endsMap[v].Value : 0;
+                v = endsList[upto0] ?? 0;
+                int flags = endsMap[v] ?? 0;
                 //System.out.println("  v=" + v + " flags=" + flags);
                 if (flags == 3)
                 {
@@ -178,7 +179,7 @@ namespace Lucene.Net.Facet.Range
             int hi = boundaries.Length - 1;
             while (true)
             {
-                int mid = (int)((uint)(lo + hi) >> 1);
+                int mid = (lo + hi).TripleShift(1);
                 //System.out.println("  cycle lo=" + lo + " hi=" + hi + " mid=" + mid + " boundary=" + boundaries[mid] + " to " + boundaries[mid+1]);
                 if (v <= boundaries[mid])
                 {
@@ -261,7 +262,7 @@ namespace Lucene.Net.Facet.Range
             }
             else
             {
-                int mid = (int)((uint)(start + end) >> 1);
+                int mid = (start + end).TripleShift(1);
                 Int64RangeNode left = Split(start, mid, elementaryIntervals);
                 Int64RangeNode right = Split(mid, end, elementaryIntervals);
                 return new Int64RangeNode(left.start, right.end, left, right, -1);

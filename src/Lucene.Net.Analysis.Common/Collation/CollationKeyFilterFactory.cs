@@ -1,4 +1,5 @@
-﻿#if FEATURE_COLLATION
+// Lucene version compatibility level 4.8.1
+#if FEATURE_COLLATION
 using Icu;
 using Icu.Collation;
 using Lucene.Net.Analysis;
@@ -103,7 +104,7 @@ namespace Lucene.Net.Collation
 
             if (args.Count > 0)
             {
-                throw new ArgumentException("Unknown parameters: " + args);
+                throw new ArgumentException(string.Format(J2N.Text.StringFormatter.CurrentCulture, "Unknown parameters: {0}", args));
             }
         }
 

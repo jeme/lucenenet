@@ -1,9 +1,10 @@
-using Lucene.Net.Analysis;
+﻿using Lucene.Net.Analysis;
 using Lucene.Net.Codecs;
 using Lucene.Net.Diagnostics;
 using Lucene.Net.Search;
 using Lucene.Net.Store;
 using Lucene.Net.Util;
+using RandomizedTesting.Generators;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -48,14 +49,14 @@ namespace Lucene.Net.Index
         {
             // Randomly calls Thread.yield so we mixup thread scheduling
             Random random = new Random(r.Next());
-            return MockIndexWriter(dir, conf, new TestPointAnonymousInnerClassHelper(random));
+            return MockIndexWriter(dir, conf, new TestPointAnonymousClass(random));
         }
 
-        private class TestPointAnonymousInnerClassHelper : ITestPoint
+        private class TestPointAnonymousClass : ITestPoint
         {
-            private Random random;
+            private readonly Random random;
 
-            public TestPointAnonymousInnerClassHelper(Random random)
+            public TestPointAnonymousClass(Random random)
             {
                 this.random = random;
             }
@@ -191,7 +192,7 @@ namespace Lucene.Net.Index
                 // (but we need to clone them), and only when
                 // getReader, commit, etc. are called, we do an
                 // addDocuments?  Would be better testing.
-                IndexWriter.AddDocuments(new IterableAnonymousInnerClassHelper<IIndexableField>(this, doc), a);
+                IndexWriter.AddDocuments(new IterableAnonymousClass<IIndexableField>(doc), a);
             }
             else
             {
@@ -201,21 +202,18 @@ namespace Lucene.Net.Index
             MaybeCommit();
         }
 
-        private class IterableAnonymousInnerClassHelper<IndexableField> : IEnumerable<IEnumerable<IndexableField>>
+        private class IterableAnonymousClass<IndexableField> : IEnumerable<IEnumerable<IndexableField>>
         {
-            private readonly RandomIndexWriter outerInstance;
-
             private readonly IEnumerable<IndexableField> doc;
 
-            public IterableAnonymousInnerClassHelper(RandomIndexWriter outerInstance, IEnumerable<IndexableField> doc)
+            public IterableAnonymousClass(IEnumerable<IndexableField> doc)
             {
-                this.outerInstance = outerInstance;
                 this.doc = doc;
             }
 
             public IEnumerator<IEnumerable<IndexableField>> GetEnumerator()
             {
-                return new IteratorAnonymousInnerClassHelper(this);
+                return new IteratorAnonymousClass(this);
             }
 
             IEnumerator IEnumerable.GetEnumerator()
@@ -223,11 +221,11 @@ namespace Lucene.Net.Index
                 return GetEnumerator();
             }
 
-            private class IteratorAnonymousInnerClassHelper : IEnumerator<IEnumerable<IndexableField>>
+            private class IteratorAnonymousClass : IEnumerator<IEnumerable<IndexableField>>
             {
-                private readonly IterableAnonymousInnerClassHelper<IndexableField> outerInstance;
+                private readonly IterableAnonymousClass<IndexableField> outerInstance;
 
-                public IteratorAnonymousInnerClassHelper(IterableAnonymousInnerClassHelper<IndexableField> outerInstance)
+                public IteratorAnonymousClass(IterableAnonymousClass<IndexableField> outerInstance)
                 {
                     this.outerInstance = outerInstance;
                 }
@@ -297,7 +295,7 @@ namespace Lucene.Net.Index
         {
             if (r.Next(5) == 3)
             {
-                IndexWriter.UpdateDocuments(t, new IterableAnonymousInnerClassHelper2(this, doc));
+                IndexWriter.UpdateDocuments(t, new IterableAnonymousClass2(doc));
             }
             else
             {
@@ -306,31 +304,28 @@ namespace Lucene.Net.Index
             MaybeCommit();
         }
 
-        private class IterableAnonymousInnerClassHelper2 : IEnumerable<IEnumerable<IIndexableField>>
+        private class IterableAnonymousClass2 : IEnumerable<IEnumerable<IIndexableField>>
         {
-            private readonly RandomIndexWriter outerInstance;
+            private readonly IEnumerable<IIndexableField> doc;
 
-            private IEnumerable<IIndexableField> doc;
-
-            public IterableAnonymousInnerClassHelper2(RandomIndexWriter outerInstance, IEnumerable<IIndexableField> doc)
+            public IterableAnonymousClass2(IEnumerable<IIndexableField> doc)
             {
-                this.outerInstance = outerInstance;
                 this.doc = doc;
             }
 
             public IEnumerator<IEnumerable<IIndexableField>> GetEnumerator()
             {
-                return new IteratorAnonymousInnerClassHelper2(this);
+                return new IteratorAnonymousClass2(this);
             }
 
             IEnumerator IEnumerable.GetEnumerator() 
                 => GetEnumerator();
 
-            private class IteratorAnonymousInnerClassHelper2 : IEnumerator<IEnumerable<IIndexableField>>
+            private class IteratorAnonymousClass2 : IEnumerator<IEnumerable<IIndexableField>>
             {
-                private readonly IterableAnonymousInnerClassHelper2 outerInstance;
+                private readonly IterableAnonymousClass2 outerInstance;
 
-                public IteratorAnonymousInnerClassHelper2(IterableAnonymousInnerClassHelper2 outerInstance)
+                public IteratorAnonymousClass2(IterableAnonymousClass2 outerInstance)
                 {
                     this.outerInstance = outerInstance;
                 }
@@ -417,7 +412,9 @@ namespace Lucene.Net.Index
             set => doRandomForceMergeAssert = value;
         }
 
+#pragma warning disable IDE1006 // Naming Styles
         private void _DoRandomForceMerge() // LUCENENET specific - added leading underscore to keep this from colliding with the DoRandomForceMerge property
+#pragma warning restore IDE1006 // Naming Styles
         {
             if (doRandomForceMerge)
             {
@@ -440,7 +437,7 @@ namespace Lucene.Net.Index
                         Console.WriteLine("RIW: doRandomForceMerge(" + limit + ")");
                     }
                     IndexWriter.ForceMerge(limit);
-                    if (Debugging.AssertsEnabled) Debugging.Assert(!doRandomForceMergeAssert || IndexWriter.SegmentCount <= limit, () => "limit=" + limit + " actual=" + IndexWriter.SegmentCount);
+                    if (Debugging.AssertsEnabled) Debugging.Assert(!doRandomForceMergeAssert || IndexWriter.SegmentCount <= limit,"limit={0} actual={1}", limit, IndexWriter.SegmentCount);
                 }
             }
         }

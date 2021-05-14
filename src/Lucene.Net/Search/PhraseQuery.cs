@@ -1,4 +1,4 @@
-using J2N.Collections.Generic.Extensions;
+﻿using J2N.Collections.Generic.Extensions;
 using Lucene.Net.Diagnostics;
 using Lucene.Net.Index;
 using Lucene.Net.Support;
@@ -66,8 +66,8 @@ namespace Lucene.Net.Search
     public class PhraseQuery : Query, IEnumerable<Term> // LUCENENET specific - implemented IEnumerable<Term>, which allows for use of collection initializer. See: https://stackoverflow.com/a/9195144
     {
         private string field;
-        private IList<Term> terms = new JCG.List<Term>(4);
-        private IList<int?> positions = new JCG.List<int?>(4);
+        private readonly IList<Term> terms = new JCG.List<Term>(4); // LUCENENET: marked readonly
+        private readonly IList<int?> positions = new JCG.List<int?>(4); // LUCENENET: marked readonly
         private int maxPosition = 0;
         private int slop = 0;
 
@@ -99,7 +99,7 @@ namespace Lucene.Net.Search
             set
             {
                 if (value < 0)
-                    throw new ArgumentException("slop value cannot be negative");
+                    throw new ArgumentOutOfRangeException(nameof(Slop), "slop value cannot be negative"); // LUCENENET specific - changed from IllegalArgumentException to ArgumentOutOfRangeException (.NET convention)
 
                 slop = value;
             }
@@ -369,7 +369,7 @@ namespace Lucene.Net.Search
                     {
                         if (Debugging.AssertsEnabled) Debugging.Assert(te.SeekExact(t.Bytes), "termstate found but no term exists in reader");
                         // term does exist, but has no positions
-                        throw new InvalidOperationException("field \"" + t.Field + "\" was indexed without position data; cannot run PhraseQuery (term=" + t.Text() + ")");
+                        throw IllegalStateException.Create("field \"" + t.Field + "\" was indexed without position data; cannot run PhraseQuery (term=" + t.Text + ")");
                     }
                     postingsFreqs[i] = new PostingsAndFreq(postingsEnum, te.DocFreq, (int)outerInstance.positions[i], t);
                 }
@@ -458,11 +458,11 @@ namespace Lucene.Net.Search
                 string s = pieces[pos];
                 if (s == null)
                 {
-                    s = (terms[i]).Text();
+                    s = terms[i].Text;
                 }
                 else
                 {
-                    s = s + "|" + (terms[i]).Text();
+                    s = s + "|" + terms[i].Text;
                 }
                 pieces[pos] = s;
             }

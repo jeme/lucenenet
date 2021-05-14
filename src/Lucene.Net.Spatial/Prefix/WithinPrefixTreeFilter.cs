@@ -1,4 +1,4 @@
-using Lucene.Net.Diagnostics;
+﻿using Lucene.Net.Diagnostics;
 using Lucene.Net.Index;
 using Lucene.Net.Search;
 using Lucene.Net.Spatial.Prefix.Tree;
@@ -81,16 +81,15 @@ namespace Lucene.Net.Spatial.Prefix
             //TODO move this generic code elsewhere?  Spatial4j?
             if (distErr <= 0)
             {
-                throw new ArgumentException("distErr must be > 0");
+                throw new ArgumentOutOfRangeException(nameof(distErr), "distErr must be > 0"); // LUCENENET specific - changed from IllegalArgumentException to ArgumentOutOfRangeException (.NET convention)
             }
             SpatialContext ctx = m_grid.SpatialContext;
-            if (shape is IPoint)
+            if (shape is IPoint point)
             {
-                return ctx.MakeCircle((IPoint)shape, distErr);
+                return ctx.MakeCircle(point, distErr);
             }
-            else if (shape is ICircle)
+            else if (shape is ICircle circle)
             {
-                var circle = (ICircle)shape;
                 double newDist = circle.Radius + distErr;
                 if (ctx.IsGeo && newDist > 180)
                 {
@@ -141,18 +140,18 @@ namespace Lucene.Net.Spatial.Prefix
         /// <exception cref="IOException"></exception>
         public override DocIdSet GetDocIdSet(AtomicReaderContext context, IBits acceptDocs)
         {
-            return new VisitorTemplateAnonymousHelper(this, context, acceptDocs, true).GetDocIdSet();
+            return new VisitorTemplateAnonymousClass(this, context, acceptDocs, true).GetDocIdSet();
         }
 
-        #region Nested type: VisitorTemplateAnonymousHelper
+        #region Nested type: VisitorTemplateAnonymousClass
 
-        private sealed class VisitorTemplateAnonymousHelper : VisitorTemplate
+        private sealed class VisitorTemplateAnonymousClass : VisitorTemplate
         {
             private FixedBitSet inside;
             private FixedBitSet outside;
             private SpatialRelation visitRelation;
 
-            public VisitorTemplateAnonymousHelper(WithinPrefixTreeFilter outerInstance, AtomicReaderContext context, 
+            public VisitorTemplateAnonymousClass(WithinPrefixTreeFilter outerInstance, AtomicReaderContext context, 
                 IBits acceptDocs, bool hasIndexedLeaves)
                 : base(outerInstance, context, acceptDocs, hasIndexedLeaves)
             {

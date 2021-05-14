@@ -1,6 +1,7 @@
-using Lucene.Net.Documents;
+﻿using Lucene.Net.Documents;
 using Lucene.Net.Index.Extensions;
 using NUnit.Framework;
+using RandomizedTesting.Generators;
 using System;
 using Assert = Lucene.Net.TestFramework.Assert;
 using Console = Lucene.Net.Util.SystemConsole;
@@ -268,7 +269,7 @@ namespace Lucene.Net.Search
             Similarity oldSimilarity = searcher.Similarity;
             try
             {
-                searcher.Similarity = new DefaultSimilarityAnonymousInnerClassHelper(this);
+                searcher.Similarity = new DefaultSimilarityAnonymousClass(this);
                 QueriesTest(query, expDocNrs);
             }
             finally
@@ -277,11 +278,11 @@ namespace Lucene.Net.Search
             }
         }
 
-        private class DefaultSimilarityAnonymousInnerClassHelper : DefaultSimilarity
+        private class DefaultSimilarityAnonymousClass : DefaultSimilarity
         {
             private readonly TestBoolean2 outerInstance;
 
-            public DefaultSimilarityAnonymousInnerClassHelper(TestBoolean2 outerInstance)
+            public DefaultSimilarityAnonymousClass(TestBoolean2 outerInstance)
             {
                 this.outerInstance = outerInstance;
             }
@@ -352,11 +353,11 @@ namespace Lucene.Net.Search
                     Assert.AreEqual(mulFactor * collector.TotalHits + NUM_EXTRA_DOCS / 2, hits4.TotalHits);
                 }
             }
-            catch (Exception)
+            catch (Exception e) when (e.IsException())
             {
                 // For easier debugging
                 Console.WriteLine("failed query: " + q1);
-                throw;
+                throw; // LUCENENET: CA2200: Rethrow to preserve stack details (https://docs.microsoft.com/en-us/visualstudio/code-quality/ca2200-rethrow-to-preserve-stack-details)
             }
 
             // System.out.println("Total hits:"+tot);

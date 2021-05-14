@@ -33,7 +33,7 @@ namespace Lucene.Net.Benchmarks.ByTask.Feeds
     /// </summary>
     public class Int64ToEnglishQueryMaker : IQueryMaker
     {
-        long counter = long.MinValue + 10;
+        private long counter = long.MinValue + 10;
         protected QueryParser m_parser;
 
         //// TODO: we could take param to specify locale...
@@ -42,7 +42,7 @@ namespace Lucene.Net.Benchmarks.ByTask.Feeds
 
         public virtual Query MakeQuery(int size)
         {
-            throw new NotSupportedException();
+            throw UnsupportedOperationException.Create();
         }
 
         public virtual Query MakeQuery()

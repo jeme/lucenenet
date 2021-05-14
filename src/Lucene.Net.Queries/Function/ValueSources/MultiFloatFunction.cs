@@ -1,4 +1,5 @@
-﻿using Lucene.Net.Index;
+﻿// Lucene version compatibility level 4.8.1
+using Lucene.Net.Index;
 using Lucene.Net.Queries.Function.DocValues;
 using Lucene.Net.Search;
 using Lucene.Net.Support;
@@ -35,7 +36,7 @@ namespace Lucene.Net.Queries.Function.ValueSources
     {
         protected readonly ValueSource[] m_sources;
 
-        public MultiSingleFunction(ValueSource[] sources)
+        protected MultiSingleFunction(ValueSource[] sources) // LUCENENET: CA1012: Abstract types should not have constructors (marked protected)
         {
             this.m_sources = sources;
         }
@@ -73,16 +74,16 @@ namespace Lucene.Net.Queries.Function.ValueSources
                 valsArr[i] = m_sources[i].GetValues(context, readerContext);
             }
 
-            return new SingleDocValuesAnonymousInnerClassHelper(this, this, valsArr);
+            return new SingleDocValuesAnonymousClass(this, this, valsArr);
         }
 
-        private class SingleDocValuesAnonymousInnerClassHelper : SingleDocValues
+        private class SingleDocValuesAnonymousClass : SingleDocValues
         {
             private readonly MultiSingleFunction outerInstance;
 
             private readonly FunctionValues[] valsArr;
 
-            public SingleDocValuesAnonymousInnerClassHelper(MultiSingleFunction outerInstance, MultiSingleFunction @this, FunctionValues[] valsArr)
+            public SingleDocValuesAnonymousClass(MultiSingleFunction outerInstance, MultiSingleFunction @this, FunctionValues[] valsArr)
                 : base(@this)
             {
                 this.outerInstance = outerInstance;

@@ -1,4 +1,5 @@
-﻿using J2N;
+﻿// Lucene version compatibility level 4.8.1
+using J2N;
 using J2N.Text;
 using Lucene.Net.Analysis.TokenAttributes;
 using Lucene.Net.Support;
@@ -47,7 +48,7 @@ namespace Lucene.Net.Analysis.NGram
             {
                 new NGramTokenizer(TEST_VERSION_CURRENT, input, 2, 1);
             }
-            catch (ArgumentException)
+            catch (Exception e) when (e.IsIllegalArgumentException())
             {
                 gotException = true;
             }
@@ -62,7 +63,7 @@ namespace Lucene.Net.Analysis.NGram
             {
                 new NGramTokenizer(TEST_VERSION_CURRENT, input, 0, 1);
             }
-            catch (ArgumentException)
+            catch (ArgumentOutOfRangeException) // LUCENENET specific - changed from IllegalArgumentException to ArgumentOutOfRangeException (.NET convention)
             {
                 gotException = true;
             }
@@ -183,7 +184,7 @@ namespace Lucene.Net.Analysis.NGram
             {
                 offsets[i + 1] = offsets[i] + Character.CharCount(codePoints[i]);
             }
-            TokenStream grams = new NGramTokenizerAnonymousInnerClassHelper(TEST_VERSION_CURRENT, new StringReader(s), minGram, maxGram, edgesOnly, nonTokenChars);
+            TokenStream grams = new NGramTokenizerAnonymousClass(TEST_VERSION_CURRENT, new StringReader(s), minGram, maxGram, edgesOnly, nonTokenChars);
             ICharTermAttribute termAtt = grams.AddAttribute<ICharTermAttribute>();
             IPositionIncrementAttribute posIncAtt = grams.AddAttribute<IPositionIncrementAttribute>();
             IPositionLengthAttribute posLenAtt = grams.AddAttribute<IPositionLengthAttribute>();
@@ -221,11 +222,11 @@ namespace Lucene.Net.Analysis.NGram
             assertEquals(s.Length, offsetAtt.EndOffset);
         }
 
-        private sealed class NGramTokenizerAnonymousInnerClassHelper : NGramTokenizer
+        private sealed class NGramTokenizerAnonymousClass : NGramTokenizer
         {
             private readonly string nonTokenChars;
 
-            public NGramTokenizerAnonymousInnerClassHelper(LuceneVersion TEST_VERSION_CURRENT, StringReader java, int minGram, int maxGram, bool edgesOnly, string nonTokenChars)
+            public NGramTokenizerAnonymousClass(LuceneVersion TEST_VERSION_CURRENT, StringReader java, int minGram, int maxGram, bool edgesOnly, string nonTokenChars)
                   : base(TEST_VERSION_CURRENT, java, minGram, maxGram, edgesOnly)
             {
                 this.nonTokenChars = nonTokenChars;

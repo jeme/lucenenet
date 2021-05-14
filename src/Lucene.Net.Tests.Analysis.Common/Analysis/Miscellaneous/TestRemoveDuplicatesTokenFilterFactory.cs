@@ -1,4 +1,5 @@
-﻿using J2N.Text;
+﻿// Lucene version compatibility level 4.8.1
+using J2N.Text;
 using Lucene.Net.Analysis.Util;
 using NUnit.Framework;
 using System;
@@ -58,7 +59,7 @@ namespace Lucene.Net.Analysis.Miscellaneous
                 TokenFilterFactory("RemoveDuplicates", "bogusArg", "bogusValue");
                 fail();
             }
-            catch (ArgumentException expected)
+            catch (Exception expected) when (expected.IsIllegalArgumentException())
             {
                 assertTrue(expected.Message.Contains("Unknown parameters"));
             }

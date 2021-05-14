@@ -1,4 +1,5 @@
-﻿using System;
+﻿// Lucene version compatibility level 4.8.1
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
@@ -82,27 +83,27 @@ namespace Lucene.Net.Facet.Taxonomy
             {
                 return score;
             }
-            public override int Freq => throw new NotSupportedException();
+            public override int Freq => throw UnsupportedOperationException.Create();
 
             public override int DocID => docID;
 
             public override int NextDoc()
             {
-                throw new NotSupportedException();
+                throw UnsupportedOperationException.Create();
             }
             public override int Advance(int target)
             {
-                throw new NotSupportedException();
+                throw UnsupportedOperationException.Create();
             }
             public override long GetCost()
             {
                 return 0;
             }
-            public override Weight Weight => throw new NotSupportedException();
+            public override Weight Weight => throw UnsupportedOperationException.Create();
 
             public override ICollection<ChildScorer> GetChildren()
             {
-                throw new NotSupportedException();
+                throw UnsupportedOperationException.Create();
             }
         }
 
@@ -164,16 +165,16 @@ namespace Lucene.Net.Facet.Taxonomy
                 Scorer scorer = (Scorer)context["scorer"];
                 if (scorer == null)
                 {
-                    throw new ThreadStateException("scores are missing; be sure to pass keepScores=true to FacetsCollector");
+                    throw IllegalStateException.Create("scores are missing; be sure to pass keepScores=true to FacetsCollector");
                 }
-                return new DoubleDocValuesAnonymousInnerClassHelper(this, scorer);
+                return new DoubleDocValuesAnonymousClass(this, scorer);
             }
 
-            private class DoubleDocValuesAnonymousInnerClassHelper : DoubleDocValues
+            private class DoubleDocValuesAnonymousClass : DoubleDocValues
             {
                 private readonly Scorer scorer;
 
-                public DoubleDocValuesAnonymousInnerClassHelper(ScoreValueSource outerInstance, Scorer scorer)
+                public DoubleDocValuesAnonymousClass(ScoreValueSource outerInstance, Scorer scorer)
                     : base(outerInstance)
                 {
                     this.scorer = scorer;
@@ -185,16 +186,16 @@ namespace Lucene.Net.Facet.Taxonomy
                     {
                         return scorer.GetScore();
                     }
-                    catch (IOException exception)
+                    catch (Exception exception) when (exception.IsIOException())
                     {
-                        throw new Exception(exception.ToString(), exception);
+                        throw RuntimeException.Create(exception);
                     }
                 }
             }
 
             public override bool Equals(object o)
             {
-                if (ReferenceEquals(null, o)) return false;
+                if (o is null) return false;
                 if (ReferenceEquals(this, o)) return true;
                 if (o.GetType() != this.GetType()) return false;
                 return Equals((ScoreValueSource)o);

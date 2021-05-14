@@ -1,4 +1,4 @@
-using Lucene.Net.Index;
+﻿using Lucene.Net.Index;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -62,7 +62,7 @@ namespace Lucene.Net.Search.Spans
             StringBuilder buffer = new StringBuilder();
             if (m_term.Field.Equals(field, StringComparison.Ordinal))
             {
-                buffer.Append(m_term.Text());
+                buffer.Append(m_term.Text);
             }
             else
             {
@@ -111,10 +111,8 @@ namespace Lucene.Net.Search.Spans
 
         public override Spans GetSpans(AtomicReaderContext context, IBits acceptDocs, IDictionary<Term, TermContext> termContexts)
         {
-            TermContext termContext;
-            termContexts.TryGetValue(m_term, out termContext);
             TermState state;
-            if (termContext == null)
+            if (!termContexts.TryGetValue(m_term, out TermContext termContext) || termContext == null)
             {
                 // this happens with span-not query, as it doesn't include the NOT side in extractTerms()
                 // so we seek to the term now in this segment..., this sucks because its ugly mostly!
@@ -166,7 +164,7 @@ namespace Lucene.Net.Search.Spans
             else
             {
                 // term does exist, but has no positions
-                throw new InvalidOperationException("field \"" + m_term.Field + "\" was indexed without position data; cannot run SpanTermQuery (term=" + m_term.Text() + ")");
+                throw IllegalStateException.Create("field \"" + m_term.Field + "\" was indexed without position data; cannot run SpanTermQuery (term=" + m_term.Text + ")");
             }
         }
     }

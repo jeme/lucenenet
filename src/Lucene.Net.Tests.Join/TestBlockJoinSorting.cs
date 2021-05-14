@@ -1,15 +1,15 @@
-﻿using Lucene.Net.Analysis;
+﻿// Lucene version compatibility level 4.8.1
+using Lucene.Net.Analysis;
 using Lucene.Net.Documents;
 using Lucene.Net.Index;
 using Lucene.Net.Index.Extensions;
-using Lucene.Net.Join;
-using Lucene.Net.Search;
 using Lucene.Net.Store;
 using Lucene.Net.Util;
 using NUnit.Framework;
+using RandomizedTesting.Generators;
 using System.Collections.Generic;
 
-namespace Lucene.Net.Tests.Join
+namespace Lucene.Net.Search.Join
 {
     /*
      * Licensed to the Apache Software Foundation (ASF) under one or more
@@ -34,7 +34,8 @@ namespace Lucene.Net.Tests.Join
         public void TestNestedSorting()
         {
             Directory dir = NewDirectory();
-            RandomIndexWriter w = new RandomIndexWriter(Random, dir, NewIndexWriterConfig(TEST_VERSION_CURRENT, new MockAnalyzer(Random)).SetMergePolicy(NoMergePolicy.COMPOUND_FILES));
+            RandomIndexWriter w = new RandomIndexWriter(Random, dir, NewIndexWriterConfig(TEST_VERSION_CURRENT,
+                new MockAnalyzer(Random)).SetMergePolicy(NoMergePolicy.COMPOUND_FILES));
 
             IList<Document> docs = new List<Document>();
             Document document = new Document();
@@ -248,7 +249,10 @@ namespace Lucene.Net.Tests.Join
 
             // Sort by field descending, order last, sort filter (filter_1:T)
             childFilter = new QueryWrapperFilter(new TermQuery((new Term("filter_1", "T"))));
-            query = new ToParentBlockJoinQuery(new FilteredQuery(new MatchAllDocsQuery(), childFilter), new FixedBitSetCachingWrapperFilter(parentFilter), ScoreMode.None);
+            query = new ToParentBlockJoinQuery(
+                new FilteredQuery(new MatchAllDocsQuery(), childFilter),
+                new FixedBitSetCachingWrapperFilter(parentFilter),
+                ScoreMode.None);
             sortField = new ToParentBlockJoinSortField("field2", SortFieldType.STRING, true, Wrap(parentFilter), Wrap(childFilter));
             sort = new Sort(sortField);
             topDocs = searcher.Search(query, 5, sort);

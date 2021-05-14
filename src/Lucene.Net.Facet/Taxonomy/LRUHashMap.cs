@@ -1,4 +1,5 @@
-﻿using J2N.Collections.Concurrent;
+﻿// Lucene version compatibility level 4.8.1
+using J2N.Collections.Concurrent;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -109,7 +110,7 @@ namespace Lucene.Net.Facet.Taxonomy
             {
                 if (value < 1)
                 {
-                    throw new ArgumentOutOfRangeException("Limit must be at least 1");
+                    throw new ArgumentOutOfRangeException("Limit must be at least 1"); // LUCENENET specific - changed from IllegalArgumentException to ArgumentOutOfRangeException (.NET convention)
                 }
                 cache.Limit = value;
             }

@@ -1,4 +1,4 @@
-using J2N;
+﻿using J2N;
 using J2N.Text;
 using Lucene.Net.Diagnostics;
 using System;
@@ -347,7 +347,7 @@ namespace Lucene.Net.Util
               return false;
             }
             return s1.equals(s2, StringComparison.Ordinal);
-          } catch (UnsupportedEncodingException uee) {
+          } catch (Exception uee) when (uee.IsUnsupportedEncodingException()) {
             return false;
           }
         }
@@ -375,7 +375,7 @@ namespace Lucene.Net.Util
               return false;
             }
             return s1.equals(s2, StringComparison.Ordinal);
-          } catch (UnsupportedEncodingException uee) {
+          } catch (Exception uee) when (uee.IsUnsupportedEncodingException()) {
             return false;
           }
         }
@@ -593,7 +593,7 @@ namespace Lucene.Net.Util
                 }
 
                 // Anything not covered above is invalid UTF8.
-                throw new ArgumentException();
+                throw new ArgumentException("Invalid UTF-8");
             }
 
             // Check if we didn't go over the limit on the last character.
@@ -721,7 +721,7 @@ namespace Lucene.Net.Util
         {
             if (count < 0)
             {
-                throw new ArgumentException();
+                throw new ArgumentOutOfRangeException(nameof(count), "count must be >= 0"); // LUCENENET specific - changed from IllegalArgumentException to ArgumentOutOfRangeException (.NET convention)
             }
             int countThreashold = 1024; // If the number of chars exceeds this, we count them instead of allocating count * 2
             // LUCENENET: as a first approximation, assume each codepoint 
@@ -844,7 +844,7 @@ namespace Lucene.Net.Util
                 }
                 else
                 {
-                    if (Debugging.AssertsEnabled) Debugging.Assert(b < 0xf8, () => "b = 0x" + b.ToString("x"));
+                    if (Debugging.AssertsEnabled) Debugging.Assert(b < 0xf8, "b = 0x{0:x}", b);
                     int ch = ((b & 0x7) << 18) + ((utf8[offset] & 0x3f) << 12) + ((utf8[offset + 1] & 0x3f) << 6) + (utf8[offset + 2] & 0x3f);
                     offset += 3;
                     if (ch < UNI_MAX_BMP)

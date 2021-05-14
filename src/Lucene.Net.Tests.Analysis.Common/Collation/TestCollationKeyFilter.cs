@@ -1,4 +1,5 @@
-﻿#if FEATURE_COLLATION
+// Lucene version compatibility level 4.8.1
+#if FEATURE_COLLATION
 using System;
 using System.Globalization;
 using System.IO;
@@ -34,11 +35,6 @@ namespace Lucene.Net.Collation
     public class TestCollationKeyFilter : CollationTestBase
     {
         public TestCollationKeyFilter()
-        {
-            InitializeInstanceFields();
-        }
-
-        private void InitializeInstanceFields()
         {
             this.analyzer = new TestAnalyzer(this, this.collator);
             this.firstRangeBeginning = new BytesRef(this.EncodeCollationKey(this.collator.GetSortKey(this.FirstRangeBeginningOriginal).KeyData.ToSByteArray()));
@@ -125,7 +121,7 @@ namespace Lucene.Net.Collation
                 .Select(x => new Locale(x))
                 .FirstOrDefault(x => availableCollationLocales.Contains(x.Id));
 
-            if (firstMatchingLocale == default(Locale))
+            if (firstMatchingLocale == default)
             {
                 throw new ArgumentException($"Could not find a collator locale matching any of the following: {string.Join(", ", localeNames)}");
             }

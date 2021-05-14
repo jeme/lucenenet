@@ -1,4 +1,5 @@
-﻿using Lucene.Net.Diagnostics;
+﻿using J2N.Numerics;
+using Lucene.Net.Diagnostics;
 using Lucene.Net.Index;
 using Lucene.Net.Store;
 using Lucene.Net.Util;
@@ -35,11 +36,13 @@ namespace Lucene.Net.Codecs.Sep
     /// </summary>
     public class SepPostingsReader : PostingsReaderBase
     {
+#pragma warning disable CA2213 // Disposable fields should be disposed
         private readonly Int32IndexInput freqIn;
         private readonly Int32IndexInput docIn;
         private readonly Int32IndexInput posIn;
         private readonly IndexInput payloadIn;
         private readonly IndexInput skipIn;
+#pragma warning restore CA2213 // Disposable fields should be disposed
 
         private int skipInterval;
         private int maxSkipLevels;
@@ -240,22 +243,12 @@ namespace Lucene.Net.Codecs.Sep
             DocsFlags flags)
         {
             SepTermState termState_ = (SepTermState)termState;
-            SepDocsEnum docsEnum;
-            if (reuse == null || !(reuse is SepDocsEnum))
-            {
+
+            // If you are using ParellelReader, and pass in a
+            // reused DocsAndPositionsEnum, it could have come
+            // from another reader also using sep codec
+            if (reuse is null || !(reuse is SepDocsEnum docsEnum) || docsEnum.startDocIn != docIn)
                 docsEnum = new SepDocsEnum(this);
-            }
-            else
-            {
-                docsEnum = (SepDocsEnum)reuse;
-                if (docsEnum.startDocIn != docIn)
-                {
-                    // If you are using ParellelReader, and pass in a
-                    // reused DocsAndPositionsEnum, it could have come
-                    // from another reader also using sep codec
-                    docsEnum = new SepDocsEnum(this);
-                }
-            }
 
             return docsEnum.Init(fieldInfo, termState_, liveDocs);
         }
@@ -265,22 +258,12 @@ namespace Lucene.Net.Codecs.Sep
         {
             if (Debugging.AssertsEnabled) Debugging.Assert(fieldInfo.IndexOptions == IndexOptions.DOCS_AND_FREQS_AND_POSITIONS);
             SepTermState termState_ = (SepTermState)termState;
-            SepDocsAndPositionsEnum postingsEnum;
-            if (reuse == null || !(reuse is SepDocsAndPositionsEnum))
-            {
+
+            // If you are using ParellelReader, and pass in a
+            // reused DocsAndPositionsEnum, it could have come
+            // from another reader also using sep codec
+            if (reuse is null || !(reuse is SepDocsAndPositionsEnum postingsEnum) || postingsEnum.startDocIn != docIn)
                 postingsEnum = new SepDocsAndPositionsEnum(this);
-            }
-            else
-            {
-                postingsEnum = (SepDocsAndPositionsEnum)reuse;
-                if (postingsEnum.startDocIn != docIn)
-                {
-                    // If you are using ParellelReader, and pass in a
-                    // reused DocsAndPositionsEnum, it could have come
-                    // from another reader also using sep codec
-                    postingsEnum = new SepDocsAndPositionsEnum(this);
-                }
-            }
 
             return postingsEnum.Init(fieldInfo, termState_, liveDocs);
         }
@@ -709,7 +692,7 @@ namespace Lucene.Net.Codecs.Sep
                         payloadLength = posReader.Next();
                         if (Debugging.AssertsEnabled) Debugging.Assert(payloadLength >= 0);
                     }
-                    position += (int)(((uint)code) >> 1);
+                    position += code.TripleShift(1);
                     pendingPayloadBytes += payloadLength;
                     payloadPending = payloadLength > 0;
                 }
@@ -745,7 +728,7 @@ namespace Lucene.Net.Codecs.Sep
 
                 if (pendingPayloadBytes > payloadLength)
                 {
-                    payloadIn.Seek(payloadIn.GetFilePointer() + (pendingPayloadBytes - payloadLength));
+                    payloadIn.Seek(payloadIn.Position + (pendingPayloadBytes - payloadLength)); // LUCENENET specific: Renamed from getFilePointer() to match FileStream
                 }
 
                 if (payload == null)

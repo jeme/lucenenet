@@ -1,4 +1,4 @@
-﻿---
+---
 uid: Lucene.Net.Expressions.JS
 summary: *content
 ---
@@ -32,7 +32,7 @@ A Javascript expression is a numeric expression specified using an expression sy
 
 *   Boolean operators (including the ternary operator): `&& || ! ?:`
 
-*   Comparison operators: `< <= == >= >`
+*   Comparison operators: `&lt; <= == >= >`
 
 *   Common mathematic functions: `abs ceil exp floor ln log2 log10 logn max min sqrt pow`
 
@@ -46,4 +46,4 @@ A Javascript expression is a numeric expression specified using an expression sy
 
  JavaScript order of precedence rules apply for operators. Shortcut evaluation is used for logical operators—the second argument is only evaluated if the value of the expression cannot be determined after evaluating the first argument. For example, in the expression `a || b`, `b` is only evaluated if a is not true. 
 
- To compile an expression, use <xref:Lucene.Net.Expressions.Js.JavascriptCompiler>. 
+ To compile an expression, use <xref:Lucene.Net.Expressions.JS.JavascriptCompiler>. 

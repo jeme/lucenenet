@@ -49,7 +49,9 @@ namespace Lucene.Net.Codecs.Memory
     /// </summary>
     internal class MemoryDocValuesConsumer : DocValuesConsumer
     {
+#pragma warning disable CA2213 // Disposable fields should be disposed
         private IndexOutput data, meta;
+#pragma warning restore CA2213 // Disposable fields should be disposed
         private readonly int maxDoc;
         private readonly float acceptableOverheadRatio;
 
@@ -88,7 +90,7 @@ namespace Lucene.Net.Codecs.Memory
         {
             meta.WriteVInt32(field.Number);
             meta.WriteByte(MemoryDocValuesProducer.NUMBER);
-            meta.WriteInt64(data.GetFilePointer());
+            meta.WriteInt64(data.Position); // LUCENENET specific: Renamed from getFilePointer() to match FileStream
             long minValue = long.MaxValue;
             long maxValue = long.MinValue;
             long gcd = 0;
@@ -149,10 +151,10 @@ namespace Lucene.Net.Codecs.Memory
 
             if (missing)
             {
-                long start = data.GetFilePointer();
+                long start = data.Position; // LUCENENET specific: Renamed from getFilePointer() to match FileStream
                 WriteMissingBitset(values);
                 meta.WriteInt64(start);
-                meta.WriteInt64(data.GetFilePointer() - start);
+                meta.WriteInt64(data.Position - start); // LUCENENET specific: Renamed from getFilePointer() to match FileStream
             }
             else
             {
@@ -274,7 +276,7 @@ namespace Lucene.Net.Codecs.Memory
             var minLength = int.MaxValue;
             var maxLength = int.MinValue;
 
-            var startFP = data.GetFilePointer();
+            var startFP = data.Position; // LUCENENET specific: Renamed from getFilePointer() to match FileStream
             var missing = false;
             foreach (var v in values)
             {
@@ -301,13 +303,13 @@ namespace Lucene.Net.Codecs.Memory
                 }
             }
             meta.WriteInt64(startFP);
-            meta.WriteInt64(data.GetFilePointer() - startFP);
+            meta.WriteInt64(data.Position - startFP); // LUCENENET specific: Renamed from getFilePointer() to match FileStream
             if (missing)
             {
-                long start = data.GetFilePointer();
+                long start = data.Position; // LUCENENET specific: Renamed from getFilePointer() to match FileStream
                 WriteMissingBitset(values);
                 meta.WriteInt64(start);
-                meta.WriteInt64(data.GetFilePointer() - start);
+                meta.WriteInt64(data.Position - start); // LUCENENET specific: Renamed from getFilePointer() to match FileStream
             }
             else
             {
@@ -342,7 +344,7 @@ namespace Lucene.Net.Codecs.Memory
         {
             meta.WriteVInt32(field.Number);
             meta.WriteByte(MemoryDocValuesProducer.FST);
-            meta.WriteInt64(data.GetFilePointer());
+            meta.WriteInt64(data.Position); // LUCENENET specific: Renamed from getFilePointer() to match FileStream
             PositiveInt32Outputs outputs = PositiveInt32Outputs.Singleton;
             var builder = new Builder<long?>(INPUT_TYPE.BYTE1, outputs);
             var scratch = new Int32sRef();
@@ -401,19 +403,18 @@ namespace Lucene.Net.Codecs.Memory
             IEnumerable<long?> docToOrdCount, IEnumerable<long?> ords)
         {
             // write the ordinals as a binary field
-            AddBinaryField(field, new IterableAnonymousInnerClassHelper(this, docToOrdCount, ords));
+            AddBinaryField(field, new IterableAnonymousClass(docToOrdCount, ords));
 
             // write the values as FST
             WriteFST(field, values);
         }
 
-        private class IterableAnonymousInnerClassHelper : IEnumerable<BytesRef>
+        private class IterableAnonymousClass : IEnumerable<BytesRef>
         {
             private readonly IEnumerable<long?> _docToOrdCount;
             private readonly IEnumerable<long?> _ords;
 
-            public IterableAnonymousInnerClassHelper(MemoryDocValuesConsumer outerInstance,
-                IEnumerable<long?> docToOrdCount, IEnumerable<long?> ords)
+            public IterableAnonymousClass(IEnumerable<long?> docToOrdCount, IEnumerable<long?> ords)
             {
                 _docToOrdCount = docToOrdCount;
                 _ords = ords;
@@ -434,8 +435,8 @@ namespace Lucene.Net.Codecs.Memory
         internal class SortedSetIterator : IEnumerator<BytesRef>
         {
             private byte[] buffer = new byte[10];
-            private ByteArrayDataOutput @out = new ByteArrayDataOutput();
-            private BytesRef _current = new BytesRef();
+            private readonly ByteArrayDataOutput @out = new ByteArrayDataOutput(); // LUCENENET: marked readonly
+            private readonly BytesRef _current = new BytesRef(); // LUCENENET: marked readonly
 
             private readonly IEnumerator<long?> counts;
             private readonly IEnumerator<long?> ords;
@@ -467,9 +468,9 @@ namespace Lucene.Net.Codecs.Memory
                 {
                     EncodeValues(count);
                 }
-                catch (IOException bogus)
+                catch (Exception bogus) when (bogus.IsIOException())
                 {
-                    throw new Exception(bogus.ToString(), bogus);
+                    throw RuntimeException.Create(bogus);
                 }
 
                 _current.Bytes = buffer;
@@ -501,9 +502,11 @@ namespace Lucene.Net.Codecs.Memory
                 this.ords.Dispose();
             }
 
-            public void Reset()
+            // LUCENENET: Remove() not supported in .NET
+
+            public void Reset() // LUCENENET: Required by .NET contract, but not supported here.
             {
-                throw new NotSupportedException();
+                throw UnsupportedOperationException.Create();
             }
         }
     }

@@ -1,6 +1,7 @@
-using J2N.Collections.Generic.Extensions;
+﻿using J2N.Collections.Generic.Extensions;
 using Lucene.Net.Support;
 using NUnit.Framework;
+using RandomizedTesting.Generators;
 using System;
 using System.Collections.Generic;
 using Assert = Lucene.Net.TestFramework.Assert;
@@ -309,7 +310,8 @@ namespace Lucene.Net.Search
                 }
                 finally
                 {
-                    m_nodes[myNodeID].Release(localShardSearcher);
+                    //m_nodes[myNodeID].Release(localShardSearcher);
+                    NodeState.Release(localShardSearcher); // LUCENENET: Made Release() static per CA1822 for performance
                     foreach (IndexReader sub in subs)
                     {
                         if (sub != null)

@@ -1,6 +1,7 @@
-using J2N;
+﻿using J2N;
 using J2N.Runtime.CompilerServices;
 using Lucene.Net.Diagnostics;
+using RandomizedTesting.Generators;
 using System;
 using System.Collections.Generic;
 using JCG = J2N.Collections.Generic;
@@ -50,9 +51,7 @@ namespace Lucene.Net.Util.Automaton
                     new RegExp(regexp, RegExpSyntax.NONE);
                     return regexp;
                 }
-#pragma warning disable 168
-                catch (Exception e)
-#pragma warning restore 168
+                catch (Exception e) when (e.IsException())
                 {
                 }
             }
@@ -191,7 +190,7 @@ namespace Lucene.Net.Util.Automaton
                 }
             }
 
-            if (Debugging.AssertsEnabled) Debugging.Assert(code >= t.Min && code <= t.Max && (code < UnicodeUtil.UNI_SUR_HIGH_START || code > UnicodeUtil.UNI_SUR_LOW_END), () => "code=" + code + " min=" + t.Min + " max=" + t.Max);
+            if (Debugging.AssertsEnabled) Debugging.Assert(code >= t.Min && code <= t.Max && (code < UnicodeUtil.UNI_SUR_HIGH_START || code > UnicodeUtil.UNI_SUR_LOW_END), "code={0} min={1} max={2}", code, t.Min, t.Max);
             return code;
         }
 
@@ -399,7 +398,7 @@ namespace Lucene.Net.Util.Automaton
         {
             int numStates = a.GetNumberOfStates();
             a.ClearNumberedStates(); // force recomputation of cached numbered states
-            if (Debugging.AssertsEnabled) Debugging.Assert(numStates == a.GetNumberOfStates(), () => "automaton has " + (numStates - a.GetNumberOfStates()) + " detached states");
+            if (Debugging.AssertsEnabled) Debugging.Assert(numStates == a.GetNumberOfStates(), "automaton has {0} detached states", numStates - a.GetNumberOfStates());
         }
     }
 
@@ -488,7 +487,7 @@ namespace Lucene.Net.Util.Automaton
 
         public int[] GetRandomAcceptedString(Random r)
         {
-            IList<int?> soFar = new List<int?>();
+            List<int> soFar = new List<int>();
             if (a.IsSingleton)
             {
                 // accepts only one
@@ -526,7 +525,7 @@ namespace Lucene.Net.Util.Automaton
 
                     if (s.numTransitions == 0)
                     {
-                        throw new Exception("this automaton has dead states");
+                        throw RuntimeException.Create("this automaton has dead states");
                     }
 
                     bool cheat = r.NextBoolean();
@@ -564,7 +563,7 @@ namespace Lucene.Net.Util.Automaton
                 }
             }
 
-            return ArrayUtil.ToInt32Array(soFar);
+            return soFar.ToArray(); // LUCENENET: ArrayUtil.ToIntArray() call unnecessary
         }
     }
 }

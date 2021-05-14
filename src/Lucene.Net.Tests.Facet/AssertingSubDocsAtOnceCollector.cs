@@ -1,8 +1,9 @@
-﻿using System.Collections.Generic;
+﻿// Lucene version compatibility level 4.8.1
+using System;
+using System.Collections.Generic;
 
 namespace Lucene.Net.Facet
 {
-
     /*
      * Licensed to the Apache Software Foundation (ASF) under one or more
      * contributor license agreements.  See the NOTICE file distributed with
@@ -20,19 +21,17 @@ namespace Lucene.Net.Facet
      * limitations under the License.
      */
 
-
     using AtomicReaderContext = Lucene.Net.Index.AtomicReaderContext;
     using ICollector = Lucene.Net.Search.ICollector;
     using ChildScorer = Lucene.Net.Search.Scorer.ChildScorer;
     using Scorer = Lucene.Net.Search.Scorer;
-    using System;
+    
     /// <summary>
     /// Verifies in collect() that all child subScorers are on
     ///  the collected doc. 
     /// </summary>
     internal class AssertingSubDocsAtOnceCollector : ICollector
     {
-
         // TODO: allow wrapping another Collector
 
         internal IList<Scorer> allScorers;
@@ -59,7 +58,7 @@ namespace Lucene.Net.Facet
             {
                 if (docID != s.DocID)
                 {
-                    throw new InvalidOperationException("subScorer=" + s + " has docID=" + s.DocID + " != collected docID=" + docID);
+                    throw IllegalStateException.Create("subScorer=" + s + " has docID=" + s.DocID + " != collected docID=" + docID);
                 }
             }
         }
@@ -70,5 +69,4 @@ namespace Lucene.Net.Facet
 
         public virtual bool AcceptsDocsOutOfOrder => false;
     }
-
 }

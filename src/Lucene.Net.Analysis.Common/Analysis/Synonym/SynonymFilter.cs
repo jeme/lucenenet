@@ -1,4 +1,6 @@
-﻿using J2N;
+﻿// Lucene version compatibility level 4.8.1
+using J2N;
+using J2N.Numerics;
 using Lucene.Net.Analysis.TokenAttributes;
 using Lucene.Net.Diagnostics;
 using Lucene.Net.Store;
@@ -269,9 +271,9 @@ namespace Lucene.Net.Analysis.Synonym
             this.synonyms = synonyms;
             this.ignoreCase = ignoreCase;
             this.fst = synonyms.Fst;
-            if (fst == null)
+            if (fst is null)
             {
-                throw new ArgumentException("fst must be non-null");
+                throw new ArgumentNullException(nameof(synonyms.Fst), "fst must be non-null"); // LUCENENET specific - changed from IllegalArgumentException to ArgumentNullException (.NET convention)
             }
             this.fstReader = fst.GetBytesReader();
 
@@ -493,7 +495,7 @@ namespace Lucene.Net.Analysis.Synonym
 
             int code = bytesReader.ReadVInt32();
             bool keepOrig = (code & 0x1) == 0;
-            int count = (int)((uint)code >> 1);
+            int count = code.TripleShift(1);
             //System.out.println("  addOutput count=" + count + " keepOrig=" + keepOrig);
             for (int outputIDX = 0; outputIDX < count; outputIDX++)
             {
@@ -510,7 +512,7 @@ namespace Lucene.Net.Analysis.Synonym
                         int outputLen = chIDX - lastStart;
                         // Caller is not allowed to have empty string in
                         // the output:
-                        if (Debugging.AssertsEnabled) Debugging.Assert(outputLen > 0, () => "output contains empty string: " + scratchChars);
+                        if (Debugging.AssertsEnabled) Debugging.Assert(outputLen > 0, "output contains empty string: {0}", scratchChars);
                         int endOffset;
                         int posLen;
                         if (chIDX == chEnd && lastStart == scratchChars.Offset)
@@ -536,7 +538,7 @@ namespace Lucene.Net.Analysis.Synonym
                         lastStart = 1 + chIDX;
                         //System.out.println("  slot=" + outputUpto + " keepOrig=" + keepOrig);
                         outputUpto = RollIncr(outputUpto);
-                        if (Debugging.AssertsEnabled) Debugging.Assert(futureOutputs[outputUpto].posIncr == 1, () => "outputUpto=" + outputUpto + " vs nextWrite=" + nextWrite);
+                        if (Debugging.AssertsEnabled) Debugging.Assert(futureOutputs[outputUpto].posIncr == 1, "outputUpto={0} vs nextWrite={1}", outputUpto, nextWrite);
                     }
                 }
             }
@@ -602,7 +604,7 @@ namespace Lucene.Net.Analysis.Synonym
                         {
                             // Pass-through case: return token we just pulled
                             // but didn't capture:
-                            if (Debugging.AssertsEnabled) Debugging.Assert(inputSkipCount == 1, () => "inputSkipCount=" + inputSkipCount + " nextRead=" + nextRead);
+                            if (Debugging.AssertsEnabled) Debugging.Assert(inputSkipCount == 1, "inputSkipCount={0} nextRead={1}", inputSkipCount, nextRead);
                         }
                         input.Reset();
                         if (outputs.count > 0)

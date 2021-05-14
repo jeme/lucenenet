@@ -1,4 +1,5 @@
-﻿using System;
+// Lucene version compatibility level 4.8.1
+using System;
 using System.Collections.Generic;
 using Lucene.Net.Analysis.Util;
 using Lucene.Net.Util;
@@ -48,7 +49,7 @@ namespace Lucene.Net.Analysis.Position
             positionIncrement = GetInt32(args, "positionIncrement", 0);
             if (args.Count > 0)
             {
-                throw new ArgumentException("Unknown parameters: " + args);
+                throw new ArgumentException(string.Format(J2N.Text.StringFormatter.CurrentCulture, "Unknown parameters: {0}", args));
             }
             if (m_luceneMatchVersion.OnOrAfter(Lucene.Net.Util.LuceneVersion.LUCENE_44))
             {

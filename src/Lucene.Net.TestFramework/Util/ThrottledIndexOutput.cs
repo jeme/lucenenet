@@ -1,4 +1,4 @@
-using Lucene.Net.Diagnostics;
+﻿using Lucene.Net.Diagnostics;
 using Lucene.Net.Store;
 using Lucene.Net.Support;
 using System;
@@ -30,12 +30,12 @@ namespace Lucene.Net.Util
     {
         public const int DEFAULT_MIN_WRITTEN_BYTES = 1024;
         private readonly int bytesPerSecond;
-        private IndexOutput @delegate;
-        private long flushDelayMillis;
-        private long closeDelayMillis;
-        private long seekDelayMillis;
+        private readonly IndexOutput @delegate; // LUCENENET: marked readonly
+        private readonly long flushDelayMillis; // LUCENENET: marked readonly
+        private readonly long closeDelayMillis; // LUCENENET: marked readonly
+        private readonly long seekDelayMillis; // LUCENENET: marked readonly
         private long pendingBytes;
-        private long minBytesWritten;
+        private readonly long minBytesWritten; // LUCENENET: marked readonly
         private long timeElapsed;
         private readonly byte[] bytes = new byte[1];
 
@@ -86,15 +86,12 @@ namespace Lucene.Net.Util
                 }
                 finally
                 {
-                    @delegate.Dispose();
+                    @delegate?.Dispose(); // LUCENENET specific - only call if non-null
                 }
             }
         }
 
-        public override long GetFilePointer()
-        {
-            return @delegate.GetFilePointer();
-        }
+        public override long Position => @delegate.Position; // LUCENENET specific: Renamed from getFilePointer() to match FileStream
 
         [Obsolete("(4.1) this method will be removed in Lucene 5.0")]
         public override void Seek(long pos)
@@ -144,18 +141,10 @@ namespace Lucene.Net.Util
             {
                 return;
             }
-//#if FEATURE_THREAD_INTERRUPT
-//            try
-//            {
-//#endif 
-                Thread.Sleep(TimeSpan.FromMilliseconds(ms));
-//#if FEATURE_THREAD_INTERRUPT // LUCENENET NOTE: Senseless to catch and rethrow the same exception type
-//            }
-//            catch (ThreadInterruptedException e)
-//            {
-//                throw new ThreadInterruptedException("Thread Interrupted Exception", e);
-//            }
-//#endif
+
+            Thread.Sleep(TimeSpan.FromMilliseconds(ms));
+            // LUCENENET NOTE: No need to catch and rethrow same excepton type ThreadInterruptedException 
+
         }
 
         public override long Length

@@ -1,4 +1,5 @@
-﻿using Lucene.Net.Support;
+﻿// Lucene version compatibility level 4.8.1
+using Lucene.Net.Support;
 using System.Diagnostics.CodeAnalysis;
 
 namespace Lucene.Net.Facet.Taxonomy
@@ -48,7 +49,7 @@ namespace Lucene.Net.Facet.Taxonomy
         /// <summary>
         /// Sole constructor.
         /// </summary>
-        public ParallelTaxonomyArrays()
+        protected ParallelTaxonomyArrays() // LUCENENET: CA1012: Abstract types should not have constructors (marked protected)
         {
         }
 

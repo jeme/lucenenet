@@ -1,7 +1,7 @@
-﻿using Lucene.Net.Diagnostics;
+﻿using J2N.Numerics;
+using Lucene.Net.Diagnostics;
 using Lucene.Net.Store;
 using System;
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
 namespace Lucene.Net.Util.Fst
@@ -27,8 +27,8 @@ namespace Lucene.Net.Util.Fst
     /// An FST <see cref="Outputs{T}"/> implementation where each output
     /// is one or two non-negative long values.  If it's a
     /// <see cref="float"/> output, <see cref="Nullable{Int64}"/> is 
-    /// returned; else, TwoLongs.  Order
-    /// is preserved in the TwoLongs case, ie .first is the first
+    /// returned; else, <see cref="TwoInt64s"/>.  Order
+    /// is preserved in the <see cref="TwoInt64s"/> case, ie .first is the first
     /// input/output added to <see cref="Builder{T}"/>, and .second is the
     /// second.  You cannot store 0 output with this (that's
     /// reserved to mean "no output")!
@@ -84,9 +84,8 @@ namespace Lucene.Net.Util.Fst
 
             public override bool Equals(object other)
             {
-                if (other is TwoInt64s)
+                if (other is TwoInt64s other2)
                 {
-                    TwoInt64s other2 = (TwoInt64s)other;
                     return first == other2.first && second == other2.second;
                 }
                 else
@@ -97,7 +96,7 @@ namespace Lucene.Net.Util.Fst
 
             public override int GetHashCode()
             {
-                return (int)((first ^ ((long)((ulong)first >> 32))) ^ (second ^ (second >> 32)));
+                return (int)((first ^ (first.TripleShift(32))) ^ (second ^ (second >> 32)));
             }
         }
 
@@ -113,23 +112,21 @@ namespace Lucene.Net.Util.Fst
             this.doShare = doShare;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static UpToTwoPositiveInt64Outputs GetSingleton(bool doShare)
         {
             return doShare ? singletonShare : singletonNoShare;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1822:Mark members as static", Justification = "This is a shipped public API")]
         public long? Get(long v)
         {
-            if (v == 0)
-            {
-                return NO_OUTPUT;
-            }
-            else
-            {
-                return v;
-            }
+            return v == 0 ? NO_OUTPUT : v;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1822:Mark members as static", Justification = "This is a shipped public API")]
         public TwoInt64s Get(long first, long second)
         {
             return new TwoInt64s(first, second);
@@ -243,7 +240,7 @@ namespace Lucene.Net.Util.Fst
             if ((code & 1) == 0)
             {
                 // single long
-                long v = (long)((ulong)code >> 1);
+                long v = code.TripleShift(1);
                 if (v == 0)
                 {
                     return NO_OUTPUT;
@@ -256,13 +253,14 @@ namespace Lucene.Net.Util.Fst
             else
             {
                 // two longs
-                long first = (long)((ulong)code >> 1);
+                long first = code.TripleShift(1);
                 long second = @in.ReadVInt64();
                 return new TwoInt64s(first, second);
             }
         }
 
-        private bool Valid(long? o)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool Valid(long? o) // LUCENENET: CA1822: Mark members as static
         {
             Debugging.Assert(o != null);
             Debugging.Assert(o is long?);
@@ -271,7 +269,8 @@ namespace Lucene.Net.Util.Fst
         }
 
         // Used only by assert
-        private bool Valid(object o, bool allowDouble)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool Valid(object o, bool allowDouble) // LUCENENET: CA1822: Mark members as static
         {
             if (!allowDouble)
             {

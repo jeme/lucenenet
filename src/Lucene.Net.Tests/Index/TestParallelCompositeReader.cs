@@ -1,7 +1,8 @@
-using Lucene.Net.Documents;
+﻿using Lucene.Net.Documents;
 using Lucene.Net.Index.Extensions;
 using Lucene.Net.Search;
 using NUnit.Framework;
+using RandomizedTesting.Generators;
 using System;
 using Assert = Lucene.Net.TestFramework.Assert;
 
@@ -160,7 +161,7 @@ namespace Lucene.Net.Index
 
             foreach (AtomicReaderContext cxt in pr.Leaves)
             {
-                cxt.Reader.AddReaderClosedListener(new ReaderClosedListenerAnonymousInnerClassHelper(this, listenerClosedCount));
+                cxt.Reader.AddReaderClosedListener(new ReaderClosedListenerAnonymousClass(this, listenerClosedCount));
             }
             pr.Dispose();
             ir1.Dispose();
@@ -168,13 +169,13 @@ namespace Lucene.Net.Index
             dir1.Dispose();
         }
 
-        private class ReaderClosedListenerAnonymousInnerClassHelper : IReaderClosedListener
+        private class ReaderClosedListenerAnonymousClass : IReaderClosedListener
         {
             private readonly TestParallelCompositeReader outerInstance;
 
             private readonly int[] listenerClosedCount;
 
-            public ReaderClosedListenerAnonymousInnerClassHelper(TestParallelCompositeReader outerInstance, int[] listenerClosedCount)
+            public ReaderClosedListenerAnonymousClass(TestParallelCompositeReader outerInstance, int[] listenerClosedCount)
             {
                 this.outerInstance = outerInstance;
                 this.listenerClosedCount = listenerClosedCount;
@@ -202,20 +203,20 @@ namespace Lucene.Net.Index
 
             foreach (AtomicReaderContext cxt in pr.Leaves)
             {
-                cxt.Reader.AddReaderClosedListener(new ReaderClosedListenerAnonymousInnerClassHelper2(this, listenerClosedCount));
+                cxt.Reader.AddReaderClosedListener(new ReaderClosedListenerAnonymousClass2(this, listenerClosedCount));
             }
             pr.Dispose();
             Assert.AreEqual(3, listenerClosedCount[0]);
             dir1.Dispose();
         }
 
-        private class ReaderClosedListenerAnonymousInnerClassHelper2 : IReaderClosedListener
+        private class ReaderClosedListenerAnonymousClass2 : IReaderClosedListener
         {
             private readonly TestParallelCompositeReader outerInstance;
 
             private readonly int[] listenerClosedCount;
 
-            public ReaderClosedListenerAnonymousInnerClassHelper2(TestParallelCompositeReader outerInstance, int[] listenerClosedCount)
+            public ReaderClosedListenerAnonymousClass2(TestParallelCompositeReader outerInstance, int[] listenerClosedCount)
             {
                 this.outerInstance = outerInstance;
                 this.listenerClosedCount = listenerClosedCount;
@@ -248,9 +249,7 @@ namespace Lucene.Net.Index
                 psub.Document(0);
                 Assert.Fail("Subreader should be already closed because inner reader was closed!");
             }
-#pragma warning disable 168
-            catch (ObjectDisposedException e)
-#pragma warning restore 168
+            catch (Exception e) when (e.IsAlreadyClosedException())
             {
                 // pass
             }
@@ -260,9 +259,7 @@ namespace Lucene.Net.Index
                 pr.Document(0);
                 Assert.Fail("ParallelCompositeReader should be already closed because inner reader was closed!");
             }
-#pragma warning disable 168
-            catch (ObjectDisposedException e)
-#pragma warning restore 168
+            catch (Exception e) when (e.IsAlreadyClosedException())
             {
                 // pass
             }
@@ -294,9 +291,7 @@ namespace Lucene.Net.Index
                 new ParallelCompositeReader(ir1, ir2);
                 Assert.Fail("didn't get expected exception: indexes don't have same number of documents");
             }
-#pragma warning disable 168
-            catch (ArgumentException e)
-#pragma warning restore 168
+            catch (Exception e) when (e.IsIllegalArgumentException())
             {
                 // expected exception
             }
@@ -305,9 +300,7 @@ namespace Lucene.Net.Index
                 new ParallelCompositeReader(Random.NextBoolean(), ir1, ir2);
                 Assert.Fail("didn't get expected exception: indexes don't have same number of documents");
             }
-#pragma warning disable 168
-            catch (ArgumentException e)
-#pragma warning restore 168
+            catch (Exception e) when (e.IsIllegalArgumentException())
             {
                 // expected exception
             }
@@ -334,9 +327,7 @@ namespace Lucene.Net.Index
                 new ParallelCompositeReader(readers);
                 Assert.Fail("didn't get expected exception: indexes don't have same subreader structure");
             }
-#pragma warning disable 168
-            catch (ArgumentException e)
-#pragma warning restore 168
+            catch (Exception e) when (e.IsIllegalArgumentException())
             {
                 // expected exception
             }
@@ -345,9 +336,7 @@ namespace Lucene.Net.Index
                 new ParallelCompositeReader(Random.NextBoolean(), readers, readers);
                 Assert.Fail("didn't get expected exception: indexes don't have same subreader structure");
             }
-#pragma warning disable 168
-            catch (ArgumentException e)
-#pragma warning restore 168
+            catch (Exception e) when (e.IsIllegalArgumentException())
             {
                 // expected exception
             }
@@ -374,9 +363,7 @@ namespace Lucene.Net.Index
                 new ParallelCompositeReader(readers);
                 Assert.Fail("didn't get expected exception: indexes don't have same subreader structure");
             }
-#pragma warning disable 168
-            catch (ArgumentException e)
-#pragma warning restore 168
+            catch (Exception e) when (e.IsIllegalArgumentException())
             {
                 // expected exception
             }
@@ -385,9 +372,7 @@ namespace Lucene.Net.Index
                 new ParallelCompositeReader(Random.NextBoolean(), readers, readers);
                 Assert.Fail("didn't get expected exception: indexes don't have same subreader structure");
             }
-#pragma warning disable 168
-            catch (ArgumentException e)
-#pragma warning restore 168
+            catch (Exception e) when (e.IsIllegalArgumentException())
             {
                 // expected exception
             }
@@ -457,9 +442,7 @@ namespace Lucene.Net.Index
                 new ParallelCompositeReader(true, new CompositeReader[0], new CompositeReader[] { ir1 });
                 Assert.Fail("didn't get expected exception: need a non-empty main-reader array");
             }
-#pragma warning disable 168
-            catch (ArgumentException iae)
-#pragma warning restore 168
+            catch (Exception iae) when (iae.IsIllegalArgumentException())
             {
                 // pass
             }
@@ -491,7 +474,7 @@ namespace Lucene.Net.Index
 
             string s = pr.ToString();
 
-            Assert.IsTrue(s.StartsWith("ParallelCompositeReader(ParallelCompositeReaderAnonymousInnerClassHelper(ParallelAtomicReader(", StringComparison.Ordinal), "toString incorrect: " + s);
+            Assert.IsTrue(s.StartsWith("ParallelCompositeReader(ParallelCompositeReaderAnonymousClass(ParallelAtomicReader(", StringComparison.Ordinal), "toString incorrect: " + s);
 
             pr.Dispose();
             dir1.Dispose();

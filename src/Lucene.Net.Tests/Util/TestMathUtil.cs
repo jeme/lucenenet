@@ -1,5 +1,5 @@
-using Lucene.Net.Randomized.Generators;
-using NUnit.Framework;
+﻿using NUnit.Framework;
+using RandomizedTesting.Generators;
 using System;
 using Assert = Lucene.Net.TestFramework.Assert;
 
@@ -79,8 +79,7 @@ namespace Lucene.Net.Util
                 long l1 = RandomLong();
                 long l2 = RandomLong();
                 long gcd = MathUtil.Gcd(l1, l2);
-                long actualGcd;
-                if (TryGetGcd(l1, l2, out actualGcd))
+                if (TryGetGcd(l1, l2, out long actualGcd))
                 {
                     Assert.AreEqual(actualGcd, gcd);
                     if (gcd != 0)

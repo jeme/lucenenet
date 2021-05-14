@@ -1,4 +1,4 @@
-using J2N.Threading;
+﻿using J2N.Threading;
 using Lucene.Net.Documents;
 using Lucene.Net.Index.Extensions;
 using Lucene.Net.Search;
@@ -10,6 +10,7 @@ using System.Threading;
 using JCG = J2N.Collections.Generic;
 using Assert = Lucene.Net.TestFramework.Assert;
 using Console = Lucene.Net.Util.SystemConsole;
+using RandomizedTesting.Generators;
 
 namespace Lucene.Net.Index
 {
@@ -82,7 +83,7 @@ namespace Lucene.Net.Index
             for (int t = 0; t < numThreads; t++)
             {
                 Random threadRandom = new Random(Random.Next());
-                ThreadJob thread = new ThreadAnonymousInnerClassHelper(this, numbers, binary, sorted, numDocs, ar, startingGun, threadRandom);
+                ThreadJob thread = new ThreadAnonymousClass(this, numbers, binary, sorted, numDocs, ar, startingGun, threadRandom);
                 thread.Start();
                 threads.Add(thread);
             }
@@ -98,7 +99,7 @@ namespace Lucene.Net.Index
             dir.Dispose();
         }
 
-        private class ThreadAnonymousInnerClassHelper : ThreadJob
+        private class ThreadAnonymousClass : ThreadJob
         {
             private readonly TestDocValuesWithThreads outerInstance;
 
@@ -110,7 +111,7 @@ namespace Lucene.Net.Index
             private readonly CountdownEvent startingGun;
             private readonly Random threadRandom;
 
-            public ThreadAnonymousInnerClassHelper(TestDocValuesWithThreads outerInstance, IList<long?> numbers, IList<BytesRef> binary, IList<BytesRef> sorted, int numDocs, AtomicReader ar, CountdownEvent startingGun, Random threadRandom)
+            public ThreadAnonymousClass(TestDocValuesWithThreads outerInstance, IList<long?> numbers, IList<BytesRef> binary, IList<BytesRef> sorted, int numDocs, AtomicReader ar, CountdownEvent startingGun, Random threadRandom)
             {
                 this.outerInstance = outerInstance;
                 this.numbers = numbers;
@@ -173,9 +174,9 @@ namespace Lucene.Net.Index
                         Assert.AreEqual(sorted[docID], scratch2);
                     }
                 }
-                catch (Exception e)
+                catch (Exception e) when (e.IsException())
                 {
-                    throw new Exception(e.Message, e);
+                    throw RuntimeException.Create(e);
                 }
             }
         }
@@ -255,7 +256,7 @@ namespace Lucene.Net.Index
             ThreadJob[] threads = new ThreadJob[NUM_THREADS];
             for (int thread = 0; thread < NUM_THREADS; thread++)
             {
-                threads[thread] = new ThreadAnonymousInnerClassHelper2(random, docValues, sr, END_TIME);
+                threads[thread] = new ThreadAnonymousClass2(random, docValues, sr, END_TIME);
                 threads[thread].Start();
             }
 
@@ -268,14 +269,14 @@ namespace Lucene.Net.Index
             dir.Dispose();
         }
 
-        private class ThreadAnonymousInnerClassHelper2 : ThreadJob
+        private class ThreadAnonymousClass2 : ThreadJob
         {
             private readonly Random random;
             private readonly IList<BytesRef> docValues;
             private readonly AtomicReader sr;
             private readonly long endTime;
 
-            public ThreadAnonymousInnerClassHelper2(Random random, IList<BytesRef> docValues, AtomicReader sr, long endTime)
+            public ThreadAnonymousClass2(Random random, IList<BytesRef> docValues, AtomicReader sr, long endTime)
             {
                 this.random = random;
                 this.docValues = docValues;
@@ -293,9 +294,9 @@ namespace Lucene.Net.Index
                     docIDToID = sr.GetNumericDocValues("id");
                     Assert.IsNotNull(stringDVDirect);
                 }
-                catch (IOException ioe)
+                catch (Exception ioe) when (ioe.IsIOException())
                 {
-                    throw new Exception(ioe.ToString(), ioe);
+                    throw RuntimeException.Create(ioe);
                 }
                 while (Environment.TickCount < endTime)
                 {

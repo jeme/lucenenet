@@ -1,10 +1,9 @@
-using Lucene.Net.Diagnostics;
+﻿using Lucene.Net.Diagnostics;
 using Lucene.Net.Index;
 using Lucene.Net.Store;
 using Lucene.Net.Util;
 using System;
 using System.Collections.Generic;
-using AssertionError = Lucene.Net.Diagnostics.AssertionException;
 
 namespace Lucene.Net.Codecs.Lucene3x
 {
@@ -40,12 +39,14 @@ namespace Lucene.Net.Codecs.Lucene3x
         /// Extension of norms file </summary>
         private const string NORMS_EXTENSION = "nrm";
 
-        /// <summary>
-        /// Extension of separate norms file </summary>
-        [Obsolete("Only for reading existing 3.x indexes")]
-        private const string SEPARATE_NORMS_EXTENSION = "s";
+        ///// <summary>
+        ///// Extension of separate norms file </summary>
+        //[Obsolete("Only for reading existing 3.x indexes")]
+        //private const string SEPARATE_NORMS_EXTENSION = "s"; // LUCENENET: IDE0051: Remove unused private member
 
+#pragma warning disable CA2213 // Disposable fields should be disposed
         private readonly IndexOutput @out;
+#pragma warning restore CA2213 // Disposable fields should be disposed
         private int lastFieldNumber = -1; // only for assert
 
         public PreFlexRWNormsConsumer(Directory directory, string segment, IOContext context)
@@ -75,14 +76,14 @@ namespace Lucene.Net.Codecs.Lucene3x
 
         public override void AddNumericField(FieldInfo field, IEnumerable<long?> values)
         {
-            if (Debugging.AssertsEnabled) Debugging.Assert(field.Number > lastFieldNumber, () => "writing norms fields out of order" + lastFieldNumber + " -> " + field.Number);
+            if (Debugging.AssertsEnabled) Debugging.Assert(field.Number > lastFieldNumber,"writing norms fields out of order {0} -> {1}", lastFieldNumber, field.Number);
             foreach (var n in values)
             {
-                if (((sbyte)(byte)(long)n) < sbyte.MinValue || ((sbyte)(byte)(long)n) > sbyte.MaxValue)
+                if (((sbyte)n) < sbyte.MinValue || ((sbyte)n) > sbyte.MaxValue)
                 {
-                    throw new NotSupportedException("3.x cannot index norms that won't fit in a byte, got: " + ((sbyte)(byte)(long)n));
+                    throw UnsupportedOperationException.Create("3.x cannot index norms that won't fit in a byte, got: " + ((sbyte)n));
                 }
-                @out.WriteByte((byte)(sbyte)n);
+                @out.WriteByte((byte)n);
             }
             lastFieldNumber = field.Number;
         }
@@ -95,17 +96,17 @@ namespace Lucene.Net.Codecs.Lucene3x
 
         public override void AddBinaryField(FieldInfo field, IEnumerable<BytesRef> values)
         {
-            throw new AssertionError();
+            throw AssertionError.Create();
         }
 
         public override void AddSortedField(FieldInfo field, IEnumerable<BytesRef> values, IEnumerable<long?> docToOrd)
         {
-            throw new AssertionError();
+            throw AssertionError.Create();
         }
 
         public override void AddSortedSetField(FieldInfo field, IEnumerable<BytesRef> values, IEnumerable<long?> docToOrdCount, IEnumerable<long?> ords)
         {
-            throw new AssertionError();
+            throw AssertionError.Create();
         }
     }
 }

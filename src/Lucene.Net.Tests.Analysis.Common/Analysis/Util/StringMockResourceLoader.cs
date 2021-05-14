@@ -1,4 +1,5 @@
-﻿using System;
+﻿// Lucene version compatibility level 4.8.1
+using System;
 using System.IO;
 using System.Text;
 
@@ -38,9 +39,9 @@ namespace Lucene.Net.Analysis.Util
             {
                 return Type.GetType(cname);
             }
-            catch (Exception e)
+            catch (Exception e) when (e.IsException())
             {
-                throw new Exception("Cannot load class: " + cname, e);
+                throw RuntimeException.Create("Cannot load class: " + cname, e);
             }
         }
 
@@ -51,9 +52,9 @@ namespace Lucene.Net.Analysis.Util
             {
                 return (T)Activator.CreateInstance(clazz);
             }
-            catch (Exception e)
+            catch (Exception e) when (e.IsException())
             {
-                throw new Exception("Cannot create instance: " + cname, e);
+                throw RuntimeException.Create("Cannot create instance: " + cname, e);
             }
         }
 

@@ -1,4 +1,5 @@
-﻿using Lucene.Net.Analysis.Util;
+// Lucene version compatibility level 4.8.1
+using Lucene.Net.Analysis.Util;
 using Lucene.Net.Util;
 using System;
 using System.Collections.Generic;
@@ -85,7 +86,7 @@ namespace Lucene.Net.Analysis.Path
             skip = GetInt32(args, "skip", PathHierarchyTokenizer.DEFAULT_SKIP);
             if (args.Count > 0)
             {
-                throw new ArgumentException("Unknown parameters: " + args);
+                throw new ArgumentException(string.Format(J2N.Text.StringFormatter.CurrentCulture, "Unknown parameters: {0}", args));
             }
         }
 

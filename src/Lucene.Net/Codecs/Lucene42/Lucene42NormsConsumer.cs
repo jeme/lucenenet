@@ -1,7 +1,6 @@
-using Lucene.Net.Diagnostics;
+﻿using Lucene.Net.Diagnostics;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using JCG = J2N.Collections.Generic;
 
 namespace Lucene.Net.Codecs.Lucene42
@@ -48,7 +47,9 @@ namespace Lucene.Net.Codecs.Lucene42
         internal const sbyte UNCOMPRESSED = 2;
         internal const sbyte GCD_COMPRESSED = 3;
 
+#pragma warning disable CA2213 // Disposable fields should be disposed
         internal IndexOutput data, meta;
+#pragma warning restore CA2213 // Disposable fields should be disposed
         internal readonly int maxDoc;
         internal readonly float acceptableOverheadRatio;
 
@@ -80,12 +81,12 @@ namespace Lucene.Net.Codecs.Lucene42
         {
             meta.WriteVInt32(field.Number);
             meta.WriteByte((byte)NUMBER);
-            meta.WriteInt64(data.GetFilePointer());
+            meta.WriteInt64(data.Position); // LUCENENET specific: Renamed from getFilePointer() to match FileStream
             long minValue = long.MaxValue;
             long maxValue = long.MinValue;
             long gcd = 0;
             // TODO: more efficient?
-            JCG.HashSet<long> uniqueValues = null;
+            JCG.HashSet<long> uniqueValues/* = null*/; // LUCENENET: IDE0059: Remove unnecessary value assignment
             if (true)
             {
                 uniqueValues = new JCG.HashSet<long>();
@@ -234,17 +235,17 @@ namespace Lucene.Net.Codecs.Lucene42
 
         public override void AddBinaryField(FieldInfo field, IEnumerable<BytesRef> values)
         {
-            throw new NotSupportedException();
+            throw UnsupportedOperationException.Create();
         }
 
         public override void AddSortedField(FieldInfo field, IEnumerable<BytesRef> values, IEnumerable<long?> docToOrd)
         {
-            throw new NotSupportedException();
+            throw UnsupportedOperationException.Create();
         }
 
         public override void AddSortedSetField(FieldInfo field, IEnumerable<BytesRef> values, IEnumerable<long?> docToOrdCount, IEnumerable<long?> ords)
         {
-            throw new NotSupportedException();
+            throw UnsupportedOperationException.Create();
         }
     }
 }

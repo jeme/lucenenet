@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 
 namespace Lucene.Net.Analysis.TokenAttributes
 {
@@ -24,10 +24,7 @@ namespace Lucene.Net.Analysis.TokenAttributes
 
     /// <summary>
     /// Default implementation of <see cref="IPositionIncrementAttribute"/>. </summary>
-    public class PositionIncrementAttribute : Attribute, IPositionIncrementAttribute
-#if FEATURE_CLONEABLE
-        , System.ICloneable
-#endif
+    public class PositionIncrementAttribute : Attribute, IPositionIncrementAttribute // LUCENENET specific: Not implementing ICloneable per Microsoft's recommendation
     {
         private int positionIncrement = 1;
 
@@ -44,7 +41,7 @@ namespace Lucene.Net.Analysis.TokenAttributes
             {
                 if (value < 0)
                 {
-                    throw new ArgumentException("Increment must be zero or greater: got " + value);
+                    throw new ArgumentOutOfRangeException(nameof(PositionIncrement), "Increment must be zero or greater: got " + value); // LUCENENET specific - changed from IllegalArgumentException to ArgumentOutOfRangeException (.NET convention)
                 }
                 this.positionIncrement = value;
             }
@@ -62,9 +59,8 @@ namespace Lucene.Net.Analysis.TokenAttributes
                 return true;
             }
 
-            if (other is PositionIncrementAttribute)
+            if (other is PositionIncrementAttribute _other)
             {
-                PositionIncrementAttribute _other = (PositionIncrementAttribute)other;
                 return positionIncrement == _other.positionIncrement;
             }
 

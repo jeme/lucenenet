@@ -1,4 +1,5 @@
-﻿using J2N;
+// Lucene version compatibility level 4.8.1
+using J2N;
 using J2N.Text;
 using System;
 using System.IO;
@@ -121,7 +122,7 @@ namespace Lucene.Net.Analysis.Util
         [Test]
         public virtual void TestCrossPlaneNormalization()
         {
-            var analyzer = new AnalyzerAnonymousInnerClassHelper();
+            var analyzer = new AnalyzerAnonymousClass();
             var num = 1000 * RandomMultiplier;
             for (var i = 0; i < num; i++)
             {
@@ -151,17 +152,17 @@ namespace Lucene.Net.Analysis.Util
             CheckRandomData(Random, analyzer, num);
         }
 
-        private sealed class AnalyzerAnonymousInnerClassHelper : Analyzer
+        private sealed class AnalyzerAnonymousClass : Analyzer
         {
             protected internal override TokenStreamComponents CreateComponents(string fieldName, TextReader reader)
             {
-                Tokenizer tokenizer = new LetterTokenizerAnonymousInnerClassHelper(TEST_VERSION_CURRENT, reader);
+                Tokenizer tokenizer = new LetterTokenizerAnonymousClass(TEST_VERSION_CURRENT, reader);
                 return new TokenStreamComponents(tokenizer, tokenizer);
             }
 
-            private sealed class LetterTokenizerAnonymousInnerClassHelper : LetterTokenizer
+            private sealed class LetterTokenizerAnonymousClass : LetterTokenizer
             {
-                public LetterTokenizerAnonymousInnerClassHelper(LuceneVersion TEST_VERSION_CURRENT, TextReader reader)
+                public LetterTokenizerAnonymousClass(LuceneVersion TEST_VERSION_CURRENT, TextReader reader)
                     : base(TEST_VERSION_CURRENT, reader)
                 {
                 }
@@ -184,7 +185,7 @@ namespace Lucene.Net.Analysis.Util
         [Test]
         public virtual void TestCrossPlaneNormalization2()
         {
-            var analyzer = new AnalyzerAnonymousInnerClassHelper2();
+            var analyzer = new AnalyzerAnonymousClass2();
             var num = 1000 * RandomMultiplier;
             for (var i = 0; i < num; i++)
             {
@@ -214,17 +215,17 @@ namespace Lucene.Net.Analysis.Util
             CheckRandomData(Random, analyzer, num);
         }
 
-        private sealed class AnalyzerAnonymousInnerClassHelper2 : Analyzer
+        private sealed class AnalyzerAnonymousClass2 : Analyzer
         {
             protected internal override TokenStreamComponents CreateComponents(string fieldName, TextReader reader)
             {
-                Tokenizer tokenizer = new LetterTokenizerAnonymousInnerClassHelper2(TEST_VERSION_CURRENT, reader);
+                Tokenizer tokenizer = new LetterTokenizerAnonymousClass2(TEST_VERSION_CURRENT, reader);
                 return new TokenStreamComponents(tokenizer, tokenizer);
             }
 
-            private sealed class LetterTokenizerAnonymousInnerClassHelper2 : LetterTokenizer
+            private sealed class LetterTokenizerAnonymousClass2 : LetterTokenizer
             {
-                public LetterTokenizerAnonymousInnerClassHelper2(LuceneVersion TEST_VERSION_CURRENT, TextReader reader)
+                public LetterTokenizerAnonymousClass2(LuceneVersion TEST_VERSION_CURRENT, TextReader reader)
                     : base(TEST_VERSION_CURRENT, reader)
                 {
                 }
@@ -252,15 +253,15 @@ namespace Lucene.Net.Analysis.Util
         [LuceneNetSpecific]
         public virtual void TestSurrogates()
         {
-            var analyzer = new AnalyzerAnonymousInnerClassHelper3();
+            var analyzer = new AnalyzerAnonymousClass3();
 
             AssertAnalyzesTo(analyzer, "bar 123" + (char)55404 + (char)56321 + "34 5te 987", new string[] { "123𫀁34", "5", "987" });
             AssertAnalyzesTo(analyzer, "787 " + (char)55297 + (char)56388 + "6" + (char)55404 + (char)56321 + " art true 734", new string[] { "787", "𐑄6𫀁", "734" });
         }
 
-        private sealed class AnalyzerAnonymousInnerClassHelper3 : Analyzer
+        private sealed class AnalyzerAnonymousClass3 : Analyzer
         {
-            public AnalyzerAnonymousInnerClassHelper3()
+            public AnalyzerAnonymousClass3()
             { }
 
             protected internal override TokenStreamComponents CreateComponents(string fieldName, TextReader reader)

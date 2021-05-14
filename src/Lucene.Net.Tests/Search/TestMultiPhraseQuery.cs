@@ -1,4 +1,4 @@
-using J2N.Collections.Generic.Extensions;
+﻿using J2N.Collections.Generic.Extensions;
 using Lucene.Net.Documents;
 using NUnit.Framework;
 using System;
@@ -148,9 +148,7 @@ namespace Lucene.Net.Search
                 query4.Add(new Term("field2", "foobar"));
                 Assert.Fail();
             }
-#pragma warning disable 168
-            catch (ArgumentException e)
-#pragma warning restore 168
+            catch (Exception e) when (e.IsIllegalArgumentException())
             {
                 // okay, all terms must belong to the same field
             }
@@ -401,7 +399,7 @@ namespace Lucene.Net.Search
 
             IndexReader reader = writer.GetReader();
             IndexSearcher searcher = NewSearcher(reader);
-            searcher.Similarity = new DefaultSimilarityAnonymousInnerClassHelper(this);
+            searcher.Similarity = new DefaultSimilarityAnonymousClass(this);
 
             MultiPhraseQuery query = new MultiPhraseQuery();
             query.Add(new Term[] { new Term("body", "this"), new Term("body", "that") });
@@ -414,11 +412,11 @@ namespace Lucene.Net.Search
             indexStore.Dispose();
         }
 
-        private class DefaultSimilarityAnonymousInnerClassHelper : DefaultSimilarity
+        private class DefaultSimilarityAnonymousClass : DefaultSimilarity
         {
             private readonly TestMultiPhraseQuery outerInstance;
 
-            public DefaultSimilarityAnonymousInnerClassHelper(TestMultiPhraseQuery outerInstance)
+            public DefaultSimilarityAnonymousClass(TestMultiPhraseQuery outerInstance)
             {
                 this.outerInstance = outerInstance;
             }
@@ -658,9 +656,7 @@ namespace Lucene.Net.Search
                 query.Slop = -2;
                 Assert.Fail("didn't get expected exception");
             }
-#pragma warning disable 168
-            catch (ArgumentException expected)
-#pragma warning restore 168
+            catch (ArgumentOutOfRangeException) // LUCENENET specific - changed from IllegalArgumentException to ArgumentOutOfRangeException (.NET convention)
             {
                 // expected exception
             }
