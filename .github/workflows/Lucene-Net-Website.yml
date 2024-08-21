@@ -50,7 +50,7 @@ jobs:
 
       # Checkout the main repo with all history so we get all tags
       - name: Checkout Lucene.Net source
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           path: main-repo
           fetch-depth: 0
@@ -105,8 +105,15 @@ jobs:
         run: ./main-repo/websites/site/site.ps1 -Clean
         shell: powershell
 
+      - name: Upload website as build artifact
+        uses: actions/upload-artifact@v3
+        if: ${{always()}}
+        with:
+          name: 'website'
+          path: '${{github.workspace}}/main-repo/websites/site/_site'
+
       - name: Checkout Lucene.Net website
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           repository: ${{ env.SITE_REPO }}
           ref: asf-site
@@ -118,7 +125,7 @@ jobs:
 
       - name: Create Pull Request
         id: cpr
-        uses: peter-evans/create-pull-request@v3
+        uses: peter-evans/create-pull-request@v5
         with:
           token: ${{ secrets.LUCENE_NET_WEBSITE_BUILD }}
           path: website-repo

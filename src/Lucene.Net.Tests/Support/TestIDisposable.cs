@@ -1,4 +1,4 @@
-using Lucene.Net.Analysis.Core;
+﻿using Lucene.Net.Analysis.Core;
 using Lucene.Net.Attributes;
 using Lucene.Net.Documents;
 using Lucene.Net.Index;
@@ -43,8 +43,8 @@ namespace Lucene.Net.Support
                 IndexWriter writer;
                 IndexReader reader;
                 IndexWriterConfig conf = new IndexWriterConfig(
-                    Util.LuceneVersion.LUCENE_CURRENT, 
-                    new WhitespaceAnalyzer(Util.LuceneVersion.LUCENE_CURRENT));
+                    LuceneVersion.LUCENE_CURRENT,
+                    new WhitespaceAnalyzer(LuceneVersion.LUCENE_CURRENT));
 
                 using (writer = new IndexWriter(dir, conf /*new WhitespaceAnalyzer(), true, IndexWriter.MaxFieldLength.UNLIMITED)*/))
                 {
@@ -58,9 +58,9 @@ namespace Lucene.Net.Support
                     {
                     }
 
-                    Assert.Throws<ObjectDisposedException>(() => reader.RemoveReaderClosedListener(null), "IndexReader shouldn't be open here");
+                    Assert.Throws<ObjectDisposedException>(() => reader.RemoveReaderDisposedListener(null), "IndexReader shouldn't be open here");
                 }
-                
+
                 Assert.Throws<ObjectDisposedException>(() => writer.AddDocument(doc), "IndexWriter shouldn't be open here");
 
                 Assert.IsTrue(dir.IsOpen, "RAMDirectory");

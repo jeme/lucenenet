@@ -1,5 +1,7 @@
 ﻿using Lucene.Net.Diagnostics;
+using Lucene.Net.Support;
 using System;
+using System.Data.Common;
 using System.Runtime.CompilerServices;
 
 namespace Lucene.Net.Codecs
@@ -159,7 +161,7 @@ namespace Lucene.Net.Codecs
                 {
                     if (!LoadNextSkip(level))
                     {
-                        continue;
+                        // continue; // LUCENENET: Removed redundant jump statements. https://rules.sonarsource.com/csharp/RSPEC-3626
                     }
                 }
                 else
@@ -254,9 +256,9 @@ namespace Lucene.Net.Codecs
             this.skipPointer[0] = skipPointer;
             this.docCount = df;
             if (Debugging.AssertsEnabled) Debugging.Assert(skipPointer >= 0 && skipPointer <= skipStream[0].Length,"invalid skip pointer: {0}, length={1}", skipPointer, skipStream[0].Length);
-            Array.Clear(m_skipDoc, 0, m_skipDoc.Length);
-            Array.Clear(numSkipped, 0, numSkipped.Length);
-            Array.Clear(childPointer, 0, childPointer.Length);
+            Arrays.Fill(m_skipDoc, 0);
+            Arrays.Fill(numSkipped, 0);
+            Arrays.Fill(childPointer, 0);
 
             haveSkipped = false;
             for (int i = 1; i < numberOfSkipLevels; i++)
@@ -360,25 +362,43 @@ namespace Lucene.Net.Codecs
 
             public override long Position => pointer + pos; // LUCENENET specific: Renamed from getFilePointer() to match FileStream
 
-            public override long Length => data.Length;
+            public override long Length
+            {
+                get
+                {
+                    EnsureOpen(); // LUCENENET: Guard against disposed IndexInput
+                    return data.Length;
+                }
+            }
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public override byte ReadByte()
             {
+                EnsureOpen(); // LUCENENET: Guard against disposed IndexInput
                 return data[pos++];
             }
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public override void ReadBytes(byte[] b, int offset, int len)
             {
-                Array.Copy(data, pos, b, offset, len);
+                EnsureOpen(); // LUCENENET: Guard against disposed IndexInput
+                Arrays.Copy(data, pos, b, offset, len);
                 pos += len;
             }
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public override void Seek(long pos)
             {
+                EnsureOpen(); // LUCENENET: Guard against disposed IndexInput
                 this.pos = (int)(pos - pointer);
+            }
+
+            private void EnsureOpen() // LUCENENET: Guard against disposed IndexInput
+            {
+                if (data is null)
+                {
+                    throw AlreadyClosedException.Create(this.GetType().FullName, "this IndexInput is disposed.");
+                }
             }
         }
     }

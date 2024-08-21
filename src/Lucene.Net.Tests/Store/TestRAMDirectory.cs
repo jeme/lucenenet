@@ -3,6 +3,7 @@ using Lucene.Net.Documents;
 using Lucene.Net.Index.Extensions;
 using NUnit.Framework;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using Assert = Lucene.Net.TestFramework.Assert;
 
@@ -61,7 +62,7 @@ namespace Lucene.Net.Store
             indexDir = new DirectoryInfo(Path.Combine(tempDir, "RAMDirIndex"));
 
             Directory dir = NewFSDirectory(indexDir);
-            IndexWriter writer = new IndexWriter(dir, (new IndexWriterConfig(TEST_VERSION_CURRENT, new MockAnalyzer(Random))).SetOpenMode(OpenMode.CREATE));
+            IndexWriter writer = new IndexWriter(dir, new IndexWriterConfig(TEST_VERSION_CURRENT, new MockAnalyzer(Random)).SetOpenMode(OpenMode.CREATE));
             // add some documents
             Document doc = null;
             for (int i = 0; i < docsToAdd; i++)
@@ -115,7 +116,7 @@ namespace Lucene.Net.Store
             MockDirectoryWrapper ramDir = new MockDirectoryWrapper(Random, new RAMDirectory(dir, NewIOContext(Random)));
             dir.Dispose();
 
-            IndexWriter writer = new IndexWriter(ramDir, (new IndexWriterConfig(TEST_VERSION_CURRENT, new MockAnalyzer(Random))).SetOpenMode(OpenMode.APPEND));
+            IndexWriter writer = new IndexWriter(ramDir, new IndexWriterConfig(TEST_VERSION_CURRENT, new MockAnalyzer(Random)).SetOpenMode(OpenMode.APPEND));
             writer.ForceMerge(1);
 
             Assert.AreEqual(ramDir.GetSizeInBytes(), ramDir.GetRecomputedSizeInBytes());
@@ -202,9 +203,37 @@ namespace Lucene.Net.Store
         private void RmDir(DirectoryInfo dir)
         {
             FileInfo[] files = dir.GetFiles();
+            List<FileInfo> retryFiles = null;
             for (int i = 0; i < files.Length; i++)
             {
-                files[i].Delete();
+                try
+                {
+                    files[i].Delete();
+                }
+                catch (IOException)
+                {
+                    // LUCENENET specific - we can get here if Windows stil has a lock on the file. We will put it into a list to retry.
+                    if (retryFiles is null) retryFiles = new List<FileInfo>();
+                    retryFiles.Add(files[i]);
+                }
+            }
+            // LUCENENET specific - retry the deletion if it failed on the first pass
+            if (retryFiles is not null)
+            {
+                // Second pass - if this attempt doesn't work, just give up.
+                foreach (var file in retryFiles)
+                {
+                    try
+                    {
+                        file.Delete();
+                    }
+                    catch { /* ignore */ }
+                }
+                if (retryFiles.Count == 0)
+                {
+                    dir.Delete();
+                }
+                return;
             }
             dir.Delete();
         }

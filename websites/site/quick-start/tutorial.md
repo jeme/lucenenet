@@ -140,6 +140,8 @@ using Lucene.Net.Store;
 using Lucene.Net.Util;
 using System.Diagnostics;
 using LuceneDirectory = Lucene.Net.Store.Directory;
+using OpenMode = Lucene.Net.Index.OpenMode;
+using Document = Lucene.Net.Documents.Document;
 
 // Specify the compatibility version we want
 const LuceneVersion luceneVersion = LuceneVersion.LUCENE_48; 
@@ -160,7 +162,7 @@ IndexWriter writer = new IndexWriter(indexDir, indexConfig);
 
 //Add three documents to the index
 Document doc = new Document();
-doc.Add(new TextField("titleTag", "The Apache Software Foundation - The world's largest open source foundation.", Field.Store.YES));
+doc.Add(new TextField("title", "The Apache Software Foundation - The world's largest open source foundation.", Field.Store.YES));
 doc.Add(new StringField("domain", "www.apache.org/", Field.Store.YES));
 writer.AddDocument(doc);
 
@@ -224,7 +226,7 @@ IndexWriter writer = new IndexWriter(indexDir, indexConfig);
 
 Then in the next block we add three documents to the index.  In this example we happen to specify that each document has two fields: title and domain. A document however could have as many fields as we like.
 
-We also specify here that title is a `TextField` which means that want the field to support full text searches, and we specify domain as a `StringField` which means we what to do exact match searches against that field.
+We also specify here that title is a `TextField` which means that we want the field to support full text searches, and we specify domain as a `StringField` which means we want to do exact match searches against that field.
 
 It's worth noting that the documents are buffered in RAM initially and are not written to the index in the `Directory` until we call `writer.Commit();`
 

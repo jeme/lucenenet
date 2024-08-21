@@ -60,7 +60,7 @@ namespace Lucene.Net.Analysis.Hu
                     return WordlistLoader.GetSnowballWordSet(
                         IOUtils.GetDecodingReader(typeof(SnowballFilter), DEFAULT_STOPWORD_FILE, Encoding.UTF8),
 #pragma warning disable 612, 618
-                        LuceneVersion.LUCENE_CURRENT);
+                        LuceneVersion.LUCENE_CURRENT).AsReadOnly(); // LUCENENET: Made readonly as stated in the docs: https://github.com/apache/lucene/issues/11866
 #pragma warning restore 612, 618
                 }
                 catch (Exception ex) when (ex.IsIOException())
@@ -87,7 +87,7 @@ namespace Lucene.Net.Analysis.Hu
         /// <param name="matchVersion"> lucene compatibility version </param>
         /// <param name="stopwords"> a stopword set </param>
         public HungarianAnalyzer(LuceneVersion matchVersion, CharArraySet stopwords)
-              : this(matchVersion, stopwords, CharArraySet.EMPTY_SET)
+              : this(matchVersion, stopwords, CharArraySet.Empty)
         {
         }
 
@@ -102,7 +102,7 @@ namespace Lucene.Net.Analysis.Hu
         public HungarianAnalyzer(LuceneVersion matchVersion, CharArraySet stopwords, CharArraySet stemExclusionSet)
               : base(matchVersion, stopwords)
         {
-            this.stemExclusionSet = CharArraySet.UnmodifiableSet(CharArraySet.Copy(matchVersion, stemExclusionSet));
+            this.stemExclusionSet = CharArraySet.Copy(matchVersion, stemExclusionSet).AsReadOnly();
         }
 
         /// <summary>

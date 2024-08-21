@@ -1,8 +1,8 @@
 ﻿using J2N.Threading;
+using Lucene.Net.Support;
 using NUnit.Framework;
 using RandomizedTesting.Generators;
 using System;
-using System.IO;
 using Assert = Lucene.Net.TestFramework.Assert;
 using Console = Lucene.Net.Util.SystemConsole;
 
@@ -165,7 +165,7 @@ namespace Lucene.Net.Store
             {
                 IndexInput copiedData = d.OpenInput("copy" + i, IOContext.DEFAULT);
                 byte[] dataCopy = new byte[datalen];
-                System.Buffer.BlockCopy(data, 0, dataCopy, 0, 100); // copy the header for easy testing
+                Arrays.Copy(data, 0, dataCopy, 0, 100); // copy the header for easy testing
                 copiedData.ReadBytes(dataCopy, 100, datalen - 100);
                 Assert.AreEqual(data, dataCopy);
                 copiedData.Dispose();

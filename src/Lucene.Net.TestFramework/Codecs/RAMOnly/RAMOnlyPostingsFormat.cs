@@ -3,6 +3,7 @@ using J2N.Threading.Atomic;
 using Lucene.Net.Diagnostics;
 using Lucene.Net.Index;
 using Lucene.Net.Store;
+using Lucene.Net.Support;
 using Lucene.Net.Support.Threading;
 using Lucene.Net.Util;
 using System;
@@ -336,7 +337,7 @@ namespace Lucene.Net.Codecs.RAMOnly
                         current.payloads = new byte[current.positions.Length][];
                     }
                     var bytes = current.payloads[posUpto] = new byte[payload.Length];
-                    Array.Copy(payload.Bytes, payload.Offset, bytes, 0, payload.Length);
+                    Arrays.Copy(payload.Bytes, payload.Offset, bytes, 0, payload.Length);
                 }
                 posUpto++;
             }
@@ -571,7 +572,7 @@ namespace Lucene.Net.Codecs.RAMOnly
         // Holds all indexes created, keyed by the ID assigned in fieldsConsumer
         private readonly IDictionary<int, RAMPostings> state = new Dictionary<int, RAMPostings>();
 
-        private readonly AtomicInt64 nextID = new AtomicInt64();
+        private readonly AtomicInt32 nextID = new AtomicInt32();
 
         private readonly string RAM_ONLY_NAME = "RAMOnly";
         private const int VERSION_START = 0;
@@ -581,7 +582,7 @@ namespace Lucene.Net.Codecs.RAMOnly
 
         public override FieldsConsumer FieldsConsumer(SegmentWriteState writeState)
         {
-            int id = (int)nextID.GetAndIncrement();
+            int id = nextID.GetAndIncrement();
 
             // TODO -- ok to do this up front instead of
             // on close....?  should be ok?

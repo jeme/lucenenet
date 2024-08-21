@@ -18,20 +18,23 @@
  specific language governing permissions and limitations
  under the License.
 
--->  
+-->
 <Project Sdk="Microsoft.NET.Sdk">
 
   <Import Project="$(SolutionDir)TestTargetFramework.props" />
 
   <PropertyGroup>
     <!-- Allow specific target framework to flow in from TestTargetFrameworks.props -->
-    <TargetFrameworks Condition=" '$(TargetFramework)' == '' ">net6.0;net5.0;netcoreapp3.1</TargetFrameworks>
-    <!-- If .NET Frameowrk is specified, just target the latest version -->
-    <TargetFramework Condition=" $(TargetFramework.StartsWith('net4')) ">net6.0</TargetFramework>
+    <TargetFrameworks Condition=" '$(TargetFramework)' == '' ">net8.0;net6.0</TargetFrameworks>
     <AssemblyTitle>Lucene.Net.Tests.Cli</AssemblyTitle>
+  </PropertyGroup>
 
-    <IsPublishable Condition="$(TargetFramework.StartsWith('net4'))">false</IsPublishable>
-    <IsTestProject Condition="$(TargetFramework.StartsWith('net4'))">false</IsTestProject>
+  <PropertyGroup Condition=" $(TargetFramework.StartsWith('net4')) Or $(TargetFramework.StartsWith('net5.')) ">
+    <!-- For CI, we don't publish the projects and exclude them from the test run by setting IsPublishable=false and IsTestProject=false -->
+    <IsPublishable>false</IsPublishable>
+    <IsTestProject>false</IsTestProject>
+    <!-- For the IDE, the above doesn't work. Redirect to a supported test framework instead. -->
+    <TargetFramework>net8.0</TargetFramework>
   </PropertyGroup>
 
   <ItemGroup>

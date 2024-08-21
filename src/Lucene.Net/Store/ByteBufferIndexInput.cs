@@ -75,7 +75,7 @@ namespace Lucene.Net.Store
             }
         }
 
-        internal ByteBufferIndexInput(string resourceDescription, ByteBuffer[] buffers, long length, int chunkSizePower, bool trackClones)
+        private protected ByteBufferIndexInput(string resourceDescription, ByteBuffer[] buffers, long length, int chunkSizePower, bool trackClones) // LUCENENET: Changed from internal to private protected
             : base(resourceDescription)
         {
             //this.buffers = buffers; // LUCENENET: this is set in SetBuffers()
@@ -389,10 +389,7 @@ namespace Lucene.Net.Store
                     // make local copy, then un-set early
                     ByteBuffer[] bufs = buffers;
                     UnsetBuffers();
-                    if (clones != null)
-                    {
-                        clones.Remove(this);
-                    }
+                    clones?.Remove(this);
 
                     if (isClone)
                     {

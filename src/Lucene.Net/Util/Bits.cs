@@ -1,5 +1,6 @@
-using Lucene.Net.Support;
+﻿using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using System;
 
 namespace Lucene.Net.Util
 {
@@ -43,7 +44,10 @@ namespace Lucene.Net.Util
 
     public static class Bits
     {
-        public static readonly IBits[] EMPTY_ARRAY = Arrays.Empty<IBits>();
+        [SuppressMessage("CodeQuality", "IDE0079:Remove unnecessary suppression", Justification = "This is a SonarCloud issue")]
+        [SuppressMessage("Performance", "S3887:Use an immutable collection or reduce the accessibility of the non-private readonly field", Justification = "Collection is immutable")]
+        [SuppressMessage("Performance", "S2386:Use an immutable collection or reduce the accessibility of the public static field", Justification = "Collection is immutable")]
+        public static readonly IBits[] EMPTY_ARRAY = Array.Empty<IBits>();
 
         /// <summary>
         /// Bits impl of the specified length with all bits set.

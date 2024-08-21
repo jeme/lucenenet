@@ -5,6 +5,7 @@ using Lucene.Net.Support;
 using Lucene.Net.Util;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.IO;
 using System.Text;
@@ -80,6 +81,7 @@ namespace Lucene.Net.Analysis.Util
         /// or <see cref="TokenFilterFactory.Create(TokenStream)"/> methods,
         /// to inform user, that for this factory a <see cref="m_luceneMatchVersion"/> is required 
         /// </summary>
+        [SuppressMessage("Performance", "CA1822:Mark members as static", Justification = "By design")]
         protected void AssureMatchVersion() // LUCENENET TODO: Remove this method (not used anyway in .NET)
         {
             // LUCENENET NOTE: since luceneMatchVersion can never be null in .NET,
@@ -127,24 +129,32 @@ namespace Lucene.Net.Analysis.Util
             throw new ArgumentException($"Configuration Error: '{name}' value must be one of {Collections.ToString(allowedValues)}");
         }
 
-        public virtual string Get(IDictionary<string, string> args, string name, string defaultVal = null)
+        // LUCENENET specific - S1699 - marked non-virtual because calling
+        // virtual members from the constructor is not a safe operation in .NET
+        public string Get(IDictionary<string, string> args, string name, string defaultVal = null)
         {
             if (args.TryGetValue(name, out string s))
                 args.Remove(name);
             return s ?? defaultVal;
         }
 
-        public virtual string Get(IDictionary<string, string> args, string name, ICollection<string> allowedValues)
+        // LUCENENET specific - S1699 - marked non-virtual because calling
+        // virtual members from the constructor is not a safe operation in .NET
+        public string Get(IDictionary<string, string> args, string name, ICollection<string> allowedValues)
         {
             return Get(args, name, allowedValues, defaultVal: null);
         }
 
-        public virtual string Get(IDictionary<string, string> args, string name, ICollection<string> allowedValues, string defaultVal)
+        // LUCENENET specific - S1699 - marked non-virtual because calling
+        // virtual members from the constructor is not a safe operation in .NET
+        public string Get(IDictionary<string, string> args, string name, ICollection<string> allowedValues, string defaultVal)
         {
             return Get(args, name, allowedValues, defaultVal, caseSensitive: true);
         }
 
-        public virtual string Get(IDictionary<string, string> args, string name, ICollection<string> allowedValues, string defaultVal, bool caseSensitive)
+        // LUCENENET specific - S1699 - marked non-virtual because calling
+        // virtual members from the constructor is not a safe operation in .NET
+        public string Get(IDictionary<string, string> args, string name, ICollection<string> allowedValues, string defaultVal, bool caseSensitive)
         {
             if (!args.TryGetValue(name, out string s) || s is null)
             {
@@ -185,6 +195,7 @@ namespace Lucene.Net.Analysis.Util
         /// <summary>
         /// NOTE: This was getInt() in Lucene
         /// </summary>
+        [SuppressMessage("Performance", "CA1822:Mark members as static", Justification = "By design")]
         protected int GetInt32(IDictionary<string, string> args, string name, int defaultVal)
         {
             if (args.TryGetValue(name, out string s))
@@ -200,6 +211,7 @@ namespace Lucene.Net.Analysis.Util
             return bool.Parse(Require(args, name));
         }
 
+        [SuppressMessage("Performance", "CA1822:Mark members as static", Justification = "By design")]
         protected bool GetBoolean(IDictionary<string, string> args, string name, bool defaultVal)
         {
             if (args.TryGetValue(name, out string s))
@@ -221,6 +233,7 @@ namespace Lucene.Net.Analysis.Util
         /// <summary>
         /// NOTE: This was getFloat() in Lucene
         /// </summary>
+        [SuppressMessage("Performance", "CA1822:Mark members as static", Justification = "By design")]
         protected float GetSingle(IDictionary<string, string> args, string name, float defaultVal)
         {
             if (args.TryGetValue(name, out string s))
@@ -351,6 +364,7 @@ namespace Lucene.Net.Analysis.Util
         /// <summary>
         /// Returns the resource's lines (with content treated as UTF-8)
         /// </summary>
+        [SuppressMessage("Performance", "CA1822:Mark members as static", Justification = "By design")]
         protected IList<string> GetLines(IResourceLoader loader, string resource)
         {
             return WordlistLoader.GetLines(loader.OpenResource(resource), Encoding.UTF8);
@@ -388,6 +402,7 @@ namespace Lucene.Net.Analysis.Util
         /// </summary>
         /// <param name="fileNames"> the string containing file names </param>
         /// <returns> a list of file names with the escaping backslashed removed </returns>
+        [SuppressMessage("Performance", "CA1822:Mark members as static", Justification = "By design")]
         protected IList<string> SplitFileNames(string fileNames)
         {
             if (fileNames is null)

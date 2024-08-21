@@ -1,5 +1,4 @@
-﻿using Lucene.Net.Support;
-using System;
+﻿using System;
 using System.Text;
 using System.Text.RegularExpressions;
 using JCG = J2N.Collections.Generic;
@@ -76,7 +75,7 @@ namespace Lucene.Net.Analysis.Ja.Util
             // Validate
             if (quoteCount % 2 != 0)
             {
-                return Arrays.Empty<string>();
+                return Array.Empty<string>();
             }
 
             return result.ToArray(/*new String[result.size()]*/);
@@ -114,7 +113,7 @@ namespace Lucene.Net.Analysis.Ja.Util
 
             if (result.IndexOf('\"') >= 0)
             {
-                result.Replace("\"", ESCAPED_QUOTE);
+                result = result.Replace("\"", ESCAPED_QUOTE); // LUCENENET 4.8.0: Applied SOLR-9413 (was fixed in Lucene 6.2/7.0)
             }
             if (result.IndexOf(COMMA) >= 0)
             {

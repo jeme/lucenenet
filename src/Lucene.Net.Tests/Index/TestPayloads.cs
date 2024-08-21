@@ -5,6 +5,7 @@ using Lucene.Net.Analysis.TokenAttributes;
 using Lucene.Net.Diagnostics;
 using Lucene.Net.Documents;
 using Lucene.Net.Index.Extensions;
+using Lucene.Net.Support;
 using Lucene.Net.Support.Threading;
 using Lucene.Net.Util;
 using NUnit.Framework;
@@ -14,7 +15,6 @@ using System.IO;
 using System.Text;
 using JCG = J2N.Collections.Generic;
 using Assert = Lucene.Net.TestFramework.Assert;
-using Console = Lucene.Net.Util.SystemConsole;
 
 namespace Lucene.Net.Index
 {
@@ -42,7 +42,7 @@ namespace Lucene.Net.Index
     using Field = Field;
     using IBits = Lucene.Net.Util.IBits;
     using LuceneTestCase = Lucene.Net.Util.LuceneTestCase;
-    using PayloadAttribute = Lucene.Net.Analysis.TokenAttributes.PayloadAttribute;
+    using IPayloadAttribute = Lucene.Net.Analysis.TokenAttributes.IPayloadAttribute;
     using TestUtil = Lucene.Net.Util.TestUtil;
     using TextField = TextField;
 
@@ -84,9 +84,7 @@ namespace Lucene.Net.Index
             // enabled in only some documents
             d.Add(NewTextField("f3", "this field has payloads in some docs", Field.Store.NO));
             // only add payload data for field f2
-#pragma warning disable 612, 618
             analyzer.SetPayloadData("f2", "somedata".GetBytes(IOUtils.CHARSET_UTF_8), 0, 1);
-#pragma warning restore 612, 618
             writer.AddDocument(d);
             // flush
             writer.Dispose();
@@ -108,10 +106,8 @@ namespace Lucene.Net.Index
             d.Add(NewTextField("f2", "this field has payloads in all docs", Field.Store.NO));
             d.Add(NewTextField("f3", "this field has payloads in some docs", Field.Store.NO));
             // add payload data for field f2 and f3
-#pragma warning disable 612, 618
             analyzer.SetPayloadData("f2", "somedata".GetBytes(IOUtils.CHARSET_UTF_8), 0, 1);
             analyzer.SetPayloadData("f3", "somedata".GetBytes(IOUtils.CHARSET_UTF_8), 0, 3);
-#pragma warning restore 612, 618
             writer.AddDocument(d);
 
             // force merge
@@ -142,7 +138,9 @@ namespace Lucene.Net.Index
         private void PerformTest(Directory dir)
         {
             PayloadAnalyzer analyzer = new PayloadAnalyzer();
-            IndexWriter writer = new IndexWriter(dir, NewIndexWriterConfig(TEST_VERSION_CURRENT, analyzer).SetOpenMode(OpenMode.CREATE).SetMergePolicy(NewLogMergePolicy()));
+            IndexWriter writer = new IndexWriter(dir, NewIndexWriterConfig(TEST_VERSION_CURRENT, analyzer)
+                .SetOpenMode(OpenMode.CREATE)
+                .SetMergePolicy(NewLogMergePolicy()));
 
             // should be in sync with value in TermInfosWriter
             const int skipInterval = 16;
@@ -202,7 +200,10 @@ namespace Lucene.Net.Index
             var tps = new DocsAndPositionsEnum[numTerms];
             for (int i = 0; i < numTerms; i++)
             {
-                tps[i] = MultiFields.GetTermPositionsEnum(reader, MultiFields.GetLiveDocs(reader), terms[i].Field, new BytesRef(terms[i].Text));
+                tps[i] = MultiFields.GetTermPositionsEnum(reader,
+                    MultiFields.GetLiveDocs(reader),
+                    terms[i].Field,
+                    new BytesRef(terms[i].Text));
             }
 
             while (tps[0].NextDoc() != DocIdSetIterator.NO_MORE_DOCS)
@@ -221,7 +222,7 @@ namespace Lucene.Net.Index
                         BytesRef br = tps[j].GetPayload();
                         if (br != null)
                         {
-                            Array.Copy(br.Bytes, br.Offset, verifyPayloadData, offset, br.Length);
+                            Arrays.Copy(br.Bytes, br.Offset, verifyPayloadData, offset, br.Length);
                             offset += br.Length;
                         }
                     }
@@ -233,7 +234,10 @@ namespace Lucene.Net.Index
             /*
              *  test lazy skipping
              */
-            DocsAndPositionsEnum tp = MultiFields.GetTermPositionsEnum(reader, MultiFields.GetLiveDocs(reader), terms[0].Field, new BytesRef(terms[0].Text));
+            DocsAndPositionsEnum tp = MultiFields.GetTermPositionsEnum(reader,
+                MultiFields.GetLiveDocs(reader),
+                terms[0].Field,
+                new BytesRef(terms[0].Text));
             tp.NextDoc();
             tp.NextPosition();
             // NOTE: prior rev of this test was failing to first
@@ -257,7 +261,10 @@ namespace Lucene.Net.Index
             /*
              * Test different lengths at skip points
              */
-            tp = MultiFields.GetTermPositionsEnum(reader, MultiFields.GetLiveDocs(reader), terms[1].Field, new BytesRef(terms[1].Text));
+            tp = MultiFields.GetTermPositionsEnum(reader,
+                MultiFields.GetLiveDocs(reader),
+                terms[1].Field,
+                new BytesRef(terms[1].Text));
             tp.NextDoc();
             tp.NextPosition();
             Assert.AreEqual(1, tp.GetPayload().Length, "Wrong payload length.");
@@ -297,15 +304,13 @@ namespace Lucene.Net.Index
             BytesRef bref = tp.GetPayload();
             verifyPayloadData = new byte[bref.Length];
             var portion = new byte[1500];
-            Array.Copy(payloadData, 100, portion, 0, 1500);
+            Arrays.Copy(payloadData, 100, portion, 0, 1500);
 
             AssertByteArrayEquals(portion, bref.Bytes, bref.Offset, bref.Length);
             reader.Dispose();
         }
 
-#pragma warning disable 612, 618
-        internal static readonly Encoding utf8 = IOUtils.CHARSET_UTF_8;
-#pragma warning restore 612, 618
+        internal static readonly Encoding utf8 = Encoding.UTF8;
 
         private void GenerateRandomData(byte[] data)
         {
@@ -313,7 +318,7 @@ namespace Lucene.Net.Index
             string s = TestUtil.RandomFixedByteLengthUnicodeString(Random, data.Length);
             var b = s.GetBytes(utf8);
             if (Debugging.AssertsEnabled) Debugging.Assert(b.Length == data.Length);
-            System.Buffer.BlockCopy(b, 0, data, 0, b.Length);
+            Arrays.Copy(b, 0, data, 0, b.Length);
         }
 
         private byte[] GenerateRandomData(int n)
@@ -402,7 +407,7 @@ namespace Lucene.Net.Index
             {
                 fieldToData.TryGetValue(fieldName, out PayloadData payload);
                 Tokenizer ts = new MockTokenizer(reader, MockTokenizer.WHITESPACE, false);
-                TokenStream tokenStream = (payload != null) ? (TokenStream)new PayloadFilter(ts, payload.Data, payload.Offset, payload.Length) : ts;
+                TokenStream tokenStream = (payload != null) ? new PayloadFilter(ts, payload.Data, payload.Offset, payload.Length) : ts;
                 return new TokenStreamComponents(ts, tokenStream);
             }
 
@@ -560,8 +565,6 @@ namespace Lucene.Net.Index
 
         private class PoolingPayloadTokenStream : TokenStream
         {
-            private readonly TestPayloads outerInstance;
-
             private readonly byte[] payload;
             private bool first;
             private readonly ByteArrayPool pool;
@@ -572,10 +575,9 @@ namespace Lucene.Net.Index
 
             internal PoolingPayloadTokenStream(TestPayloads outerInstance, ByteArrayPool pool)
             {
-                this.outerInstance = outerInstance;
                 this.pool = pool;
                 payload = pool.Get();
-                this.outerInstance.GenerateRandomData(payload);
+                outerInstance.GenerateRandomData(payload);
                 term = Encoding.UTF8.GetString(payload);
                 first = true;
                 payloadAtt = AddAttribute<IPayloadAttribute>();
@@ -606,7 +608,7 @@ namespace Lucene.Net.Index
 
         private class ByteArrayPool
         {
-            internal readonly IList<byte[]> pool;
+            private readonly IList<byte[]> pool;
 
             internal ByteArrayPool(int capacity, int size)
             {
@@ -695,7 +697,7 @@ namespace Lucene.Net.Index
             Document doc = new Document();
             Field field = new TextField("field", "", Field.Store.NO);
             TokenStream ts = new MockTokenizer(new StringReader("here we go"), MockTokenizer.WHITESPACE, true);
-            Assert.IsFalse(ts.HasAttribute<PayloadAttribute>());
+            Assert.IsFalse(ts.HasAttribute<IPayloadAttribute>());
             field.SetTokenStream(ts);
             doc.Add(field);
             writer.AddDocument(doc);
@@ -706,7 +708,7 @@ namespace Lucene.Net.Index
             field.SetTokenStream(ts);
             writer.AddDocument(doc);
             ts = new MockTokenizer(new StringReader("another"), MockTokenizer.WHITESPACE, true);
-            Assert.IsFalse(ts.HasAttribute<PayloadAttribute>());
+            Assert.IsFalse(ts.HasAttribute<IPayloadAttribute>());
             field.SetTokenStream(ts);
             writer.AddDocument(doc);
             DirectoryReader reader = writer.GetReader();
@@ -730,7 +732,7 @@ namespace Lucene.Net.Index
             Document doc = new Document();
             Field field = new TextField("field", "", Field.Store.NO);
             TokenStream ts = new MockTokenizer(new StringReader("here we go"), MockTokenizer.WHITESPACE, true);
-            Assert.IsFalse(ts.HasAttribute<PayloadAttribute>());
+            Assert.IsFalse(ts.HasAttribute<IPayloadAttribute>());
             field.SetTokenStream(ts);
             doc.Add(field);
             Field field2 = new TextField("field", "", Field.Store.NO);
@@ -742,7 +744,7 @@ namespace Lucene.Net.Index
             doc.Add(field2);
             Field field3 = new TextField("field", "", Field.Store.NO);
             ts = new MockTokenizer(new StringReader("nopayload"), MockTokenizer.WHITESPACE, true);
-            Assert.IsFalse(ts.HasAttribute<PayloadAttribute>());
+            Assert.IsFalse(ts.HasAttribute<IPayloadAttribute>());
             field3.SetTokenStream(ts);
             doc.Add(field3);
             writer.AddDocument(doc);

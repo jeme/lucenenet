@@ -1,5 +1,6 @@
 ﻿// Lucene version compatibility level 4.8.1
 using J2N.Numerics;
+using Lucene.Net.Support;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -31,6 +32,15 @@ namespace Lucene.Net.Analysis.Compound.Hyphenation
     /// fast lookup. It provides the provides the method to hyphenate a word.
     /// <para/>
     /// This class has been taken from the Apache FOP project (http://xmlgraphics.apache.org/fop/). They have been slightly modified. 
+    ///
+    /// Lucene.NET specific note:
+    /// If you are going to extend this class by inheriting from it, you should be aware that the
+    /// base class TernaryTree initializes its state in the constructor by calling its protected Init() method.
+    /// If your subclass needs to initialize its own state, you add your own "Initialize()" method
+    /// and call it both from the inside of your constructor and you will need to override the Balance() method
+    /// and call "Initialize()" before the call to base.Balance().
+    /// Your class can use the data that is initialized in the base class after the call to base.Balance().
+    ///
     /// </summary>
     public class HyphenationTree : TernaryTree, IPatternConsumer
     {
@@ -99,7 +109,7 @@ namespace Lucene.Net.Analysis.Compound.Hyphenation
             byte v = m_vspace[k++];
             while (v != 0)
             {
-                char c = (char)(v.TripleShift(4) - 1 + '0');;
+                char c = (char)(v.TripleShift(4) - 1 + '0');
                 buf.Append(c);
                 c = (char)(v & 0x0f);
                 if (c == 0)
@@ -508,7 +518,7 @@ namespace Lucene.Net.Analysis.Compound.Hyphenation
             {
                 // trim result array
                 int[] res = new int[k + 2];
-                Array.Copy(result, 0, res, 1, k);
+                Arrays.Copy(result, 0, res, 1, k);
                 // We add the synthetical hyphenation points
                 // at the beginning and end of the word
                 res[0] = 0;

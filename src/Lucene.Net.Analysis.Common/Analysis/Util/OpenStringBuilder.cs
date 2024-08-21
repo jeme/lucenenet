@@ -1,5 +1,6 @@
 ﻿// Lucene version compatibility level 4.8.1
 using J2N.Text;
+using Lucene.Net.Support;
 using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
@@ -46,7 +47,8 @@ namespace Lucene.Net.Analysis.Util
 
         public OpenStringBuilder(char[] arr, int len)
         {
-            Set(arr, len);
+            // LUCENENET specific - calling private method instead of public virtual
+            SetInternal(arr, len);
         }
 
         public virtual int Length
@@ -55,7 +57,12 @@ namespace Lucene.Net.Analysis.Util
             set => m_len = value;
         }
 
-        public virtual void Set(char[] arr, int end)
+        public virtual void Set(char[] arr, int end) => SetInternal(arr, end);
+
+        // LUCENENET specific - S1699 - introduced this to allow the constructor to
+        // still call "Set" functionality without having to call the virtual method
+        // that could be overridden by a subclass and don't have the state it expects
+        private void SetInternal(char[] arr, int end)
         {
             this.m_buf = arr;
             this.m_len = end;
@@ -82,10 +89,7 @@ namespace Lucene.Net.Analysis.Util
         public virtual OpenStringBuilder Append(ICharSequence csq, int startIndex, int count) // LUCENENET specific: changed to startIndex/length to match .NET
         {
             EnsureCapacity(count);
-            for (int i = startIndex; i < startIndex + count; i++)
-            {
-                UnsafeWrite(csq[i]);
-            }
+            UnsafeWrite(csq, startIndex, count);
             return this;
         }
 
@@ -99,10 +103,7 @@ namespace Lucene.Net.Analysis.Util
         public virtual OpenStringBuilder Append(string csq, int startIndex, int count) // LUCENENET specific: changed to startIndex/length to match .NET
         {
             EnsureCapacity(count);
-            for (int i = startIndex; i < startIndex + count; i++)
-            {
-                UnsafeWrite(csq[i]);
-            }
+            UnsafeWrite(csq, startIndex, count);
             return this;
         }
 
@@ -116,10 +117,7 @@ namespace Lucene.Net.Analysis.Util
         public virtual OpenStringBuilder Append(StringBuilder csq, int startIndex, int count) // LUCENENET specific: changed to startIndex/length to match .NET
         {
             EnsureCapacity(count);
-            for (int i = startIndex; i < startIndex + count; i++)
-            {
-                UnsafeWrite(csq[i]);
-            }
+            UnsafeWrite(csq, startIndex, count);
             return this;
         }
 
@@ -134,10 +132,7 @@ namespace Lucene.Net.Analysis.Util
         public virtual OpenStringBuilder Append(char[] value, int startIndex, int count)
         {
             EnsureCapacity(count);
-            for (int i = startIndex; i < startIndex + count; i++)
-            {
-                UnsafeWrite(value[i]);
-            }
+            UnsafeWrite(value, startIndex, count);
             return this;
         }
 
@@ -199,7 +194,7 @@ namespace Lucene.Net.Analysis.Util
 
         public virtual void UnsafeWrite(char[] b, int off, int len)
         {
-            System.Array.Copy(b, off, m_buf, this.m_len, len);
+            Arrays.Copy(b, off, m_buf, this.m_len, len);
             this.m_len += len;
         }
 
@@ -210,10 +205,44 @@ namespace Lucene.Net.Analysis.Util
             this.m_len += len;
         }
 
+        // LUCENENET specific overload for string
+        public virtual void UnsafeWrite(string b, int off, int len)
+        {
+            b.CopyTo(off, m_buf, this.m_len, len);
+            this.m_len += len;
+        }
+
+        // LUCENENET specific overload for ICharSequence
+        public virtual void UnsafeWrite(ICharSequence b, int off, int len)
+        {
+            if (!b.HasValue) return;
+
+            if (b is StringBuilderCharSequence sb)
+            {
+                UnsafeWrite(sb.Value, off, len);
+                return;
+            }
+            if (b is StringCharSequence str)
+            {
+                UnsafeWrite(str.Value, off, len);
+                return;
+            }
+            if (b is CharArrayCharSequence chars)
+            {
+                UnsafeWrite(chars.Value, off, len);
+                return;
+            }
+
+            for (int i = off; i < off + len; i++)
+            {
+                UnsafeWrite(b[i]);
+            }
+        }
+
         protected virtual void Resize(int len)
         {
             char[] newbuf = new char[Math.Max(m_buf.Length << 1, len)];
-            System.Array.Copy(m_buf, 0, newbuf, 0, Length);
+            Arrays.Copy(m_buf, 0, newbuf, 0, Length);
             m_buf = newbuf;
         }
 
@@ -281,7 +310,7 @@ namespace Lucene.Net.Analysis.Util
         public virtual char[] ToCharArray()
         {
             char[] newbuf = new char[Length];
-            System.Array.Copy(m_buf, 0, newbuf, 0, Length);
+            Arrays.Copy(m_buf, 0, newbuf, 0, Length);
             return newbuf;
         }
 

@@ -63,7 +63,7 @@ namespace Lucene.Net.Analysis.Bg
             {
                 try
                 {
-                    return LoadStopwordSet(false, typeof(BulgarianAnalyzer), DEFAULT_STOPWORD_FILE, "#");
+                    return LoadStopwordSet(false, typeof(BulgarianAnalyzer), DEFAULT_STOPWORD_FILE, "#").AsReadOnly(); // LUCENENET: Made readonly as stated in the docs: https://github.com/apache/lucene/issues/11866
                 }
                 catch (Exception ex) when (ex.IsIOException())
                 {
@@ -89,7 +89,7 @@ namespace Lucene.Net.Analysis.Bg
         /// Builds an analyzer with the given stop words.
         /// </summary>
         public BulgarianAnalyzer(LuceneVersion matchVersion, CharArraySet stopwords)
-              : this(matchVersion, stopwords, CharArraySet.EMPTY_SET)
+              : this(matchVersion, stopwords, CharArraySet.Empty)
         {
         }
 
@@ -101,7 +101,7 @@ namespace Lucene.Net.Analysis.Bg
         public BulgarianAnalyzer(LuceneVersion matchVersion, CharArraySet stopwords, CharArraySet stemExclusionSet)
               : base(matchVersion, stopwords)
         {
-            this.stemExclusionSet = CharArraySet.UnmodifiableSet(CharArraySet.Copy(matchVersion, stemExclusionSet));
+            this.stemExclusionSet = CharArraySet.Copy(matchVersion, stemExclusionSet).AsReadOnly();
         }
 
         /// <summary>

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 #if NETFRAMEWORK
@@ -30,6 +30,11 @@ namespace Lucene.Net.Util
     /// </summary>
     public static class Constants // LUCENENET specific - made static because all members are static and constructor in Lucene was private
     {
+        /// <summary>
+        /// The maximum stack allocation size before switching to making allocations on the heap.
+        /// </summary>
+        internal static int MaxStackByteLimit = SystemProperties.GetPropertyAsInt32("maxStackByteLimit", defaultValue: 2048); // LUCENENET specific
+
         // LUCENENET NOTE: IMPORTANT - this line must be placed before RUNTIME_VERSION so it can be parsed.
         private static readonly Regex VERSION = new Regex(@"(\d+\.\d+(?:\.\d+)?(?:\.\d+)?)", RegexOptions.Compiled);
 
@@ -59,7 +64,7 @@ namespace Lucene.Net.Util
 
         /// <summary>
         /// True iff running on SunOS. </summary>
-        public static readonly bool SUN_OS = RuntimeInformation.IsOSPlatform(OSPlatform.Create("SunOS"));
+        public static readonly bool SUN_OS = RuntimeInformation.IsOSPlatform(OSPlatform.Create("SUNOS"));
 
         /// <summary>
         /// True iff running on Mac OS X </summary>
@@ -67,7 +72,7 @@ namespace Lucene.Net.Util
 
         /// <summary>
         /// True iff running on FreeBSD </summary>
-        public static readonly bool FREE_BSD = RuntimeInformation.IsOSPlatform(OSPlatform.Create("FreeBSD"));
+        public static readonly bool FREE_BSD = RuntimeInformation.IsOSPlatform(OSPlatform.Create("FREEBSD"));
 
         // Possible Values: X86, X64, Arm, Arm64
         public static readonly string OS_ARCH = RuntimeInformation.OSArchitecture.ToString();
@@ -192,6 +197,8 @@ namespace Lucene.Net.Util
         // Checking the version using >= will enable forward compatibility.
         private static string CheckFor45PlusVersion(int releaseKey)
         {
+            if (releaseKey >= 533320)
+                return "4.8.1";
             if (releaseKey >= 460799)
                 return "4.8";
             if (releaseKey >= 460798)

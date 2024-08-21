@@ -74,7 +74,7 @@ namespace Lucene.Net.Analysis.Pl
                     return WordlistLoader.GetWordSet(IOUtils.GetDecodingReader(typeof(PolishAnalyzer),
                         DEFAULT_STOPWORD_FILE, Encoding.UTF8), "#",
 #pragma warning disable 612, 618
-                        LuceneVersion.LUCENE_CURRENT);
+                        LuceneVersion.LUCENE_CURRENT).AsReadOnly(); // LUCENENET: Made readonly as stated in the docs: https://github.com/apache/lucene/issues/11866
 #pragma warning restore 612, 618
                 }
                 catch (Exception ex) when (ex.IsIOException())
@@ -115,7 +115,7 @@ namespace Lucene.Net.Analysis.Pl
         /// <param name="matchVersion">lucene compatibility version</param>
         /// <param name="stopwords">a stopword set</param>
         public PolishAnalyzer(LuceneVersion matchVersion, CharArraySet stopwords)
-            : this(matchVersion, stopwords, CharArraySet.EMPTY_SET)
+            : this(matchVersion, stopwords, CharArraySet.Empty)
         {
         }
 
@@ -131,8 +131,8 @@ namespace Lucene.Net.Analysis.Pl
             : base(matchVersion, stopwords)
         {
             this.stemTable = DefaultsHolder.DEFAULT_TABLE;
-            this.stemExclusionSet = CharArraySet.UnmodifiableSet(CharArraySet.Copy(
-                matchVersion, stemExclusionSet));
+            this.stemExclusionSet = CharArraySet.Copy(
+                matchVersion, stemExclusionSet).AsReadOnly();
         }
 
         /// <summary>

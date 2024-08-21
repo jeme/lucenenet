@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 
 namespace Lucene.Net.Codecs
 {
@@ -27,7 +27,7 @@ namespace Lucene.Net.Codecs
     /// Extension of <see cref="PostingsConsumer"/> to support pluggable term dictionaries.
     /// <para/>
     /// This class contains additional hooks to interact with the provided
-    /// term dictionaries such as <see cref="BlockTreeTermsWriter"/>. If you want
+    /// term dictionaries such as <see cref="BlockTreeTermsWriter{TSubclassState}"/>. If you want
     /// to re-use an existing implementation and are only interested in
     /// customizing the format of the postings list, extend this class
     /// instead.
@@ -44,7 +44,7 @@ namespace Lucene.Net.Codecs
         /// Sole constructor. (For invocation by subclass
         /// constructors, typically implicit.)
         /// </summary>
-        protected internal PostingsWriterBase()
+        protected PostingsWriterBase()
         {
         }
 

@@ -3,9 +3,11 @@ using Lucene.Net.Documents;
 using Lucene.Net.Support;
 using Lucene.Net.Support.Threading;
 using Lucene.Net.Util;
+
 #if !FEATURE_CONDITIONALWEAKTABLE_ENUMERATOR
-using Prism.Events;
+using Lucene.Net.Util.Events;
 #endif
+
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -75,13 +77,13 @@ namespace Lucene.Net.Index
     /// <see cref="IndexReader"/> instance; use your own
     /// (non-Lucene) objects instead.
     /// </summary>
-    public abstract class IndexReader : IDisposable
+    public abstract partial class IndexReader : IDisposable
     {
         private bool closed = false;
         private bool closedByChild = false;
         private readonly AtomicInt32 refCount = new AtomicInt32(1);
 
-        internal IndexReader()
+        private protected IndexReader() // LUCENENET: Changed from internal to private protected
         {
             if (!(this is CompositeReader || this is AtomicReader))
             {
@@ -94,20 +96,9 @@ namespace Lucene.Net.Index
         private readonly IEventAggregator eventAggregator = new EventAggregator();
 #endif
 
-        /// <summary>
-        /// A custom listener that's invoked when the <see cref="IndexReader"/>
-        /// is closed.
-        /// <para/>
-        /// @lucene.experimental
-        /// </summary>
-        public interface IReaderClosedListener
-        {
-            /// <summary>
-            /// Invoked when the <see cref="IndexReader"/> is closed. </summary>
-            void OnClose(IndexReader reader);
-        }
+        // LUCENENET specific - de-nested IReaderClosedListener and renamed to IReaderDisposedListener
 
-        private readonly ISet<IReaderClosedListener> readerClosedListeners = new JCG.LinkedHashSet<IReaderClosedListener>().AsConcurrent();
+        private readonly ISet<IReaderDisposedListener> readerDisposedListeners = new JCG.LinkedHashSet<IReaderDisposedListener>().AsConcurrent();
 
         private readonly ConditionalWeakTable<IndexReader, object> parentReaders = new ConditionalWeakTable<IndexReader, object>();
 
@@ -116,26 +107,30 @@ namespace Lucene.Net.Index
         private readonly object parentReadersLock = new object();
 
         /// <summary>
-        /// Expert: adds a <see cref="IReaderClosedListener"/>.  The
-        /// provided listener will be invoked when this reader is closed.
+        /// Expert: adds a <see cref="IReaderDisposedListener"/>.  The
+        /// provided listener will be invoked when this reader is disposed.
+        /// <para/>
+        /// <b>NOTE:</b> This was addReaderClosedListener() in Lucene.
         /// <para/>
         /// @lucene.experimental
         /// </summary>
-        public void AddReaderClosedListener(IReaderClosedListener listener)
+        public void AddReaderDisposedListener(IReaderDisposedListener listener)
         {
             EnsureOpen();
-            readerClosedListeners.Add(listener);
+            readerDisposedListeners.Add(listener);
         }
 
         /// <summary>
-        /// Expert: remove a previously added <see cref="IReaderClosedListener"/>.
+        /// Expert: remove a previously added <see cref="IReaderDisposedListener"/>.
+        /// <para/>
+        /// <b>NOTE:</b> This was removeReaderClosedListener() in Lucene.
         /// <para/>
         /// @lucene.experimental
         /// </summary>
-        public void RemoveReaderClosedListener(IReaderClosedListener listener)
+        public void RemoveReaderDisposedListener(IReaderDisposedListener listener)
         {
             EnsureOpen();
-            readerClosedListeners.Remove(listener);
+            readerDisposedListeners.Remove(listener);
         }
 
         /// <summary>
@@ -164,7 +159,7 @@ namespace Lucene.Net.Index
                 if (!parentReaders.TryGetValue(key: reader, out _))
                 {
                     parentReaders.Add(key: reader, value: null);
-                    reader.SubscribeToGetParentReadersEvent(eventAggregator.GetEvent<Events.GetParentReadersEvent>());
+                    reader.SubscribeToGetParentReadersEvent(eventAggregator.GetEvent<WeakEvents.GetParentReadersEvent>());
                 }
 #endif
             }
@@ -174,17 +169,17 @@ namespace Lucene.Net.Index
             }
         }
 
-        private void NotifyReaderClosedListeners(Exception th)
+        private void NotifyReaderDisposedListeners(Exception th) // LUCENENET: Renamed from notifyReaderClosedListeners()
         {
-            object syncRoot = ((ICollection)readerClosedListeners).SyncRoot;
+            object syncRoot = ((ICollection)readerDisposedListeners).SyncRoot;
             UninterruptableMonitor.Enter(syncRoot); // LUCENENET: Ensure we sync on the SyncRoot of ConcurrentSet<T>
             try
             {
-                foreach (IReaderClosedListener listener in readerClosedListeners)
+                foreach (IReaderDisposedListener listener in readerDisposedListeners)
                 {
                     try
                     {
-                        listener.OnClose(this);
+                        listener.OnDispose(this);
                     }
                     catch (Exception t) when (t.IsThrowable())
                     {
@@ -206,7 +201,7 @@ namespace Lucene.Net.Index
             }
         }
 
-        private void ReportCloseToParentReaders()
+        private void ReportDisposeToParentReaders() // LUCENENET: Renamed from reportCloseToParentReaders()
         {
             // LUCENENET specific - since ConditionalWeakTable doesn't synchronize
             // on the enumerator, we need to do external synchronization to make them threadsafe.
@@ -218,8 +213,8 @@ namespace Lucene.Net.Index
                 {
                     IndexReader target = kvp.Key;
 #else
-                var e = new Events.GetParentReadersEventArgs();
-                eventAggregator.GetEvent<Events.GetParentReadersEvent>().Publish(e);
+                var e = new WeakEvents.GetParentReadersEventArgs();
+                eventAggregator.GetEvent<WeakEvents.GetParentReadersEvent>().Publish(e);
                 foreach (var target in e.ParentReaders)
                 {
 #endif
@@ -231,7 +226,7 @@ namespace Lucene.Net.Index
                         // cross memory barrier by a fake write:
                         target.refCount.AddAndGet(0);
                         // recurse:
-                        target.ReportCloseToParentReaders();
+                        target.ReportDisposeToParentReaders();
                     }
                 }
             }
@@ -341,11 +336,11 @@ namespace Lucene.Net.Index
                 {
                     try
                     {
-                        ReportCloseToParentReaders();
+                        ReportDisposeToParentReaders();
                     }
                     finally
                     {
-                        NotifyReaderClosedListeners(throwable);
+                        NotifyReaderDisposedListeners(throwable);
                     }
                 }
             }
@@ -643,10 +638,10 @@ namespace Lucene.Net.Index
         // LUCENENET specific - since .NET Standard 2.0 and .NET Framework don't have a CondtionalWeakTable enumerator,
         // we use a weak event to retrieve the ConditionalWeakTable items
         [ExcludeFromRamUsageEstimation]
-        private readonly ISet<Events.GetParentReadersEvent> getParentReadersEvents = new JCG.HashSet<Events.GetParentReadersEvent>();
+        private readonly ISet<WeakEvents.GetParentReadersEvent> getParentReadersEvents = new JCG.HashSet<WeakEvents.GetParentReadersEvent>();
         [ExcludeFromRamUsageEstimation]
-        private readonly ISet<Events.GetCacheKeysEvent> getCacheKeysEvents = new JCG.HashSet<Events.GetCacheKeysEvent>();
-        internal void SubscribeToGetParentReadersEvent(Events.GetParentReadersEvent getParentReadersEvent)
+        private readonly ISet<WeakEvents.GetCacheKeysEvent> getCacheKeysEvents = new JCG.HashSet<WeakEvents.GetCacheKeysEvent>();
+        internal void SubscribeToGetParentReadersEvent(WeakEvents.GetParentReadersEvent getParentReadersEvent)
         {
             if (getParentReadersEvent is null)
                 throw new ArgumentNullException(nameof(getParentReadersEvent));
@@ -654,7 +649,7 @@ namespace Lucene.Net.Index
                 getParentReadersEvent.Subscribe(OnGetParentReaders);
         }
 
-        internal void SubscribeToGetCacheKeysEvent(Events.GetCacheKeysEvent getCacheKeysEvent)
+        internal void SubscribeToGetCacheKeysEvent(WeakEvents.GetCacheKeysEvent getCacheKeysEvent)
         {
             if (getCacheKeysEvent is null)
                 throw new ArgumentNullException(nameof(getCacheKeysEvent));
@@ -662,19 +657,13 @@ namespace Lucene.Net.Index
                 getCacheKeysEvent.Subscribe(OnGetCacheKeys);
         }
 
-        // LUCENENET specific: Clean up the weak event handler if this class goes out of scope
-        ~IndexReader()
-        {
-            Dispose(false);
-        }
-
         // LUCENENET specific: Add weak event handler for .NET Standard 2.0 and .NET Framework, since we don't have an enumerator to use
-        private void OnGetParentReaders(Events.GetParentReadersEventArgs e)
+        private void OnGetParentReaders(WeakEvents.GetParentReadersEventArgs e)
         {
             e.ParentReaders.Add(this);
         }
 
-        private void OnGetCacheKeys(Events.GetCacheKeysEventArgs e)
+        private void OnGetCacheKeys(WeakEvents.GetCacheKeysEventArgs e)
         {
             e.CacheKeys.Add(this.CoreCacheKey);
         }
@@ -772,5 +761,20 @@ namespace Lucene.Net.Index
         /// </summary>
         /// <seealso cref="Terms.SumTotalTermFreq"/>
         public abstract long GetSumTotalTermFreq(string field);
+    }
+
+    /// <summary>
+    /// A custom listener that's invoked when the <see cref="IndexReader"/>
+    /// is disposed.
+    /// <para/>
+    /// <b>NOTE:</b> This was IndexReader.ReaderClosedListener in Lucene.
+    /// <para/>
+    /// @lucene.experimental
+    /// </summary>
+    public interface IReaderDisposedListener
+    {
+        /// <summary>
+        /// Invoked when the <see cref="IndexReader"/> is disposed. </summary>
+        void OnDispose(IndexReader reader);
     }
 }

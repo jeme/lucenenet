@@ -38,6 +38,8 @@
     <ICU4NLanguageDataPackageVersion>$(ICU4NPackageVersion)</ICU4NLanguageDataPackageVersion>
     <ICU4NRegionDataPackageVersion>$(ICU4NPackageVersion)</ICU4NRegionDataPackageVersion>
     <ICU4NTransliteratorPackageVersion>$(ICU4NPackageVersion)</ICU4NTransliteratorPackageVersion>
+    <IKVMPackageVersion>8.7.5</IKVMPackageVersion>
+    <IKVMMavenSdkPackageVersion>1.6.7</IKVMMavenSdkPackageVersion>
     <J2NPackageVersion>2.0.0</J2NPackageVersion>
     <LiquidTestReportsMarkdownPackageVersion>1.0.9</LiquidTestReportsMarkdownPackageVersion>
     <MicrosoftAspNetCoreHttpAbstractionsPackageVersion>2.0.0</MicrosoftAspNetCoreHttpAbstractionsPackageVersion>
@@ -48,7 +50,7 @@
     <MicrosoftCodeAnalysisCSharpWorkspacesPackageVersion>$(MicrosoftCodeAnalysisCSharpPackageVersion)</MicrosoftCodeAnalysisCSharpWorkspacesPackageVersion>
     <MicrosoftCodeAnalysisVisualBasicPackageVersion>2.6.1</MicrosoftCodeAnalysisVisualBasicPackageVersion>
     <MicrosoftCodeAnalysisVisualBasicWorkspacesPackageVersion>$(MicrosoftCodeAnalysisVisualBasicPackageVersion)</MicrosoftCodeAnalysisVisualBasicWorkspacesPackageVersion>
-    <MicrosoftExtensionsConfigurationPackageVersion>3.1.0</MicrosoftExtensionsConfigurationPackageVersion>
+    <MicrosoftExtensionsConfigurationPackageVersion>3.1.6</MicrosoftExtensionsConfigurationPackageVersion>
     <MicrosoftExtensionsConfigurationAbstractionsPackageVersion>$(MicrosoftExtensionsConfigurationPackageVersion)</MicrosoftExtensionsConfigurationAbstractionsPackageVersion>
     <MicrosoftExtensionsConfigurationCommandLinePackageVersion>$(MicrosoftExtensionsConfigurationPackageVersion)</MicrosoftExtensionsConfigurationCommandLinePackageVersion>
     <MicrosoftExtensionsConfigurationEnvironmentVariablesPackageVersion>$(MicrosoftExtensionsConfigurationPackageVersion)</MicrosoftExtensionsConfigurationEnvironmentVariablesPackageVersion>
@@ -58,7 +60,7 @@
     <MicrosoftExtensionsDependencyInjectionPackageVersion>$(MicrosoftExtensionsDependencyInjectionAbstractionsPackageVersion)</MicrosoftExtensionsDependencyInjectionPackageVersion>
     <MicrosoftExtensionsOptionsPackageVersion>2.0.0</MicrosoftExtensionsOptionsPackageVersion>
     <MicrosoftNETFrameworkReferenceAssembliesPackageReferenceVersion>1.0.2</MicrosoftNETFrameworkReferenceAssembliesPackageReferenceVersion>
-    <MicrosoftNETTestSdkPackageVersion>16.6.1</MicrosoftNETTestSdkPackageVersion>
+    <MicrosoftNETTestSdkPackageVersion>17.9.0</MicrosoftNETTestSdkPackageVersion>
     <MicrosoftSourceLinkAzureReposGitPackageReferenceVersion>1.1.1</MicrosoftSourceLinkAzureReposGitPackageReferenceVersion>
     <MicrosoftSourceLinkGitHubPackageReferenceVersion>$(MicrosoftSourceLinkAzureReposGitPackageReferenceVersion)</MicrosoftSourceLinkGitHubPackageReferenceVersion>
     <MorfologikFsaPackageVersion>2.1.7</MorfologikFsaPackageVersion>
@@ -66,21 +68,25 @@
     <MorfologikStemmingPackageVersion>$(MorfologikFsaPackageVersion)</MorfologikStemmingPackageVersion>
     <NETStandardLibrary20PackageVersion>2.0.3</NETStandardLibrary20PackageVersion>
     <NewtonsoftJsonPackageVersion>13.0.1</NewtonsoftJsonPackageVersion>
-    <NUnit3TestAdapterPackageVersion>3.17.0</NUnit3TestAdapterPackageVersion>
+    <NUnit3TestAdapterPackageVersion>4.5.0</NUnit3TestAdapterPackageVersion>
     <NUnitPackageVersion>3.13.1</NUnitPackageVersion>
-    <OpenNLPNETPackageVersion>1.9.1.1</OpenNLPNETPackageVersion>
-    <PrismCorePackageVersion>7.2.0.1422</PrismCorePackageVersion>
     <RandomizedTestingGeneratorsPackageVersion>2.7.8</RandomizedTestingGeneratorsPackageVersion>
-    <SharpZipLibPackageVersion>1.1.0</SharpZipLibPackageVersion>
+    <SharpZipLibPackageVersion>1.4.2</SharpZipLibPackageVersion>
     <Spatial4nPackageVersion>0.4.1.1</Spatial4nPackageVersion>
+    <SystemMemoryPackageVersion>4.5.5</SystemMemoryPackageVersion>
     <SystemReflectionEmitPackageVersion>4.3.0</SystemReflectionEmitPackageVersion>
     <SystemReflectionEmitILGenerationPackageVersion>4.3.0</SystemReflectionEmitILGenerationPackageVersion>
     <SystemReflectionTypeExtensionsPackageVersion>4.3.0</SystemReflectionTypeExtensionsPackageVersion>
-    <SystemRuntimeCompilerServicesUnsafePackageVersion>5.0.0</SystemRuntimeCompilerServicesUnsafePackageVersion>
+    <SystemRuntimeCompilerServicesUnsafePackageVersion>6.0.0</SystemRuntimeCompilerServicesUnsafePackageVersion>
     <SystemRuntimeInteropServicesRuntimeInformationPackageVersion>4.3.0</SystemRuntimeInteropServicesRuntimeInformationPackageVersion>
-    <SystemSecurityCryptographyXmlPackageVersion>4.7.0</SystemSecurityCryptographyXmlPackageVersion>
+    <SystemSecurityCryptographyXmlPackageVersion>6.0.1</SystemSecurityCryptographyXmlPackageVersion>
     <SystemTextEncodingCodePagesPackageVersion>4.3.0</SystemTextEncodingCodePagesPackageVersion>
-    <SystemTextEncodingCodePagesPackageVersion Condition=" '$(TargetFramework)' == 'net461' ">5.0.0</SystemTextEncodingCodePagesPackageVersion>
-    <TimeZoneConverterPackageVersion>3.5.0</TimeZoneConverterPackageVersion>
+    <SystemTextEncodingCodePagesPackageVersion Condition=" '$(TargetFramework)' == 'net472' ">5.0.0</SystemTextEncodingCodePagesPackageVersion>
+    <SystemTextJsonPackageVersion>6.0.6</SystemTextJsonPackageVersion>
+    <TimeZoneConverterPackageVersion>6.1.0</TimeZoneConverterPackageVersion>
+  </PropertyGroup>
+  <PropertyGroup Label="Maven Package Reference Versions">
+    <OpenNLPToolsMavenReferenceVersion>1.9.1</OpenNLPToolsMavenReferenceVersion>
+    <OSGICoreMavenReferenceVersion>4.2.0</OSGICoreMavenReferenceVersion>
   </PropertyGroup>
 </Project>

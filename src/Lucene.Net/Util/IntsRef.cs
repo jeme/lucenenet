@@ -43,10 +43,13 @@ namespace Lucene.Net.Util
         /// <para/>
         /// NOTE: This was EMPTY_INTS in Lucene
         /// </summary>
-        public static readonly int[] EMPTY_INT32S = Arrays.Empty<int>();
+        [SuppressMessage("CodeQuality", "IDE0079:Remove unnecessary suppression", Justification = "This is a SonarCloud issue")]
+        [SuppressMessage("Performance", "S3887:Use an immutable collection or reduce the accessibility of the non-private readonly field", Justification = "Collection is immutable")]
+        [SuppressMessage("Performance", "S2386:Use an immutable collection or reduce the accessibility of the public static field", Justification = "Collection is immutable")]
+        public static readonly int[] EMPTY_INT32S = Array.Empty<int>();
 
         /// <summary>
-        /// The contents of the <see cref="Int32sRef"/>. Should never be <c>null</c>. 
+        /// The contents of the <see cref="Int32sRef"/>. Should never be <c>null</c>.
         /// <para/>
         /// NOTE: This was ints (field) in Lucene
         /// </summary>
@@ -201,7 +204,7 @@ namespace Lucene.Net.Util
                 ints = new int[other.Length];
                 Offset = 0;
             }
-            Array.Copy(other.ints, other.Offset, ints, Offset, other.Length);
+            Arrays.Copy(other.ints, other.Offset, ints, Offset, other.Length);
             Length = other.Length;
         }
 

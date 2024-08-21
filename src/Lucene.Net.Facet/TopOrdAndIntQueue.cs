@@ -1,5 +1,7 @@
 ﻿// Lucene version compatibility level 4.8.1
 using Lucene.Net.Util;
+using System;
+#nullable enable
 
 namespace Lucene.Net.Facet
 {
@@ -26,18 +28,44 @@ namespace Lucene.Net.Facet
     /// <para/>
     /// NOTE: This was TopOrdAndIntQueue in Lucene
     /// </summary>
+
+    // LUCENENET NOTE: Keeping this around because it is public. Although,
+    // we don't use it internally anymore, we use TopOrdAndInt32Comparer
+    // with ValuePriorityQueue instead.
     public class TopOrdAndInt32Queue : PriorityQueue<OrdAndValue<int>>
     {
         // LUCENENET specific - de-nested OrdAndValue and made it into a generic struct
         // so it can be used with this class and TopOrdAndSingleQueue
 
         /// <summary>
-        /// Sole constructor.
+        /// Initializes a new instance of <see cref="TopOrdAndInt32Queue"/> with the specified
+        /// <paramref name="topN"/> size.
         /// </summary>
         public TopOrdAndInt32Queue(int topN)
-            : base(topN, false)
+            : base(topN) // LUCENENET NOTE: Doesn't pre-populate because sentinelFactory is null
         {
         }
+
+        protected internal override bool LessThan(OrdAndValue<int> a, OrdAndValue<int> b)
+            => TopOrdAndInt32Comparer.Default.LessThan(a, b);
+    }
+
+    /// <summary>
+    /// Keeps highest results, first by largest <see cref="int"/> value,
+    /// then tie break by smallest ord.
+    /// <para/>
+    /// NOTE: This is a refactoring of TopOrdAndIntQueue in Lucene
+    /// </summary>
+    // LUCENENET: Refactored PriorityQueue<T> subclass into PriorityComparer<T>
+    // implementation, which can be passed into ValuePriorityQueue.
+    public sealed class TopOrdAndInt32Comparer : PriorityComparer<OrdAndValue<int>>
+    {
+        /// <summary>
+        /// Returns a default sort order comparer for <see cref="OrdAndValue{Int32}"/>.
+        /// Keeps highest results, first by largest <see cref="int"/> value,
+        /// then tie break by smallest ord.
+        /// </summary>
+        public static TopOrdAndInt32Comparer Default { get; } = new TopOrdAndInt32Comparer();
 
         protected internal override bool LessThan(OrdAndValue<int> a, OrdAndValue<int> b)
         {

@@ -7,10 +7,11 @@ using Lucene.Net.Support.IO;
 using Lucene.Net.Support.Threading;
 using Lucene.Net.Util;
 #if !FEATURE_CONDITIONALWEAKTABLE_ENUMERATOR
-using Prism.Events;
+using Lucene.Net.Util.Events;
 #endif
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Runtime.CompilerServices;
 using JCG = J2N.Collections.Generic;
@@ -163,7 +164,8 @@ namespace Lucene.Net.Search
             return result.ToArray();
         }
 
-        private void AddCacheEntries<TKey, TValue>(IList<FieldCache.CacheEntry> result, Type cacheType, Cache<TKey, TValue> cache) where TKey : CacheKey // LUCENENET: CA1822: Mark members as static
+        [SuppressMessage("Performance", "CA1822:Mark members as static", Justification = "False positive")]
+        private void AddCacheEntries<TKey, TValue>(IList<FieldCache.CacheEntry> result, Type cacheType, Cache<TKey, TValue> cache) where TKey : CacheKey
         {
             UninterruptableMonitor.Enter(cache.readerCache);
             try
@@ -186,8 +188,8 @@ namespace Lucene.Net.Search
 #else
                 // LUCENENET specific - since .NET Standard 2.0 and .NET Framework don't have a CondtionalWeakTable enumerator,
                 // we use a weak event to retrieve the readerKey instances and then lookup the values in the table one by one.
-                var e = new Events.GetCacheKeysEventArgs();
-                eventAggregator.GetEvent<Events.GetCacheKeysEvent>().Publish(e);
+                var e = new WeakEvents.GetCacheKeysEventArgs();
+                eventAggregator.GetEvent<WeakEvents.GetCacheKeysEvent>().Publish(e);
                 foreach (object readerKey in e.CacheKeys)
                 {
                     if (cache.readerCache.TryGetValue(readerKey, out IDictionary<TKey, object> innerCache))
@@ -226,9 +228,9 @@ namespace Lucene.Net.Search
         }
 
         // composite/SlowMultiReaderWrapper fieldcaches don't purge until composite reader is closed.
-        internal readonly IndexReader.IReaderClosedListener purgeReader;
+        internal readonly IReaderDisposedListener purgeReader;
 
-        private sealed class ReaderClosedListenerAnonymousClass : IndexReader.IReaderClosedListener
+        private sealed class ReaderClosedListenerAnonymousClass : IReaderDisposedListener
         {
             private readonly FieldCacheImpl outerInstance;
 
@@ -237,7 +239,7 @@ namespace Lucene.Net.Search
                 this.outerInstance = outerInstance;
             }
 
-            public void OnClose(IndexReader owner)
+            public void OnDispose(IndexReader owner)
             {
                 if (Debugging.AssertsEnabled) Debugging.Assert(owner is AtomicReader);
                 outerInstance.PurgeByCacheKey(((AtomicReader)owner).CoreCacheKey);
@@ -257,18 +259,18 @@ namespace Lucene.Net.Search
                 object key = reader.CoreCacheKey;
                 if (key is AtomicReader atomicReader)
                 {
-                    atomicReader.AddReaderClosedListener(purgeReader);
+                    atomicReader.AddReaderDisposedListener(purgeReader);
                 }
                 else
                 {
                     // last chance
-                    reader.AddReaderClosedListener(purgeReader);
+                    reader.AddReaderDisposedListener(purgeReader);
                 }
             }
 #if !FEATURE_CONDITIONALWEAKTABLE_ENUMERATOR
             // LUCENENET specific - since .NET Standard 2.0 and .NET Framework don't have a CondtionalWeakTable enumerator,
             // we use a weak event to retrieve the readerKey instances
-            reader.SubscribeToGetCacheKeysEvent(eventAggregator.GetEvent<Events.GetCacheKeysEvent>());
+            reader.SubscribeToGetCacheKeysEvent(eventAggregator.GetEvent<WeakEvents.GetCacheKeysEvent>());
 #endif
         }
 
@@ -281,7 +283,7 @@ namespace Lucene.Net.Search
         /// Expert: Internal cache. </summary>
         internal abstract class Cache<TKey, TValue> where TKey : CacheKey
         {
-            internal Cache(FieldCacheImpl wrapper)
+            private protected Cache(FieldCacheImpl wrapper) // LUCENENET: Changed from internal to private protected
             {
                 this.wrapper = wrapper;
             }

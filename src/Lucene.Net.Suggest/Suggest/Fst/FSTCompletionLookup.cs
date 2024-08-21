@@ -30,29 +30,29 @@ namespace Lucene.Net.Search.Suggest.Fst
 
     /// <summary>
     /// An adapter from <see cref="Lookup"/> API to <see cref="FSTCompletion"/>.
-    /// 
+    ///
     /// <para>This adapter differs from <see cref="FSTCompletion"/> in that it attempts
     /// to discretize any "weights" as passed from in <see cref="IInputEnumerator.Weight"/>
     /// to match the number of buckets. For the rationale for bucketing, see
     /// <see cref="FSTCompletion"/>.
-    /// 
+    ///
     /// </para>
     /// <para><b>Note:</b>Discretization requires an additional sorting pass.
-    /// 
+    ///
     /// </para>
-    /// <para>The range of weights for bucketing/ discretization is determined 
+    /// <para>The range of weights for bucketing/ discretization is determined
     /// by sorting the input by weight and then dividing into
-    /// equal ranges. Then, scores within each range are assigned to that bucket. 
-    /// 
+    /// equal ranges. Then, scores within each range are assigned to that bucket.
+    ///
     /// </para>
-    /// <para>Note that this means that even large differences in weights may be lost 
+    /// <para>Note that this means that even large differences in weights may be lost
     /// during automaton construction, but the overall distinction between "classes"
-    /// of weights will be preserved regardless of the distribution of weights. 
-    /// 
+    /// of weights will be preserved regardless of the distribution of weights.
+    ///
     /// </para>
     /// <para>For fine-grained control over which weights are assigned to which buckets,
     /// use <see cref="FSTCompletion"/> directly or <see cref="Tst.TSTLookup"/>, for example.
-    /// 
+    ///
     /// </para>
     /// </summary>
     /// <seealso cref="FSTCompletion"/>
@@ -68,9 +68,9 @@ namespace Lucene.Net.Search.Suggest.Fst
 
         /// <summary>
         /// Shared tail length for conflating in the created automaton. Setting this
-        /// to larger values (<see cref="int.MaxValue"/>) will create smaller (or minimal) 
-        /// automata at the cost of RAM for keeping nodes hash in the <see cref="FST"/>. 
-        ///  
+        /// to larger values (<see cref="int.MaxValue"/>) will create smaller (or minimal)
+        /// automata at the cost of RAM for keeping nodes hash in the <see cref="FST"/>.
+        ///
         /// <para>Empirical pick.
         /// </para>
         /// </summary>
@@ -126,7 +126,7 @@ namespace Lucene.Net.Search.Suggest.Fst
         /// <summary>
         /// This constructor takes a pre-built automaton.
         /// </summary>
-        ///  <param name="completion"> 
+        ///  <param name="completion">
         ///          An instance of <see cref="FSTCompletion"/>. </param>
         ///  <param name="exactMatchFirst">
         ///          If <code>true</code> exact matches are promoted to the top of the
@@ -153,8 +153,8 @@ namespace Lucene.Net.Search.Suggest.Fst
             {
                 throw new ArgumentException("this suggester doesn't support contexts");
             }
-            FileInfo tempInput = FileSupport.CreateTempFile(typeof(FSTCompletionLookup).Name, ".input", OfflineSorter.DefaultTempDir());
-            FileInfo tempSorted = FileSupport.CreateTempFile(typeof(FSTCompletionLookup).Name, ".sorted", OfflineSorter.DefaultTempDir());
+            using FileStream tempInput = FileSupport.CreateTempFileAsStream(typeof(FSTCompletionLookup).Name, ".input", OfflineSorter.DefaultTempDir);
+            using FileStream tempSorted = FileSupport.CreateTempFileAsStream(typeof(FSTCompletionLookup).Name, ".sorted", OfflineSorter.DefaultTempDir);
 
             OfflineSorter.ByteSequencesWriter writer = new OfflineSorter.ByteSequencesWriter(tempInput);
             OfflineSorter.ByteSequencesReader reader = null;
@@ -166,7 +166,7 @@ namespace Lucene.Net.Search.Suggest.Fst
             count = 0;
             try
             {
-                byte[] buffer = Arrays.Empty<byte>();
+                byte[] buffer = Array.Empty<byte>();
                 ByteArrayDataOutput output = new ByteArrayDataOutput(buffer);
                 BytesRef spare;
                 while (enumerator.MoveNext())
@@ -182,12 +182,13 @@ namespace Lucene.Net.Search.Suggest.Fst
                     output.WriteBytes(spare.Bytes, spare.Offset, spare.Length);
                     writer.Write(buffer, 0, output.Position);
                 }
-                writer.Dispose();
+                tempInput.Position = 0;
 
                 // We don't know the distribution of scores and we need to bucket them, so we'll sort
                 // and divide into equal buckets.
                 OfflineSorter.SortInfo info = (new OfflineSorter()).Sort(tempInput, tempSorted);
-                tempInput.Delete();
+                // LUCENENET specific - we are using the FileOptions.DeleteOnClose FileStream option to delete the file when it is disposed.
+                writer.Dispose();
                 FSTCompletionBuilder builder = new FSTCompletionBuilder(buckets, sorter = new ExternalRefSorter(new OfflineSorter()), sharedTailLength);
 
                 int inputLines = info.Lines;
@@ -241,9 +242,7 @@ namespace Lucene.Net.Search.Suggest.Fst
                 {
                     IOUtils.DisposeWhileHandlingException(reader, writer, sorter);
                 }
-
-                tempInput.Delete();
-                tempSorted.Delete();
+                // LUCENENET specific - we are using the FileOptions.DeleteOnClose FileStream option to delete the file when it is disposed.
             }
         }
 

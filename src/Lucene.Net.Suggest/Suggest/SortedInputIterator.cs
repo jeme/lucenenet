@@ -1,7 +1,7 @@
 ﻿using Lucene.Net.Store;
-using Lucene.Net.Support;
 using Lucene.Net.Support.IO;
 using Lucene.Net.Util;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using JCG = J2N.Collections.Generic;
@@ -33,8 +33,7 @@ namespace Lucene.Net.Search.Suggest
     public class SortedInputEnumerator : IInputEnumerator
     {
         private readonly IInputEnumerator source;
-        private FileInfo tempInput;
-        private FileInfo tempSorted;
+        // LUCENENET specific - since these tempInput and tempSorted are only used in the Sort() method, they were moved there.
         private readonly OfflineSorter.ByteSequencesReader reader;
         private readonly IComparer<BytesRef> comparer;
         private readonly bool hasPayloads;
@@ -49,7 +48,7 @@ namespace Lucene.Net.Search.Suggest
 
         /// <summary>
         /// Creates a new sorted wrapper, using <see cref="BytesRef.UTF8SortedAsUnicodeComparer"/>
-        /// for sorting. 
+        /// for sorting.
         /// </summary>
         public SortedInputEnumerator(IInputEnumerator source)
             : this(source, BytesRef.UTF8SortedAsUnicodeComparer)
@@ -183,23 +182,27 @@ namespace Lucene.Net.Search.Suggest
         private OfflineSorter.ByteSequencesReader Sort()
         {
             string prefix = this.GetType().Name;
-            DirectoryInfo directory = OfflineSorter.DefaultTempDir();
-            tempInput = FileSupport.CreateTempFile(prefix, ".input", directory);
-            tempSorted = FileSupport.CreateTempFile(prefix, ".sorted", directory);
+            var directory = OfflineSorter.DefaultTempDir;
+            // LUCENENET specific - we are using the FileOptions.DeleteOnClose FileStream option to delete the file when it is disposed.
+            FileStream tempInput = FileSupport.CreateTempFileAsStream(prefix, ".input", directory);
+            FileStream tempSorted = FileSupport.CreateTempFileAsStream(prefix, ".sorted", directory);
 
             var writer = new OfflineSorter.ByteSequencesWriter(tempInput);
             bool success = false;
             try
             {
-                byte[] buffer = Arrays.Empty<byte>();
+                byte[] buffer = Array.Empty<byte>();
                 var output = new ByteArrayDataOutput(buffer);
 
                 while (source.MoveNext())
                 {
                     Encode(writer, output, buffer, source.Current, source.Payload, source.Contexts, source.Weight);
                 }
-                writer.Dispose();
+                tempInput.Position = 0;
                 (new OfflineSorter(tieBreakByCostComparer)).Sort(tempInput, tempSorted);
+
+                // LUCENENET specific - we are using the FileOptions.DeleteOnClose FileStream option to delete the file when it is disposed.
+                writer.Dispose();
                 var reader = new OfflineSorter.ByteSequencesReader(tempSorted);
                 success = true;
                 return reader;
@@ -214,7 +217,7 @@ namespace Lucene.Net.Search.Suggest
                 {
                     try
                     {
-                        IOUtils.DisposeWhileHandlingException(writer);
+                        IOUtils.DisposeWhileHandlingException(writer, tempSorted);
                     }
                     finally
                     {
@@ -227,14 +230,7 @@ namespace Lucene.Net.Search.Suggest
         private void Close()
         {
             IOUtils.Dispose(reader);
-            if (tempInput != null)
-            {
-                tempInput.Delete();
-            }
-            if (tempSorted != null)
-            {
-                tempSorted.Delete();
-            }
+            // LUCENENET specific - we are using the FileOptions.DeleteOnClose FileStream option to delete the file when it is disposed.
         }
 
         /// <summary>

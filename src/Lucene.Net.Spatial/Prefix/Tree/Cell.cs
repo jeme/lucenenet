@@ -89,7 +89,8 @@ namespace Lucene.Net.Spatial.Prefix.Tree
             if (token.Length > 0 && token[token.Length - 1] == (char)LEAF_BYTE)
             {
                 this.token = token.Substring(0, (token.Length - 1) - 0);
-                SetLeaf();
+                // LUCENENET specific - calling private instead of virtual to avoid initialization issues
+                SetLeafInternal(); 
             }
             if (Level == 0)
             {
@@ -157,7 +158,9 @@ namespace Lucene.Net.Spatial.Prefix.Tree
             if (bytes![b_off + b_len - 1] == LEAF_BYTE)
             {
                 b_len--;
-                SetLeaf();
+                // LUCENENET specific - calling internal vs virtual
+                // to avoid issues when this is called from constructor
+                SetLeafInternal();
             }
             else
             {
@@ -174,8 +177,18 @@ namespace Lucene.Net.Spatial.Prefix.Tree
         /// </remarks>
         public virtual bool IsLeaf => m_leaf;
 
-        /// <summary>Note: not supported at level 0.</summary>
-        public virtual void SetLeaf()
+        /// <summary>Note: not supported at level 0.
+        /// 
+        /// NOTE: When overriding this method, be aware that the constructor of this class calls 
+        /// a private method and not this virtual method. So if you need to override
+        /// the behavior during the initialization, call your own private method from the constructor
+        /// with whatever custom behavior you need.
+        /// </summary>
+        public virtual void SetLeaf() => SetLeafInternal();
+
+        // LUCENENET specific - S1699 - private method that can be called
+        // from constructor without causing initialization issues
+        private void SetLeafInternal()
         {
             if (Debugging.AssertsEnabled) Debugging.Assert(Level != 0);
             m_leaf = true;

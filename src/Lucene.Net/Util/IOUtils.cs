@@ -1,10 +1,14 @@
 ﻿using J2N;
+using Lucene.Net.Diagnostics;
 using Lucene.Net.Support;
+using Lucene.Net.Support.IO;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.ExceptionServices;
+using System.Runtime.InteropServices;
 using System.Text;
 
 namespace Lucene.Net.Util
@@ -39,9 +43,12 @@ namespace Lucene.Net.Util
     {
         /// <summary>
         /// UTF-8 <see cref="Encoding"/> instance to prevent repeated
-        /// <see cref="Encoding.UTF8"/> lookups </summary>
-        [Obsolete("Use Encoding.UTF8 instead.")]
-        public static readonly Encoding CHARSET_UTF_8 = Encoding.UTF8;
+        /// <see cref="Encoding.UTF8"/> lookups and match Java's behavior
+        /// with respect to a lack of a byte-order mark (BOM).
+        /// </summary>
+        public static readonly Encoding CHARSET_UTF_8 = new UTF8Encoding(
+            encoderShouldEmitUTF8Identifier: false,
+            throwOnInvalidBytes: true);
 
         /// <summary>
         /// UTF-8 charset string.
@@ -58,21 +65,21 @@ namespace Lucene.Net.Util
         /// <code>
         /// IDisposable resource1 = null, resource2 = null, resource3 = null;
         /// ExpectedException priorE = null;
-        /// try 
+        /// try
         /// {
         ///     resource1 = ...; resource2 = ...; resource3 = ...; // Acquisition may throw ExpectedException
         ///     ..do..stuff.. // May throw ExpectedException
-        /// } 
-        /// catch (ExpectedException e) 
+        /// }
+        /// catch (ExpectedException e)
         /// {
         ///     priorE = e;
-        /// } 
-        /// finally 
+        /// }
+        /// finally
         /// {
         ///     IOUtils.CloseWhileHandlingException(priorE, resource1, resource2, resource3);
         /// }
         /// </code>
-        /// </para> 
+        /// </para>
         /// </summary>
         /// <param name="priorException">  <c>null</c> or an exception that will be rethrown after method completion. </param>
         /// <param name="objects">         Objects to call <see cref="IDisposable.Dispose()"/> on. </param>
@@ -148,21 +155,21 @@ namespace Lucene.Net.Util
         /// <code>
         /// IDisposable resource1 = null, resource2 = null, resource3 = null;
         /// ExpectedException priorE = null;
-        /// try 
+        /// try
         /// {
         ///     resource1 = ...; resource2 = ...; resource3 = ...; // Acquisition may throw ExpectedException
         ///     ..do..stuff.. // May throw ExpectedException
-        /// } 
-        /// catch (ExpectedException e) 
+        /// }
+        /// catch (ExpectedException e)
         /// {
         ///     priorE = e;
-        /// } 
-        /// finally 
+        /// }
+        /// finally
         /// {
         ///     IOUtils.DisposeWhileHandlingException(priorE, resource1, resource2, resource3);
         /// }
         /// </code>
-        /// </para> 
+        /// </para>
         /// </summary>
         /// <param name="priorException">  <c>null</c> or an exception that will be rethrown after method completion. </param>
         /// <param name="objects">         Objects to call <see cref="IDisposable.Dispose()"/> on. </param>
@@ -175,10 +182,7 @@ namespace Lucene.Net.Util
             {
                 try
                 {
-                    if (@object != null)
-                    {
-                        @object.Dispose();
-                    }
+                    @object?.Dispose();
                 }
                 catch (Exception t) when (t.IsThrowable())
                 {
@@ -204,7 +208,7 @@ namespace Lucene.Net.Util
         /// Disposes all given <see cref="IDisposable"/>s, suppressing all thrown exceptions. </summary>
         /// <seealso cref="DisposeWhileHandlingException(Exception, IDisposable[])"/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void DisposeWhileHandlingException(Exception priorException, IEnumerable<IDisposable> objects) 
+        public static void DisposeWhileHandlingException(Exception priorException, IEnumerable<IDisposable> objects)
         {
             Exception th = null;
 
@@ -212,10 +216,7 @@ namespace Lucene.Net.Util
             {
                 try
                 {
-                    if (@object != null)
-                    {
-                        @object.Dispose();
-                    }
+                    @object?.Dispose();
                 }
                 catch (Exception t) when (t.IsThrowable())
                 {
@@ -247,7 +248,7 @@ namespace Lucene.Net.Util
         /// <param name="objects">
         ///          Objects to call <see cref="IDisposable.Dispose()"/> on </param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Dispose(params IDisposable[] objects) 
+        public static void Dispose(params IDisposable[] objects)
         {
             Exception th = null;
 
@@ -255,10 +256,7 @@ namespace Lucene.Net.Util
             {
                 try
                 {
-                    if (@object != null)
-                    {
-                        @object.Dispose();
-                    }
+                    @object?.Dispose();
                 }
                 catch (Exception t) when (t.IsThrowable())
                 {
@@ -285,10 +283,7 @@ namespace Lucene.Net.Util
             {
                 try
                 {
-                    if (@object != null)
-                    {
-                        @object.Dispose();
-                    }
+                    @object?.Dispose();
                 }
                 catch (Exception t) when (t.IsThrowable())
                 {
@@ -310,16 +305,13 @@ namespace Lucene.Net.Util
         /// <param name="objects">
         ///          Objects to call <see cref="IDisposable.Dispose()"/> on </param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void DisposeWhileHandlingException(params IDisposable[] objects) 
+        public static void DisposeWhileHandlingException(params IDisposable[] objects)
         {
             foreach (var o in objects)
             {
                 try
                 {
-                    if (o != null)
-                    {
-                        o.Dispose();
-                    }
+                    o?.Dispose();
                 }
                 catch (Exception t) when (t.IsThrowable())
                 {
@@ -338,10 +330,7 @@ namespace Lucene.Net.Util
             {
                 try
                 {
-                    if (@object != null)
-                    {
-                        @object.Dispose();
-                    }
+                    @object?.Dispose();
                 }
                 catch (Exception t) when (t.IsThrowable())
                 {
@@ -352,7 +341,7 @@ namespace Lucene.Net.Util
 
         /// <summary>
         /// Since there's no C# equivalent of Java's Exception.AddSuppressed, we add the
-        /// suppressed exceptions to a data field via the 
+        /// suppressed exceptions to a data field via the
         /// <see cref="ExceptionExtensions.AddSuppressed(Exception, Exception)"/> method.
         /// <para/>
         /// The exceptions can be retrieved by calling <see cref="ExceptionExtensions.GetSuppressed(Exception)"/>
@@ -498,7 +487,7 @@ namespace Lucene.Net.Util
 
         /// <summary>
         /// Simple utilty method that takes a previously caught
-        /// <see cref="Exception"/> and rethrows either 
+        /// <see cref="Exception"/> and rethrows either
         /// <see cref="IOException"/> or an unchecked exception.  If the
         /// argument is <c>null</c> then this method does nothing.
         /// </summary>
@@ -531,8 +520,55 @@ namespace Lucene.Net.Util
             }
         }
 
-        // LUCENENET specific: Fsync is pointless in .NET, since we are 
-        // calling FileStream.Flush(true) before the stream is disposed
-        // which means we never need it at the point in Java where it is called.
+        // LUCENENET specific: using string instead of FileSystemInfo to avoid extra allocation
+        public static void Fsync(string fileToSync, bool isDir)
+        {
+            // LUCENENET NOTE: there is a bug in 4.8 where it tries to fsync a directory on Windows,
+            // which is not supported in OpenJDK. This change adopts the latest Lucene code as of 9.10
+            // and only fsyncs directories on Linux and macOS.
+
+            // If the file is a directory we have to open read-only, for regular files we must open r/w for
+            // the fsync to have an effect.
+            // See http://blog.httrack.com/blog/2013/11/15/everything-you-always-wanted-to-know-about-fsync/
+            if (isDir && Constants.WINDOWS)
+            {
+                // opening a directory on Windows fails, directories can not be fsynced there
+                if (System.IO.Directory.Exists(fileToSync) == false)
+                {
+                    // yet do not suppress trying to fsync directories that do not exist
+                    throw new DirectoryNotFoundException($"Directory does not exist: {fileToSync}");
+                }
+                return;
+            }
+
+            try
+            {
+                // LUCENENET specific: was: file.force(true);
+                // We must call fsync on the parent directory, requiring some custom P/Invoking
+                if (Constants.WINDOWS)
+                {
+                    WindowsFsyncSupport.Fsync(fileToSync, isDir);
+                }
+                else
+                {
+                    PosixFsyncSupport.Fsync(fileToSync, isDir);
+                }
+            }
+            catch (Exception e) when (e.IsIOException() && isDir && e is not DirectoryNotFoundException)
+            {
+                // LUCENENET specific - make catch specific to IOExceptions when it's a directory,
+                // but allow DirectoryNotFoundException to pass through as an equivalent would normally be
+                // thrown by the FileChannel.open call in Java which is outside the try block.
+
+                if (Debugging.AssertsEnabled)
+                {
+                    Debugging.Assert((Constants.LINUX || Constants.MAC_OS_X) == false,
+                        "On Linux and MacOSX fsyncing a directory should not throw IOException, we just don't want to rely on that in production (undocumented). Got: {0}",
+                        e);
+                }
+
+                // Ignore exception if it is a directory
+            }
+        }
     }
 }

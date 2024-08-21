@@ -1,6 +1,4 @@
 ﻿using J2N;
-using J2N.Text;
-using J2N.Threading;
 using J2N.Threading.Atomic;
 using Lucene.Net.Diagnostics;
 using Lucene.Net.Support;
@@ -8,6 +6,7 @@ using Lucene.Net.Support.Threading;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.IO;
 using System.Runtime.CompilerServices;
@@ -127,9 +126,9 @@ namespace Lucene.Net.Index
     /// the <see cref="mergePolicy"/> and the <see cref="mergeScheduler"/>.
     /// The <see cref="mergePolicy"/> is invoked whenever there are
     /// changes to the segments in the index.  Its role is to
-    /// select which merges to do, if any, and return a 
+    /// select which merges to do, if any, and return a
     /// <see cref="MergePolicy.MergeSpecification"/> describing the merges.
-    /// The default is <see cref="LogByteSizeMergePolicy"/>.  Then, the 
+    /// The default is <see cref="LogByteSizeMergePolicy"/>.  Then, the
     /// <see cref="MergeScheduler"/> is invoked with the requested merges and
     /// it decides when and how to run the merges.  The default is
     /// <see cref="ConcurrentMergeScheduler"/>. </para>
@@ -146,7 +145,7 @@ namespace Lucene.Net.Index
     /// last commit.  You can also just call <see cref="Rollback()"/>
     /// directly.</para>
     ///
-    /// <a name="thread-safety"></a><para><b>NOTE</b>: 
+    /// <a name="thread-safety"></a><para><b>NOTE</b>:
     /// <see cref="IndexWriter"/> instances are completely thread
     /// safe, meaning multiple threads can call any of its
     /// methods, concurrently.  If your application requires
@@ -594,7 +593,16 @@ namespace Lucene.Net.Index
 
             public void Dispose()
             {
-                DropAll(false);
+                Dispose(true);
+                GC.SuppressFinalize(this);
+            }
+
+            protected virtual void Dispose(bool disposing)
+            {
+                if (disposing)
+                {
+                    DropAll(false);
+                }
             }
 
             /// <summary>
@@ -1066,58 +1074,123 @@ namespace Lucene.Net.Index
         /// something like this:</para>
         ///
         /// <code>
-        /// try 
+        /// try
         /// {
         ///     writer.Dispose();
-        /// } 
-        /// finally 
+        /// }
+        /// finally
         /// {
-        ///     if (IndexWriter.IsLocked(directory)) 
+        ///     if (IndexWriter.IsLocked(directory))
         ///     {
         ///         IndexWriter.Unlock(directory);
         ///     }
         /// }
         /// </code>
-        /// 
+        ///
         /// after which, you must be certain not to use the writer
         /// instance anymore.
         ///
         /// <para><b>NOTE</b>: if this method hits an <see cref="OutOfMemoryException"/>
-        /// you should immediately dispose the writer, again.  See 
+        /// you should immediately dispose the writer, again.  See
         /// <see cref="IndexWriter"/> for details.</para>
         /// </summary>
         /// <exception cref="IOException"> if there is a low-level IO error </exception>
         [MethodImpl(MethodImplOptions.NoInlining)]
         public void Dispose()
         {
-            Dispose(true);
+            Dispose(disposing: true, waitForMerges: true);
             GC.SuppressFinalize(this);
         }
 
         /// <summary>
-        /// Closes the index with or without waiting for currently
+        /// Disposes the index with or without waiting for currently
         /// running merges to finish.  This is only meaningful when
         /// using a <see cref="MergeScheduler"/> that runs merges in background
         /// threads.
         ///
-        /// <para><b>NOTE</b>: if this method hits an <see cref="OutOfMemoryException"/>
-        /// you should immediately dispose the writer, again.  See 
+        /// <para><b>NOTE</b>: If this method hits an <see cref="OutOfMemoryException"/>
+        /// you should immediately dispose the writer, again.  See
         /// <see cref="IndexWriter"/> for details.</para>
         ///
-        /// <para><b>NOTE</b>: it is dangerous to always call
+        /// <para><b>NOTE</b>: It is dangerous to always call
         /// <c>Dispose(false)</c>, especially when <see cref="IndexWriter"/> is not open
         /// for very long, because this can result in "merge
         /// starvation" whereby long merges will never have a
         /// chance to finish.  This will cause too many segments in
         /// your index over time.</para>
+        ///
+        /// <para><b>NOTE</b>: This overload should not be called when implementing a finalizer.
+        /// Instead, call <see cref="Dispose(bool, bool)"/> with <c>disposing</c> set to
+        /// <c>false</c> and <c>waitForMerges</c> set to <c>true</c>.</para>
         /// </summary>
-        /// <param name="waitForMerges"> if <c>true</c>, this call will block
+        /// <param name="waitForMerges"> If <c>true</c>, this call will block
         /// until all merges complete; else, it will ask all
         /// running merges to abort, wait until those merges have
         /// finished (which should be at most a few seconds), and
         /// then return. </param>
         [MethodImpl(MethodImplOptions.NoInlining)]
-        public virtual void Dispose(bool waitForMerges) // LUCENENET TODO: API - mark protected
+        [SuppressMessage("CodeQuality", "IDE0079:Remove unnecessary suppression", Justification = "This is a SonarCloud issue")]
+        [SuppressMessage("Usage", "CA1816:Dispose methods should call SuppressFinalize", Justification = "This is Lucene's alternate path to Dispose() and we must suppress the finalizer here.")]
+        [SuppressMessage("Usage", "S2953:Methods named \"Dispose\" should implement \"IDisposable.Dispose\"", Justification = "This is Lucene's alternate path to Dispose() and we must suppress the finalizer here.")]
+        [SuppressMessage("Usage", "S3971:\"GC.SuppressFinalize\" should not be called", Justification = "This is Lucene's alternate path to Dispose() and we must suppress the finalizer here.")]
+        public void Dispose(bool waitForMerges)
+        {
+            Dispose(disposing: true, waitForMerges);
+            GC.SuppressFinalize(this);
+        }
+
+        /// <summary>
+        /// Disposes the index with or without waiting for currently
+        /// running merges to finish.  This is only meaningful when
+        /// using a <see cref="MergeScheduler"/> that runs merges in background
+        /// threads.
+        ///
+        /// <para>This call will block
+        /// until all merges complete; else, it will ask all
+        /// running merges to abort, wait until those merges have
+        /// finished (which should be at most a few seconds), and
+        /// then return.
+        /// </para>
+        ///
+        /// <para><b>NOTE</b>: Always be sure to call <c>base.Dispose(disposing, waitForMerges)</c>
+        /// when overriding this method.</para>
+        ///
+        /// <para><b>NOTE</b>: When implementing a finalizer in a subclass, this overload should be called
+        /// with <paramref name="disposing"/> set to <c>false</c> and <paramref name="waitForMerges"/>
+        /// set to <c>true</c>.</para>
+        ///
+        /// <para><b>NOTE</b>: If this method hits an <see cref="OutOfMemoryException"/>
+        /// you should immediately dispose the writer, again.  See
+        /// <see cref="IndexWriter"/> for details.</para>
+        ///
+        /// <para><b>NOTE</b>: It is dangerous to always call
+        /// with <paramref name="waitForMerges"/> set to <c>false</c>,
+        /// especially when <see cref="IndexWriter"/> is not open
+        /// for very long, because this can result in "merge
+        /// starvation" whereby long merges will never have a
+        /// chance to finish.  This will cause too many segments in
+        /// your index over time.</para>
+        /// </summary>
+        /// <param name="waitForMerges"> If <c>true</c>, this call will block
+        /// until all merges complete; else, it will ask all
+        /// running merges to abort, wait until those merges have
+        /// finished (which should be at most a few seconds), and
+        /// then return. </param>
+        /// <param name="disposing"><c>true</c> to release both managed and unmanaged resources;
+        /// <c>false</c> to release only unmanaged resources. </param>
+        // LUCENENET specific - Added this overload to allow subclasses to dispose resoruces
+        // in one place without also having to override Dispose(bool).
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        protected virtual void Dispose(bool disposing, bool waitForMerges)
+        {
+            if (disposing)
+            {
+                Close(waitForMerges);
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void Close(bool waitForMerges)
         {
             // Ensure that only one thread actually gets to do the
             // closing, and make sure no commit is also in progress:
@@ -1148,7 +1221,7 @@ namespace Lucene.Net.Index
 
         private bool AssertEventQueueAfterClose()
         {
-            if (eventQueue.Count == 0)
+            if (eventQueue.IsEmpty)
             {
                 return true;
             }
@@ -1521,7 +1594,7 @@ namespace Lucene.Net.Index
         /// U+FFFD.</para>
         ///
         /// <para><b>NOTE</b>: if this method hits an <see cref="OutOfMemoryException"/>
-        /// you should immediately dispose the writer.  See 
+        /// you should immediately dispose the writer.  See
         /// <see cref="IndexWriter"/> for details.</para>
         /// </summary>
         /// <exception cref="CorruptIndexException"> if the index is corrupt </exception>
@@ -1585,8 +1658,8 @@ namespace Lucene.Net.Index
         /// <para><b>NOTE</b>: if this method hits an <see cref="OutOfMemoryException"/>
         /// you should immediately dispose the writer.  See
         /// <see cref="IndexWriter"/> for details.</para>
-        /// 
-        /// @lucene.experimental 
+        ///
+        /// @lucene.experimental
         /// </summary>
         /// <exception cref="CorruptIndexException"> if the index is corrupt </exception>
         /// <exception cref="IOException"> if there is a low-level IO error </exception>
@@ -1673,7 +1746,7 @@ namespace Lucene.Net.Index
         /// Deletes the document(s) containing <paramref name="term"/>.
         ///
         /// <para><b>NOTE</b>: if this method hits an <see cref="OutOfMemoryException"/>
-        /// you should immediately dispose the writer.  See 
+        /// you should immediately dispose the writer.  See
         /// <see cref="IndexWriter"/> for details.</para>
         /// </summary>
         /// <param name="term"> the term to identify the documents to be deleted </param>
@@ -1697,7 +1770,7 @@ namespace Lucene.Net.Index
 
         /// <summary>
         /// Expert: attempts to delete by document ID, as long as
-        /// the provided <paramref name="readerIn"/> is a near-real-time reader (from 
+        /// the provided <paramref name="readerIn"/> is a near-real-time reader (from
         /// <see cref="DirectoryReader.Open(IndexWriter, bool)"/>.  If the
         /// provided <paramref name="readerIn"/> is an NRT reader obtained from this
         /// writer, and its segment has not been merged away, then
@@ -1716,7 +1789,7 @@ namespace Lucene.Net.Index
             UninterruptableMonitor.Enter(this);
             try
             {
-                if (!(readerIn is AtomicReader reader))
+                if (readerIn is not AtomicReader reader)
                 {
                     // Composite reader: lookup sub-reader and re-base docID:
                     IList<AtomicReaderContext> leaves = readerIn.Leaves;
@@ -1731,7 +1804,7 @@ namespace Lucene.Net.Index
                 }
                 // else: Reader is already atomic: use the incoming docID
 
-                if (!(reader is SegmentReader segmentReader))
+                if (reader is not SegmentReader segmentReader)
                 {
                     throw new ArgumentException("the reader must be a SegmentReader or composite reader containing only SegmentReaders");
                 }
@@ -2531,7 +2604,7 @@ namespace Lucene.Net.Index
             try
             {
                 if (Debugging.AssertsEnabled) Debugging.Assert(maxNumSegments == -1 || maxNumSegments > 0);
-                //if (Debugging.AssertsEnabled) Debugging.Assert(trigger != null); // LUCENENET NOTE: Enum cannot be null in .NET
+                if (Debugging.AssertsEnabled) Debugging.Assert(trigger != MergeTrigger.NONE); // LUCENENET specific: using NONE instead of null
                 if (stopMerges)
                 {
                     return false;
@@ -2542,7 +2615,7 @@ namespace Lucene.Net.Index
                 {
                     return false;
                 }
-                bool newMergesFound = false;
+                bool newMergesFound; // LUCENENET specific - removed unnecessary assignment
                 MergePolicy.MergeSpecification spec;
                 if (maxNumSegments != UNBOUNDED_MAX_MERGE_SEGMENTS)
                 {
@@ -2612,7 +2685,7 @@ namespace Lucene.Net.Index
         /// <para/>
         /// @lucene.experimental
         /// </summary>
-        public virtual MergePolicy.OneMerge NextMerge()
+        public virtual MergePolicy.OneMerge NextMerge() // LUCENENET TODO: API - Revert name to GetNextMerge() to match Java
         {
             UninterruptableMonitor.Enter(this);
             try
@@ -2839,7 +2912,7 @@ namespace Lucene.Net.Index
         ///    documents as deleted.</para>
         ///
         /// <para>NOTE: this method will forcefully abort all merges
-        ///    in progress.  If other threads are running 
+        ///    in progress.  If other threads are running
         ///    <see cref="ForceMerge(int)"/>, <see cref="AddIndexes(IndexReader[])"/> or
         ///    <see cref="ForceMergeDeletes()"/> methods, they may receive
         ///    <see cref="MergePolicy.MergeAbortedException"/>s.</para>
@@ -3309,7 +3382,7 @@ namespace Lucene.Net.Index
                         JCG.HashSet<string> copiedFiles = new JCG.HashSet<string>();
                         foreach (SegmentCommitInfo info in sis.Segments)
                         {
-                            if (Debugging.AssertsEnabled) Debugging.Assert(!infos.Contains(info),"dup info dir={0} name={1}", info.Info.Dir, info.Info.Name);
+                            if (Debugging.AssertsEnabled) Debugging.Assert(!infos.Contains(info), "dup info dir={0} name={1}", info.Info.Dir, info.Info.Name);
 
                             string newSegName = NewSegmentName();
 
@@ -3631,7 +3704,7 @@ namespace Lucene.Net.Index
             IDictionary<string, string> attributes;
             // copy the attributes map, we might modify it below.
             // also we need to ensure its read-write, since we will invoke the SIwriter (which might want to set something).
-#pragma warning disable 612, 618
+#pragma warning disable CS0618 // Type or member is obsolete
             if (info.Info.Attributes is null)
             {
                 attributes = new Dictionary<string, string>();
@@ -3640,7 +3713,7 @@ namespace Lucene.Net.Index
             {
                 attributes = new Dictionary<string, string>(info.Info.Attributes);
             }
-#pragma warning restore 612, 618
+#pragma warning restore CS0618 // Type or member is obsolete
             if (docStoreFiles3xOnly != null)
             {
                 // only violate the codec this way if it's preflex &
@@ -3684,9 +3757,9 @@ namespace Lucene.Net.Index
             }
             catch (Exception uoe) when (uoe.IsUnsupportedOperationException())
             {
-#pragma warning disable 612, 618
+#pragma warning disable CS0618 // Type or member is obsolete
                 if (currentCodec is Lucene3xCodec)
-#pragma warning restore 612, 618
+#pragma warning restore CS0618 // Type or member is obsolete
                 {
                     // OK: 3x codec cannot write a new SI file;
                     // SegmentInfos will write this on commit
@@ -3779,8 +3852,8 @@ namespace Lucene.Net.Index
         /// steps necessary to commit changes since this writer
         /// was opened: flushes pending added and deleted docs,
         /// syncs the index files, writes most of next segments_N
-        /// file.  After calling this you must call either 
-        /// <see cref="Commit()"/> to finish the commit, or 
+        /// file.  After calling this you must call either
+        /// <see cref="Commit()"/> to finish the commit, or
         /// <see cref="Rollback()"/> to revert the commit and undo all changes
         /// done since the writer was opened.</para>
         ///
@@ -4366,7 +4439,7 @@ namespace Lucene.Net.Index
                 // when entering the method, all iterators must already be beyond the
                 // deleted document, or right on it, in which case we advance them over
                 // and they must be beyond it now.
-                if (Debugging.AssertsEnabled) Debugging.Assert(iter.Doc > deletedDoc,"updateDoc={0} deletedDoc={1}", iter.Doc, deletedDoc);
+                if (Debugging.AssertsEnabled) Debugging.Assert(iter.Doc > deletedDoc, "updateDoc={0} deletedDoc={1}", iter.Doc, deletedDoc);
             }
         }
 
@@ -5913,7 +5986,7 @@ namespace Lucene.Net.Index
                 UninterruptableMonitor.Enter(this);
                 try
                 {
-                    if (Debugging.AssertsEnabled) Debugging.Assert(lastCommitChangeCount <= changeCount,"lastCommitChangeCount={0} changeCount={1}", lastCommitChangeCount, changeCount);
+                    if (Debugging.AssertsEnabled) Debugging.Assert(lastCommitChangeCount <= changeCount, "lastCommitChangeCount={0} changeCount={1}", lastCommitChangeCount, changeCount);
 
                     if (pendingCommitChangeCount == lastCommitChangeCount)
                     {
@@ -6063,7 +6136,7 @@ namespace Lucene.Net.Index
         /// after a merge completes.
         /// <para/>
         /// @lucene.experimental
-        /// 
+        ///
         /// <para/><b>NOTE</b>: <see cref="Warm(AtomicReader)"/> is called before any deletes have
         /// been carried over to the merged segment.
         /// </summary>

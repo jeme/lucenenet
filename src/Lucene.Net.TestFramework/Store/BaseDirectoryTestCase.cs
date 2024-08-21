@@ -1,6 +1,7 @@
 ﻿// Lucene version compatibility level 8.2.0
 // LUCENENET NOTE: This class now exists both here and in Lucene.Net.Tests
 using J2N.Threading;
+using Lucene.Net.Attributes;
 using Lucene.Net.Index;
 using Lucene.Net.Support;
 using Lucene.Net.Util;
@@ -455,6 +456,18 @@ namespace Lucene.Net.Store
             });
         }
 
+        /// <summary>
+        /// Make sure directory allows double-dispose as per the
+        /// <a href="https://learn.microsoft.com/en-us/dotnet/standard/design-guidelines/dispose-pattern">dispose pattern docs</a>.
+        /// </summary>
+        [Test]
+        [LuceneNetSpecific] // GH-841, GH-265
+        public virtual void TestDoubleDispose()
+        {
+            using Directory dir = GetDirectory(CreateTempDir("testDoubleDispose"));
+            Assert.DoesNotThrow(() => dir.Dispose());
+        }
+
         //        private class ListAllThread : ThreadJob
         //        {
         //            private readonly BaseDirectoryTestCase outerInstance;
@@ -861,7 +874,7 @@ namespace Lucene.Net.Store
             {
                 using IndexInput copiedData = d.OpenInput("copy" + i, IOContext.DEFAULT);
                 byte[] dataCopy = new byte[data.Length];
-                System.Array.Copy(data, 0, dataCopy, 0, 100);
+                Arrays.Copy(data, 0, dataCopy, 0, 100);
                 copiedData.ReadBytes(dataCopy, 100, data.Length - 100);
                 Assert.AreEqual(data, dataCopy);
             }
@@ -1207,7 +1220,7 @@ namespace Lucene.Net.Store
         //                    assertEquals(0, slice2.Position); // LUCENENET specific: Renamed from getFilePointer() to match FileStream
         //                    assertEquals(num - i - j, slice2.Length);
         //                    byte[] data = new byte[num];
-        //                    System.Array.Copy(bytes, 0, data, 0, i + j);
+        //                    Arrays.Copy(bytes, 0, data, 0, i + j);
         //                    if (Random.nextBoolean())
         //                    {
         //                        // read the bytes for this slice-of-slice

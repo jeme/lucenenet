@@ -35,7 +35,7 @@ namespace Lucene.Net.Index
         [Test]
         public virtual void TestCloseUnderException()
         {
-            int iters = 1000 + 1 + Random.nextInt(20);
+            int iters = 1000 + 1 + Random.Next(20);
             for (int j = 0; j < iters; j++)
             {
                 Directory dir = NewDirectory();
@@ -46,8 +46,8 @@ namespace Lucene.Net.Index
                 DirectoryReader open = DirectoryReader.Open(dir);
                 bool throwOnClose = !Rarely();
                 AtomicReader wrap = SlowCompositeReaderWrapper.Wrap(open);
-                FilterAtomicReader reader = new FilterAtomicReaderAnonymousClass(this, wrap, throwOnClose);
-                //IList<IndexReader.IReaderClosedListener> listeners = new JCG.List<IndexReader.IReaderClosedListener>(); // LUCENENET: This list is unused (and was unused in Java)
+                FilterAtomicReader reader = new FilterAtomicReaderAnonymousClass(wrap, throwOnClose);
+                //IList<IReaderDisposedListener> listeners = new JCG.List<IReaderDisposedListener>(); // LUCENENET: This list is unused (and was unused in Java)
                 int listenerCount = Random.Next(20);
                 AtomicInt32 count = new AtomicInt32();
                 bool faultySet = false;
@@ -56,17 +56,17 @@ namespace Lucene.Net.Index
                     if (Rarely())
                     {
                         faultySet = true;
-                        reader.AddReaderClosedListener(new FaultyListener());
+                        reader.AddReaderDisposedListener(new FaultyListener());
                     }
                     else
                     {
                         count.IncrementAndGet();
-                        reader.AddReaderClosedListener(new CountListener(count));
+                        reader.AddReaderDisposedListener(new CountListener(count));
                     }
                 }
                 if (!faultySet && !throwOnClose)
                 {
-                    reader.AddReaderClosedListener(new FaultyListener());
+                    reader.AddReaderDisposedListener(new FaultyListener());
                 }
                 try
                 {
@@ -87,7 +87,7 @@ namespace Lucene.Net.Index
 
                 try
                 {
-                    var aaa = reader.Fields;
+                    _ = reader.Fields;
                     Assert.Fail("we are closed");
                 }
                 catch (Exception ex) when (ex.IsAlreadyClosedException())
@@ -106,14 +106,11 @@ namespace Lucene.Net.Index
 
         private sealed class FilterAtomicReaderAnonymousClass : FilterAtomicReader
         {
-            private readonly TestIndexReaderClose outerInstance;
+            private readonly bool throwOnClose;
 
-            private bool throwOnClose;
-
-            public FilterAtomicReaderAnonymousClass(TestIndexReaderClose outerInstance, AtomicReader wrap, bool throwOnClose)
+            public FilterAtomicReaderAnonymousClass(AtomicReader wrap, bool throwOnClose)
                 : base(wrap)
             {
-                this.outerInstance = outerInstance;
                 this.throwOnClose = throwOnClose;
             }
 
@@ -127,24 +124,24 @@ namespace Lucene.Net.Index
             }
         }
 
-        private sealed class CountListener : IndexReader.IReaderClosedListener
+        private sealed class CountListener : IReaderDisposedListener
         {
-            internal readonly AtomicInt32 count;
+            private readonly AtomicInt32 count;
 
             public CountListener(AtomicInt32 count)
             {
                 this.count = count;
             }
 
-            public void OnClose(IndexReader reader)
+            public void OnDispose(IndexReader reader)
             {
                 count.DecrementAndGet();
             }
         }
 
-        private sealed class FaultyListener : IndexReader.IReaderClosedListener
+        private sealed class FaultyListener : IReaderDisposedListener
         {
-            public void OnClose(IndexReader reader)
+            public void OnDispose(IndexReader reader)
             {
                 throw IllegalStateException.Create("GRRRRRRRRRRRR!");
             }

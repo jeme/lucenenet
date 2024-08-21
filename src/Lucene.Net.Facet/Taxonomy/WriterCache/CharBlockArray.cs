@@ -1,9 +1,11 @@
 ﻿// Lucene version compatibility level 4.8.1
 using J2N.Text;
+using Lucene.Net.Support;
 using Lucene.Net.Support.IO;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Runtime.CompilerServices;
 using System.Text;
 using JCG = J2N.Collections.Generic;
 
@@ -36,7 +38,7 @@ namespace Lucene.Net.Facet.Taxonomy.WriterCache
     // therefore it doesn't make any difference what type of serialization is used. 
     // To make things simpler, we are using BinaryReader and BinaryWriter since 
     // BinaryFormatter is not implemented in .NET Standard 1.x.
-    internal class CharBlockArray : ICharSequence
+    internal class CharBlockArray : IAppendable, ICharSequence
     {
         private const long serialVersionUID = 1L;
 
@@ -59,7 +61,7 @@ namespace Lucene.Net.Facet.Taxonomy.WriterCache
             {
                 var clone = new Block(chars.Length);
                 clone.length = length;
-                Array.Copy(chars, clone.chars, chars.Length);
+                Arrays.Copy(chars, clone.chars, chars.Length);
                 return clone;
             }
 
@@ -119,20 +121,19 @@ namespace Lucene.Net.Facet.Taxonomy.WriterCache
             this.blocks.Add(this.current);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal virtual int BlockIndex(int index)
         {
             return index / blockSize;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal virtual int IndexInBlock(int index)
         {
             return index % blockSize;
         }
 
-        public virtual CharBlockArray Append(ICharSequence chars)
-        {
-            return Append(chars, 0, chars.Length);
-        }
+#nullable enable
 
         public virtual CharBlockArray Append(char c)
         {
@@ -146,45 +147,52 @@ namespace Lucene.Net.Facet.Taxonomy.WriterCache
             return this;
         }
 
-        public virtual CharBlockArray Append(ICharSequence chars, int start, int length)
+        public virtual CharBlockArray Append(ICharSequence? value)
         {
-            int end = start + length;
-            for (int i = start; i < end; i++)
+            if (value is null) // needed for Appendable compliance
             {
-                Append(chars[i]);
+                return this; // No-op
+            }
+
+            return Append(value, 0, value.Length);
+        }
+
+        public virtual CharBlockArray Append(ICharSequence? value, int startIndex, int length)
+        {
+            // LUCENENET: Changed semantics to be the same as the StringBuilder in .NET
+            if (startIndex < 0)
+                throw new ArgumentOutOfRangeException(nameof(startIndex), $"{nameof(startIndex)} must not be negative.");
+            if (length < 0)
+                throw new ArgumentOutOfRangeException(nameof(length), $"{nameof(length)} must not be negative.");
+
+            if (value is null)
+            {
+                if (startIndex == 0 && length == 0)
+                    return this;
+                throw new ArgumentNullException(nameof(value));
+            }
+            if (length == 0)
+                return this;
+            if (startIndex > value.Length - length)
+                throw new ArgumentOutOfRangeException(nameof(startIndex), $"Index and length must refer to a location within the string. For example {nameof(startIndex)} + {nameof(length)} <= {nameof(Length)}.");
+
+
+            int end = startIndex + length;
+            for (int i = startIndex; i < end; i++)
+            {
+                Append(value[i]);
             }
             return this;
         }
 
-        public virtual CharBlockArray Append(char[] chars, int start, int length)
+        public virtual CharBlockArray Append(char[]? value)
         {
-            int offset = start;
-            int remain = length;
-            while (remain > 0)
+            if (value is null) // needed for Appendable compliance
             {
-                if (this.current.length == this.blockSize)
-                {
-                    AddBlock();
-                }
-                int toCopy = remain;
-                int remainingInBlock = this.blockSize - this.current.length;
-                if (remainingInBlock < toCopy)
-                {
-                    toCopy = remainingInBlock;
-                }
-                Array.Copy(chars, offset, this.current.chars, this.current.length, toCopy);
-                offset += toCopy;
-                remain -= toCopy;
-                this.current.length += toCopy;
+                return this; // No-op
             }
 
-            this.length += length;
-            return this;
-        }
-
-        public virtual CharBlockArray Append(string s)
-        {
-            int remain = s.Length;
+            int remain = value.Length;
             int offset = 0;
             while (remain > 0)
             {
@@ -198,15 +206,233 @@ namespace Lucene.Net.Facet.Taxonomy.WriterCache
                 {
                     toCopy = remainingInBlock;
                 }
-                s.CopyTo(offset, this.current.chars, this.current.length, toCopy);
+                Arrays.Copy(value, offset, this.current.chars, this.current.length, toCopy);
                 offset += toCopy;
                 remain -= toCopy;
                 this.current.length += toCopy;
             }
 
-            this.length += s.Length;
+            this.length += value.Length;
             return this;
         }
+
+        public virtual CharBlockArray Append(char[]? value, int startIndex, int length)
+        {
+            // LUCENENET: Changed semantics to be the same as the StringBuilder in .NET
+            if (startIndex < 0)
+                throw new ArgumentOutOfRangeException(nameof(startIndex), $"{nameof(startIndex)} must not be negative.");
+            if (length < 0)
+                throw new ArgumentOutOfRangeException(nameof(length), $"{nameof(length)} must not be negative.");
+
+            if (value is null)
+            {
+                if (startIndex == 0 && length == 0)
+                    return this;
+                throw new ArgumentNullException(nameof(value));
+            }
+            if (length == 0)
+                return this;
+            if (startIndex > value.Length - length)
+                throw new ArgumentOutOfRangeException(nameof(startIndex), $"Index and length must refer to a location within the string. For example {nameof(startIndex)} + {nameof(length)} <= {nameof(Length)}.");
+
+
+            int offset = startIndex;
+            int remain = length;
+            while (remain > 0)
+            {
+                if (this.current.length == this.blockSize)
+                {
+                    AddBlock();
+                }
+                int toCopy = remain;
+                int remainingInBlock = this.blockSize - this.current.length;
+                if (remainingInBlock < toCopy)
+                {
+                    toCopy = remainingInBlock;
+                }
+                Arrays.Copy(value, offset, this.current.chars, this.current.length, toCopy);
+                offset += toCopy;
+                remain -= toCopy;
+                this.current.length += toCopy;
+            }
+
+            this.length += length;
+            return this;
+        }
+
+        public virtual CharBlockArray Append(string? value)
+        {
+            if (value is null) // needed for Appendable compliance
+            {
+                return this; // No-op
+            }
+
+            int remain = value.Length;
+            int offset = 0;
+            while (remain > 0)
+            {
+                if (this.current.length == this.blockSize)
+                {
+                    AddBlock();
+                }
+                int toCopy = remain;
+                int remainingInBlock = this.blockSize - this.current.length;
+                if (remainingInBlock < toCopy)
+                {
+                    toCopy = remainingInBlock;
+                }
+                value.CopyTo(offset, this.current.chars, this.current.length, toCopy);
+                offset += toCopy;
+                remain -= toCopy;
+                this.current.length += toCopy;
+            }
+
+            this.length += value.Length;
+            return this;
+        }
+
+        public virtual CharBlockArray Append(string? value, int startIndex, int length)
+        {
+            // LUCENENET: Changed semantics to be the same as the StringBuilder in .NET
+            if (startIndex < 0)
+                throw new ArgumentOutOfRangeException(nameof(startIndex), $"{nameof(startIndex)} must not be negative.");
+            if (length < 0)
+                throw new ArgumentOutOfRangeException(nameof(length), $"{nameof(length)} must not be negative.");
+
+            if (value is null)
+            {
+                if (startIndex == 0 && length == 0)
+                    return this;
+                throw new ArgumentNullException(nameof(value));
+            }
+            if (length == 0)
+                return this;
+            if (startIndex > value.Length - length)
+                throw new ArgumentOutOfRangeException(nameof(startIndex), $"Index and length must refer to a location within the string. For example {nameof(startIndex)} + {nameof(length)} <= {nameof(Length)}.");
+
+
+            int offset = startIndex;
+            int remain = length;
+            while (remain > 0)
+            {
+                if (this.current.length == this.blockSize)
+                {
+                    AddBlock();
+                }
+                int toCopy = remain;
+                int remainingInBlock = this.blockSize - this.current.length;
+                if (remainingInBlock < toCopy)
+                {
+                    toCopy = remainingInBlock;
+                }
+                value.CopyTo(offset, this.current.chars, this.current.length, toCopy);
+                offset += toCopy;
+                remain -= toCopy;
+                this.current.length += toCopy;
+            }
+
+            this.length += length;
+            return this;
+        }
+
+        public virtual CharBlockArray Append(StringBuilder? value)
+        {
+            if (value is null) // needed for Appendable compliance
+            {
+                return this; // No-op
+            }
+
+            int remain = value.Length;
+            int offset = 0;
+            while (remain > 0)
+            {
+                if (this.current.length == this.blockSize)
+                {
+                    AddBlock();
+                }
+                int toCopy = remain;
+                int remainingInBlock = this.blockSize - this.current.length;
+                if (remainingInBlock < toCopy)
+                {
+                    toCopy = remainingInBlock;
+                }
+                value.CopyTo(offset, this.current.chars, this.current.length, toCopy);
+                offset += toCopy;
+                remain -= toCopy;
+                this.current.length += toCopy;
+            }
+
+            this.length += value.Length;
+            return this;
+        }
+
+        public virtual CharBlockArray Append(StringBuilder? value, int startIndex, int length)
+        {
+            // LUCENENET: Changed semantics to be the same as the StringBuilder in .NET
+            if (startIndex < 0)
+                throw new ArgumentOutOfRangeException(nameof(startIndex), $"{nameof(startIndex)} must not be negative.");
+            if (length < 0)
+                throw new ArgumentOutOfRangeException(nameof(length), $"{nameof(length)} must not be negative.");
+
+            if (value is null)
+            {
+                if (startIndex == 0 && length == 0)
+                    return this;
+                throw new ArgumentNullException(nameof(value));
+            }
+            if (length == 0)
+                return this;
+            if (startIndex > value.Length - length)
+                throw new ArgumentOutOfRangeException(nameof(startIndex), $"Index and length must refer to a location within the string. For example {nameof(startIndex)} + {nameof(length)} <= {nameof(Length)}.");
+
+            int offset = startIndex;
+            int remain = length;
+            while (remain > 0)
+            {
+                if (this.current.length == this.blockSize)
+                {
+                    AddBlock();
+                }
+                int toCopy = remain;
+                int remainingInBlock = this.blockSize - this.current.length;
+                if (remainingInBlock < toCopy)
+                {
+                    toCopy = remainingInBlock;
+                }
+                value.CopyTo(offset, this.current.chars, this.current.length, toCopy);
+                offset += toCopy;
+                remain -= toCopy;
+                this.current.length += toCopy;
+            }
+
+            this.length += length;
+            return this;
+        }
+
+#nullable restore
+
+        #region IAppendable Members
+
+        IAppendable IAppendable.Append(char value) => Append(value);
+
+        IAppendable IAppendable.Append(string value) => Append(value);
+
+        IAppendable IAppendable.Append(string value, int startIndex, int count) => Append(value, startIndex, count);
+
+        IAppendable IAppendable.Append(StringBuilder value) => Append(value);
+
+        IAppendable IAppendable.Append(StringBuilder value, int startIndex, int count) => Append(value, startIndex, count);
+
+        IAppendable IAppendable.Append(char[] value) => Append(value);
+
+        IAppendable IAppendable.Append(char[] value, int startIndex, int count) => Append(value, startIndex, count);
+
+        IAppendable IAppendable.Append(ICharSequence value) => Append(value);
+
+        IAppendable IAppendable.Append(ICharSequence value, int startIndex, int count) => Append(value, startIndex, count);
+
+
+        #endregion
 
         // LUCENENET specific - replaced with this[index]
         //public virtual char CharAt(int index)
@@ -315,6 +541,75 @@ namespace Lucene.Net.Facet.Taxonomy.WriterCache
         public static CharBlockArray Open(Stream @in)
         {
             return new CharBlockArray(@in);
+        }
+
+
+        // LUCENENET specific - Lucene allocated memory using Subsequence and
+        // then called hashCode(), which calculated based on the value of the subsequence.
+        // However, in .NET this uses the indexer of the StringBuilder that Subsequence returned,
+        // which is super slow
+        // (see: https://learn.microsoft.com/en-us/dotnet/api/system.text.stringbuilder.chars).
+        // But this operation doesn't require an allocation at all if we simply calculate the
+        // value based off of the chars that are in the CharArrayBlock.
+        //
+        // This is a combination of Subsequence(int, int) and the J2N.Text.CharSequenceComparer.Ordinal.GetHashCode()
+        // implementation. The hash code calculated must be kept in sync with the J2N implementation
+        // (which originated in Apache Harmony) in order to return the correct result.
+        internal int GetHashCode(int startIndex, int length)
+        {
+            if (length == 0)
+                return 0;
+            int hash = 0;
+            int remaining = length;
+            int blockIdx = BlockIndex(startIndex);
+            int indexInBlock = IndexInBlock(startIndex);
+            while (remaining > 0)
+            {
+                Block b = blocks[blockIdx++];
+                int numToCheck = Math.Min(remaining, b.length - indexInBlock);
+                int end = indexInBlock + numToCheck;
+                var chars = b.chars;
+                for (int i = indexInBlock; i < end; i++)
+                {
+                    // Hash code calculation from J2N/Apache Harmony
+                    hash = chars[i] + ((hash << 5) - hash);
+                }
+                remaining -= numToCheck;
+                indexInBlock = 0; // 2nd+ iterations read from start of the block
+            }
+            return hash;
+        }
+
+        /// <summary>
+        /// Compares a slice of this <see cref="CharBlockArray"/> to <paramref name="other"/>
+        /// for binary (ordinal) equality. Does not allocate any memory.
+        /// <para/>
+        /// LUCENENET specific.
+        /// </summary>
+        /// <param name="startIndex">The start index of this <see cref="CharBlockArray"/>.</param>
+        /// <param name="length">The length of characters to compare.</param>
+        /// <param name="other">The other character sequence to check for equality.</param>
+        /// <returns><c>true</c> if the two character sequences are equal; otherwise <c>false</c></returns>
+        internal bool Equals(int startIndex, int length, ReadOnlySpan<char> other)
+        {
+            if (other.Length != length) return false;
+
+            int remaining = length;
+            int blockIdx = BlockIndex(startIndex);
+            int indexInBlock = IndexInBlock(startIndex);
+            int otherIndex = 0;
+            while (remaining > 0)
+            {
+                Block b = blocks[blockIdx++];
+                int numToCheck = Math.Min(remaining, b.length - indexInBlock);
+                var charsToCheck = b.chars.AsSpan(indexInBlock, numToCheck);
+                if (!other.Slice(otherIndex, numToCheck).Equals(charsToCheck, StringComparison.Ordinal))
+                    return false;
+                remaining -= numToCheck;
+                otherIndex += numToCheck;
+                indexInBlock = 0; // 2nd+ iterations read from start of the block
+            }
+            return true;
         }
     }
 }

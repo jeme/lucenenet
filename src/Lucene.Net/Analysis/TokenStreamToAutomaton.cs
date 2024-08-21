@@ -1,9 +1,8 @@
-using J2N;
+﻿using J2N;
 using Lucene.Net.Analysis.TokenAttributes;
 using Lucene.Net.Diagnostics;
 using Lucene.Net.Util;
 using System;
-using System.Diagnostics;
 
 namespace Lucene.Net.Analysis
 {
@@ -71,7 +70,7 @@ namespace Lucene.Net.Analysis
             set => this.unicodeArcs = value;
         }
 
-        private class Position : RollingBuffer.IResettable
+        private class Position : IResettable
         {
             // Any tokens that ended at our position arrive to this state:
             internal State arriving;
@@ -88,18 +87,9 @@ namespace Lucene.Net.Analysis
 
         private class Positions : RollingBuffer<Position>
         {
+            // LUCENENET specific - removed NewInstance override and using PositionsFactory to create instances
             public Positions()
-                : base(NewPosition) { }
-
-            protected override Position NewInstance()
-            {
-                return NewPosition();
-            }
-
-            private static Position NewPosition()
-            {
-                return new Position();
-            }
+                : base(RollingBufferItemFactory<Position>.Default) { }
         }
 
         /// <summary>
